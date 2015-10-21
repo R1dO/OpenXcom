@@ -58,6 +58,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	Craft *c = _base->getCrafts()->at(_craft);
 	bool craftHasACrew = c->getNumSoldiers() > 0;
 	bool isNewBattle = _game->isSkirmish();
+	_totalCraftCrewSpace = c->getNumSoldiers();
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -526,7 +527,7 @@ void CraftEquipmentState::moveToCraft(int change)
 	{
 		// Check if there's enough room.
 		int room = std::min((c->getRules()->getVehicles() - _totalCraftVehicles),
-		                    (c->getSpaceMax() - c->getNumSoldiers() - _totalCraftCrewSpace) /
+		                    (c->getSpaceMax() - _totalCraftCrewSpace) /
 		                    _game->getMod()->getUnit(item->getType())->getBattleSize());
 		if (room < 0) // RuleSet changes since last save.
 		{
@@ -616,8 +617,8 @@ void CraftEquipmentState::moveToCraft(int change)
 void CraftEquipmentState::updateDerivedInfo()
 {
 	Craft *c = _base->getCrafts()->at(_craft);
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceMax() - c->getNumSoldiers() - _totalCraftCrewSpace));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getNumSoldiers() + _totalCraftCrewSpace));
+	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceMax() - _totalCraftCrewSpace));
+	_txtUsed->setText(tr("STR_SPACE_USED").arg(_totalCraftCrewSpace));
 }
 
 /**
