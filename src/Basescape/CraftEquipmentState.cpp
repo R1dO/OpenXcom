@@ -163,9 +163,11 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 		{
 			int bQty = _base->getStorageItems()->getItem(*i);
 			int cQty = 0;  // Number of items in craft
+			int assignedQty = 0; // Minimum amount needed for soldier loadout or HWP ammo.
 			if (! item->isFixed()) // Normal equipment
 			{
 				cQty = c->getItems()->getItem(*i);
+				assignedQty = c->getItemAssignedCount(*i);
 				_totalCraftItems += cQty;
 
 				// If this item is a vehicle ammoclip, add implicitly stored amount.
@@ -176,6 +178,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 					if (ammoKey != inCraftVehicleAmmo.end())
 					{
 						cQty += ammoKey->second;
+						assignedQty += ammoKey->second; // In case HWP shares ammo with other weapons.
 					}
 				}
 			}
@@ -189,7 +192,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 
 			if (bQty > 0 || cQty > 0)
 			{
-				EquipmentRow row = { item, tr(*i), bQty, cQty, 0 };
+				EquipmentRow row = { item, tr(*i), bQty, cQty, 0, assignedQty };
 				_items.push_back(row);
 				if (item->isAmmo()) // Track ammo since it will be referenced a lot.
 				{
@@ -448,8 +451,8 @@ void CraftEquipmentState::moveLeft()
  */
 void CraftEquipmentState::moveToBase(int change)
 {
-	if (change < 0 || getRow().cQty <= getRow().amount) return; // Invalid or not enough in craft
-	change = std::min(getRow().cQty - getRow().amount, change); // Max based on in craft items, taking into account previous changes.
+	if (change < 0 || getRow().cQty - getRow().assignedQty <= getRow().amount ) return; // Invalid or not enough in craft
+	change = std::min(getRow().cQty - getRow().assignedQty - getRow().amount, change); // Max based on in craft items, taking into account previous changes and reserved amounts
 
 	RuleItem *item = getRow().rule;
 	if (item->isFixed()) // Its a vehicle
@@ -469,6 +472,7 @@ void CraftEquipmentState::moveToBase(int change)
 
 				size_t currentSel = _sel;
 				_sel = search->second; // Mimic mouse selection (even when row is hidden).
+				getRow().assignedQty -= change * clipsPerVehicle; // Remove protection from clips.
 				moveToBase(change * clipsPerVehicle);
 				_sel = currentSel; // Return focus to vehicle row.
 			}
@@ -576,6 +580,7 @@ void CraftEquipmentState::moveToCraft(int change)
 
 				size_t currentSel = _sel;
 				_sel = search->second; // Mimic mouse selection (even when row is hidden).
+				getRow().assignedQty += change * clipsPerVehicle - extraClips; // Protect said amount of clips.
 				moveToCraft(change * clipsPerVehicle - extraClips);
 				_sel = currentSel; // Return focus to vehicle row.
 			}
