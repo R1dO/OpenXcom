@@ -86,6 +86,7 @@
 #include "RuleGlobe.h"
 #include "RuleVideo.h"
 #include "RuleConverter.h"
+#include <iostream>
 
 #define ARRAYLEN(x) (sizeof(x) / sizeof(x[0]))
 
@@ -725,6 +726,9 @@ void Mod::loadAll(const std::vector< std::pair< std::string, std::vector<std::st
 	}
 	for (size_t i = 0; mods.size() > i; ++i)
 	{
+		const std::string ss1 = mods[i].first;
+		std::cout << "itt:" << i << std::endl;
+		std::cout << "mod1:" << ss1  << std::endl;
 		try
 		{
 			loadMod(mods[i].second, modOffsets[i]);
@@ -771,6 +775,8 @@ void Mod::loadMod(const std::vector<std::string> &rulesetFiles, size_t modIdx)
 
 	for (std::vector<std::string>::const_iterator i = rulesetFiles.begin(); i != rulesetFiles.end(); ++i)
 	{
+		std::cout << "ruleset:" << *i << std::endl;
+
 		Log(LOG_VERBOSE) << "- " << *i;
 		try
 		{
@@ -853,6 +859,7 @@ void Mod::loadMod(const std::vector<std::string> &rulesetFiles, size_t modIdx)
 void Mod::loadFile(const std::string &filename)
 {
 	YAML::Node doc = YAML::LoadFile(filename);
+	std::cout << "succesfull read" << filename << std::endl;
 
 	for (YAML::const_iterator i = doc["countries"].begin(); i != doc["countries"].end(); ++i)
 	{
@@ -862,6 +869,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i);
 		}
 	}
+	std::cout << "succesfull cast country" << std::endl;
 	for (YAML::const_iterator i = doc["regions"].begin(); i != doc["regions"].end(); ++i)
 	{
 		RuleRegion *rule = loadRule(*i, &_regions, &_regionsIndex);
@@ -870,6 +878,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i);
 		}
 	}
+	std::cout << "succesfull cast regions" << std::endl;
 	for (YAML::const_iterator i = doc["facilities"].begin(); i != doc["facilities"].end(); ++i)
 	{
 		RuleBaseFacility *rule = loadRule(*i, &_facilities, &_facilitiesIndex);
@@ -879,6 +888,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i, this, _facilityListOrder);
 		}
 	}
+	std::cout << "succesfull cast facilities" << std::endl;
 	for (YAML::const_iterator i = doc["crafts"].begin(); i != doc["crafts"].end(); ++i)
 	{
 		RuleCraft *rule = loadRule(*i, &_crafts, &_craftsIndex);
@@ -888,6 +898,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i, this, _craftListOrder);
 		}
 	}
+	std::cout << "succesfull cast crafts" << std::endl;
 	for (YAML::const_iterator i = doc["craftWeapons"].begin(); i != doc["craftWeapons"].end(); ++i)
 	{
 		RuleCraftWeapon *rule = loadRule(*i, &_craftWeapons, &_craftWeaponsIndex);
@@ -896,6 +907,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i, this);
 		}
 	}
+	std::cout << "succesfull cast craftweapons" << std::endl;
 	for (YAML::const_iterator i = doc["items"].begin(); i != doc["items"].end(); ++i)
 	{
 		RuleItem *rule = loadRule(*i, &_items, &_itemsIndex);
@@ -905,6 +917,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i, this, _itemListOrder);
 		}
 	}
+	std::cout << "succesfull cast items" << std::endl;
 	for (YAML::const_iterator i = doc["ufos"].begin(); i != doc["ufos"].end(); ++i)
 	{
 		RuleUfo *rule = loadRule(*i, &_ufos, &_ufosIndex);
@@ -913,6 +926,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i, this);
 		}
 	}
+	std::cout << "succesfull cast ufos" << std::endl;
 	for (YAML::const_iterator i = doc["invs"].begin(); i != doc["invs"].end(); ++i)
 	{
 		RuleInventory *rule = loadRule(*i, &_invs, &_invsIndex, "id");
@@ -922,6 +936,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i, _invListOrder);
 		}
 	}
+	std::cout << "succesfull cast invs" << std::endl;
 	for (YAML::const_iterator i = doc["terrains"].begin(); i != doc["terrains"].end(); ++i)
 	{
 		RuleTerrain *rule = loadRule(*i, &_terrains, &_terrainIndex, "name");
@@ -930,6 +945,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i, this);
 		}
 	}
+	std::cout << "succesfull cast terrains" << std::endl;
 	for (YAML::const_iterator i = doc["armors"].begin(); i != doc["armors"].end(); ++i)
 	{
 		Armor *rule = loadRule(*i, &_armors, &_armorsIndex);
@@ -938,6 +954,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i);
 		}
 	}
+	std::cout << "succesfull cast armors" << std::endl;
 	for (YAML::const_iterator i = doc["soldiers"].begin(); i != doc["soldiers"].end(); ++i)
 	{
 		RuleSoldier *rule = loadRule(*i, &_soldiers, &_soldiersIndex);
@@ -946,6 +963,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i, this);
 		}
 	}
+	std::cout << "succesfull cast soldiers" << std::endl;
 	for (YAML::const_iterator i = doc["units"].begin(); i != doc["units"].end(); ++i)
 	{
 		Unit *rule = loadRule(*i, &_units);
@@ -954,22 +972,30 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i, this);
 		}
 	}
+	std::cout << "succesfull cast units" << std::endl;
 	for (YAML::const_iterator i = doc["alienRaces"].begin(); i != doc["alienRaces"].end(); ++i)
 	{
+		std::cout << "alienRace:\n" << *i << std::endl;
 		AlienRace *rule = loadRule(*i, &_alienRaces, &_aliensIndex, "id");
 		if (rule != 0)
 		{
 			rule->load(*i);
 		}
 	}
+	std::cout << "succesfull cast alienRaces" << std::endl;
 	for (YAML::const_iterator i = doc["alienDeployments"].begin(); i != doc["alienDeployments"].end(); ++i)
 	{
+		// reached once
+		std::cout << "research ID:\n" << *i << std::endl;
 		AlienDeployment *rule = loadRule(*i, &_alienDeployments, &_deploymentsIndex);
+		std::cout << "Rule ID:\n" << rule << std::endl;
 		if (rule != 0)
 		{
 			rule->load(*i, this);
 		}
+		std::cout << "Loaded deployment rule:" << rule << std::endl;
 	}
+	std::cout << "succesfull cast alienDeployments" << std::endl;
 	for (YAML::const_iterator i = doc["research"].begin(); i != doc["research"].end(); ++i)
 	{
 		RuleResearch *rule = loadRule(*i, &_research, &_researchIndex, "name");
@@ -983,6 +1009,7 @@ void Mod::loadFile(const std::string &filename)
 			}
 		}
 	}
+	std::cout << "succesfull cast research" << std::endl;
 	for (YAML::const_iterator i = doc["manufacture"].begin(); i != doc["manufacture"].end(); ++i)
 	{
 		RuleManufacture *rule = loadRule(*i, &_manufacture, &_manufactureIndex, "name");
@@ -992,6 +1019,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i, _manufactureListOrder);
 		}
 	}
+	std::cout << "succesfull cast manufacture" << std::endl;
 	for (YAML::const_iterator i = doc["ufopaedia"].begin(); i != doc["ufopaedia"].end(); ++i)
 	{
 		if ((*i)["id"])
@@ -1061,6 +1089,7 @@ void Mod::loadFile(const std::string &filename)
 			}
 		}
 	}
+	std::cout << "succesfull cast ufopaedia" << std::endl;
 	// Bases can't be copied, so for savegame purposes we store the node instead
 	YAML::Node base = doc["startingBase"];
 	if (base)
@@ -1070,10 +1099,12 @@ void Mod::loadFile(const std::string &filename)
 			_startingBase[i->first.as<std::string>()] = YAML::Node(i->second);
 		}
 	}
+	std::cout << "succesfull cast startingBase" << std::endl;
 	if (doc["startingTime"])
 	{
 		_startingTime.load(doc["startingTime"]);
 	}
+	std::cout << "succesfull cast startingTime" << std::endl;
 	_costEngineer = doc["costEngineer"].as<int>(_costEngineer);
 	_costScientist = doc["costScientist"].as<int>(_costScientist);
 	_timePersonnel = doc["timePersonnel"].as<int>(_timePersonnel);
@@ -1084,6 +1115,7 @@ void Mod::loadFile(const std::string &filename)
 	_turnAIUseBlaster = doc["turnAIUseBlaster"].as<int>(_turnAIUseBlaster);
 	_defeatScore = doc["defeatScore"].as<int>(_defeatScore);
 	_defeatFunds = doc["defeatFunds"].as<int>(_defeatFunds);
+	std::cout << "succesfull cast OPTIONS" << std::endl;
 	if (doc["difficultyCoefficient"])
 	{
 		size_t num = 0;
@@ -1094,6 +1126,7 @@ void Mod::loadFile(const std::string &filename)
 			++num;
 		}
 	}
+	std::cout << "succesfull cast difficultyCoefficient" << std::endl;
 	for (YAML::const_iterator i = doc["ufoTrajectories"].begin(); i != doc["ufoTrajectories"].end(); ++i)
 	{
 		UfoTrajectory *rule = loadRule(*i, &_ufoTrajectories, 0, "id");
@@ -1102,6 +1135,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i);
 		}
 	}
+	std::cout << "succesfull cast ufoTrajectories" << std::endl;
 	for (YAML::const_iterator i = doc["alienMissions"].begin(); i != doc["alienMissions"].end(); ++i)
 	{
 		RuleAlienMission *rule = loadRule(*i, &_alienMissions, &_alienMissionsIndex);
@@ -1110,7 +1144,9 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i);
 		}
 	}
+	std::cout << "succesfull cast alienMissions" << std::endl;
 	_alienItemLevels = doc["alienItemLevels"].as< std::vector< std::vector<int> > >(_alienItemLevels);
+	std::cout << "succesfull cast alienItemLevels" << std::endl;
 	for (YAML::const_iterator i = doc["MCDPatches"].begin(); i != doc["MCDPatches"].end(); ++i)
 	{
 		std::string type = (*i)["type"].as<std::string>();
@@ -1125,6 +1161,7 @@ void Mod::loadFile(const std::string &filename)
 			_MCDPatches[type] = patch;
 		}
 	}
+	std::cout << "succesfull cast MCDPatches" << std::endl;
 	for (YAML::const_iterator i = doc["extraSprites"].begin(); i != doc["extraSprites"].end(); ++i)
 	{
 		if ((*i)["type"])
@@ -1155,6 +1192,7 @@ void Mod::loadFile(const std::string &filename)
 		extraSounds->load(*i, _modOffset);
 		_extraSounds.push_back(std::make_pair(type, extraSounds));
 	}
+	std::cout << "succesfull cast extraSounds" << std::endl;
 	for (YAML::const_iterator i = doc["extraStrings"].begin(); i != doc["extraStrings"].end(); ++i)
 	{
 		std::string type = (*i)["type"].as<std::string>();
@@ -1169,6 +1207,7 @@ void Mod::loadFile(const std::string &filename)
 			_extraStrings[type] = extraStrings;
 		}
 	}
+	std::cout << "succesfull cast extraStrings" << std::endl;
 
 	for (YAML::const_iterator i = doc["statStrings"].begin(); i != doc["statStrings"].end(); ++i)
 	{
@@ -1176,6 +1215,7 @@ void Mod::loadFile(const std::string &filename)
 		statString->load(*i);
 		_statStrings.push_back(statString);
 	}
+	std::cout << "succesfull cast statStrings" << std::endl;
 
 	for (YAML::const_iterator i = doc["interfaces"].begin(); i != doc["interfaces"].end(); ++i)
 	{
@@ -1185,6 +1225,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i);
 		}
 	}
+	std::cout << "succesfull cast interfaces" << std::endl;
 	for (YAML::const_iterator i = doc["soundDefs"].begin(); i != doc["soundDefs"].end(); ++i)
 	{
 		SoundDefinition *rule = loadRule(*i, &_soundDefs);
@@ -1193,10 +1234,12 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i);
 		}
 	}
+	std::cout << "succesfull cast soundDefs" << std::endl;
 	if (doc["globe"])
 	{
 		_globe->load(doc["globe"]);
 	}
+	std::cout << "succesfull cast globe" << std::endl;
 	if (doc["converter"])
 	{
 		_converter->load(doc["converter"]);
@@ -1247,6 +1290,7 @@ void Mod::loadFile(const std::string &filename)
 		DEBRIEF_MUSIC_GOOD = (*i)["goodDebriefingMusic"].as<std::string>(DEBRIEF_MUSIC_GOOD);
 		DEBRIEF_MUSIC_BAD = (*i)["badDebriefingMusic"].as<std::string>(DEBRIEF_MUSIC_BAD);
 	}
+	std::cout << "succesfull cast constants" << std::endl;
 	for (YAML::const_iterator i = doc["transparencyLUTs"].begin(); i != doc["transparencyLUTs"].end(); ++i)
 	{
 		for (YAML::const_iterator j = (*i)["colors"].begin(); j != (*i)["colors"].end(); ++j)
@@ -1259,6 +1303,7 @@ void Mod::loadFile(const std::string &filename)
 			_transparencies.push_back(color);
 		}
 	}
+	std::cout << "succesfull cast transparencyLUTs" << std::endl;
 	for (YAML::const_iterator i = doc["mapScripts"].begin(); i != doc["mapScripts"].end(); ++i)
 	{
 		std::string type = (*i)["type"].as<std::string>();
@@ -1281,6 +1326,7 @@ void Mod::loadFile(const std::string &filename)
 			_mapScripts[type].push_back(mapScript);
 		}
 	}
+	std::cout << "succesfull cast mapScripts" << std::endl;
 	for (YAML::const_iterator i = doc["missionScripts"].begin(); i != doc["missionScripts"].end(); ++i)
 	{
 		RuleMissionScript *rule = loadRule(*i, &_missionScripts, &_missionScriptIndex, "type");
@@ -1289,6 +1335,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i);
 		}
 	}
+	std::cout << "succesfull cast missionScripts" << std::endl;
 
 	// refresh _psiRequirements for psiStrengthEval
 	for (std::vector<std::string>::const_iterator i = _facilitiesIndex.begin(); i != _facilitiesIndex.end(); ++i)
@@ -1309,6 +1356,7 @@ void Mod::loadFile(const std::string &filename)
 			rule->load(*i);
 		}
 	}
+	std::cout << "succesfull cast cutscenes" << std::endl;
 	for (YAML::const_iterator i = doc["musics"].begin(); i != doc["musics"].end(); ++i)
 	{
 		RuleMusic *rule = loadRule(*i, &_musicDefs);

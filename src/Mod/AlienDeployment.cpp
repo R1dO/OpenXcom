@@ -17,6 +17,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "AlienDeployment.h"
+#include <iostream>
 
 namespace YAML
 {
@@ -133,9 +134,16 @@ AlienDeployment::~AlienDeployment()
  */
 void AlienDeployment::load(const YAML::Node &node, Mod *mod)
 {
+	int oeps = 1;
 	_type = node["type"].as<std::string>(_type);
+	std::cout << "Loaded AlienDeployment rule:" << oeps << std::endl;
+	oeps+=1;
 	_data = node["data"].as< std::vector<DeploymentData> >(_data);
+	std::cout << "Loaded AlienDeployment rule:" << oeps << std::endl;
+	oeps+=1;
 	_width = node["width"].as<int>(_width);
+	std::cout << "Loaded AlienDeployment rule:" << oeps << std::endl;
+	oeps+=1;
 	_length = node["length"].as<int>(_length);
 	_height = node["height"].as<int>(_height);
 	_civilians = node["civilians"].as<int>(_civilians);
