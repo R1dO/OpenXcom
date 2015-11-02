@@ -39,6 +39,7 @@
 #ifdef __MORPHOS__
 #include <ppcinline/exec.h>
 #endif
+#include "../Engine/Options.h"
 
 namespace OpenXcom
 {
@@ -689,6 +690,32 @@ void Surface::draw()
 {
 	_redraw = false;
 	clear();
+
+	// Show text borders for debugging
+	if (Options::debugUi)
+	{
+		SDL_Rect nw, se;
+
+		//lower + right line (se)
+		se.w = getWidth();
+		se.h = getHeight();
+		se.x = 0;
+		se.y = 0;
+		this->drawRect(&se, 5);
+
+		// override with upper + left line (nw)
+		nw.w = getWidth()-1;
+		nw.h = getHeight()-1;
+		nw.x = 0;
+		nw.y = 0;
+		this->drawRect(&nw, 1);
+
+		nw.w-=1;
+		nw.h-=1;
+		nw.x++;
+		nw.y++;
+		this->drawRect(&nw, 0);
+	}
 }
 
 /**
