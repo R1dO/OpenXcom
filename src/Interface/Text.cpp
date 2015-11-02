@@ -19,7 +19,6 @@
 #include "Text.h"
 #include <cmath>
 #include "../Engine/Font.h"
-#include "../Engine/Options.h"
 #include "../Engine/Language.h"
 #include "../Engine/Unicode.h"
 #include "../Engine/ShaderDraw.h"
@@ -479,22 +478,6 @@ void Text::draw()
 	if (_text.empty() || _font == 0)
 	{
 		return;
-	}
-
-	// Show text borders for debugging
-	if (Options::debugUi)
-	{
-		SDL_Rect r;
-		r.w = getWidth();
-		r.h = getHeight();
-		r.x = 0;
-		r.y = 0;
-		this->drawRect(&r, 5);
-		r.w-=2;
-		r.h-=2;
-		r.x++;
-		r.y++;
-		this->drawRect(&r, 0);
 	}
 
 	int x = 0, y = 0, line = 0, height = 0;
