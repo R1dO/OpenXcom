@@ -19,9 +19,11 @@ ln -sf $dev_config_file $config_file
 # Assumes geany basepath equals repository root, and the working dir of the
 # program is set to "%p".
 if [ -f bin/openxcom ]; then
-    bin/openxcom
+    cd bin
+    ./openxcom
 else
-    build/bin/openxcom  # Out of source build
+    cd build/bin
+    ./openxcom  # Out of source build
 fi
 
 echo "openXcom exit status = $?"
