@@ -411,3 +411,6 @@ en-GB:
   STR_THROWING_ACCURACY_ABBREVIATION: "THR"
   STR_STRENGTH_ABBREVIATION: "STR"
   STR_MELEE_ACCURACY_ABBREVIATION: "MEL"
+# Demo
+  STR_DEMO_ALTERNATE_ITEM_SCREENS: "Alternate item screens"
+  STR_DEMO_ALTERNATE_ITEM_SCREENS_DESC: "Demonstration of alternate appearance for the following base screens:{NEWLINE}* Purchase Screen"

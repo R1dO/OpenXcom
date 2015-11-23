@@ -101,7 +101,11 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 
 	_txtTitle->setBig();
 	_txtTitle->setAlign(ALIGN_CENTER);
-	_txtTitle->setText(tr("STR_PURCHASE_HIRE_PERSONNEL"));
+
+	if (Options::alternateItemScreens)
+	{_txtTitle->setText(tr("STR_DEMO_ALTERNATE_ITEM_SCREENS"));}
+	else
+	{_txtTitle->setText(tr("STR_PURCHASE_HIRE_PERSONNEL"));}
 
 	_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
 
