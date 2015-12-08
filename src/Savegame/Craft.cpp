@@ -890,13 +890,22 @@ bool Craft::isDestroyed() const
 }
 
 /**
- * Returns the amount of space available for
+ * Returns the amount of unused space available for
  * soldiers and vehicles.
  * @return Space available.
  */
 int Craft::getSpaceAvailable() const
 {
-	return _rules->getSoldiers() - getSpaceUsed();
+	return getSpaceMax() - getSpaceUsed();
+}
+
+/**
+ * Returns the total amount of space for soldiers and vehicles.
+ * @return Space available.
+ */
+int Craft::getSpaceMax() const
+{
+	return _rules->getSoldiers();
 }
 
 /**

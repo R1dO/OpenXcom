@@ -159,8 +159,10 @@ public:
 	bool isInBattlescape() const;
 	/// Gets if craft is destroyed during dogfights.
 	bool isDestroyed() const;
-	/// Gets the amount of space available inside a craft.
+	/// Gets the amount of unused crew space inside a craft.
 	int getSpaceAvailable() const;
+	/// Gets the amount of space for soldiers and vehicles.
+	int getSpaceMax() const;
 	/// Gets the amount of space used inside a craft.
 	int getSpaceUsed() const;
 	/// Gets the craft's vehicles of a certain type.
