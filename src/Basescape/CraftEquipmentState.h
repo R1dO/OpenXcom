@@ -20,6 +20,7 @@
 #include "../Engine/State.h"
 #include <vector>
 #include <string>
+#include "../Mod/RuleItem.h"
 
 namespace OpenXcom
 {
@@ -32,7 +33,7 @@ namespace OpenXcom
  */
 struct EquipmentRow
 {
-	void *rule;  ///< Pointer to ruleset of item.
+	RuleItem *rule;  ///< Pointer to ruleset of item.
 	std::wstring name;  ///< Translated name of item.
 	int space;  ///< Amount of crew size an item uses (for vehicles).
 	int bQty;  ///< Starting amount of base stores.
