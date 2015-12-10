@@ -94,6 +94,8 @@ public:
 	bool isState(State *state) const;
 	/// Returns whether the game is shutting down.
 	bool isQuitting() const;
+	/// Returns whether the game is in campaign mode.
+	bool isCampaign() const;
 	/// Loads the default and current language.
 	void loadLanguages();
 	/// Sets up the audio.
