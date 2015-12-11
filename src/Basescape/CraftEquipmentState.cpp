@@ -57,7 +57,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 {
 	Craft *c = _base->getCrafts()->at(_craft);
 	bool craftHasACrew = c->getNumSoldiers() > 0;
-	bool isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
+	bool isNewBattle = ! _game->isCampaign();
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -198,7 +198,8 @@ void CraftEquipmentState::init()
 
 /**
  * Updates displayed item list.
- * Sets the name of each list item.
+ * Sets the name of each list item, uses updateItemRow() to set values.
+ * Will always reset the row pointed to by the mouse.
  */
 void CraftEquipmentState::updateList()
 {
@@ -218,7 +219,11 @@ void CraftEquipmentState::updateList()
 		}
 		_lstEquipment->addRow(3, ssName.c_str(), L"", L"");
 		_rows.push_back(row);
+
+		_sel = row; // Mimic selection of row by mouse.
+		updateItemRow();
 	}
+	_sel = 0;  // Clean up
 }
 
 /**
@@ -346,57 +351,35 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
 }
 
 /**
- * Updates the displayed quantities of the
- * selected item on the list.
+ * Updates quantity strings and row color of the selected item.
  */
-void CraftEquipmentState::updateQuantity()
-{/*
-	Craft *c = _base->getCrafts()->at(_craft);
-	RuleItem *item = _game->getMod()->getItem(_items[_sel], true);
-	int cQty = 0;
-	if (item->isFixed())
+void CraftEquipmentState::updateItemRow()
+{
+	std::wostringstream ssQtyBase, ssQtyCraft;
+	if (_game->isCampaign())
 	{
-		cQty = c->getVehicleCount(_items[_sel]);
+		ssQtyBase << getRow().bQty + getRow().amount;
 	}
 	else
 	{
-		cQty = c->getItems()->getItem(_items[_sel]);
+		ssQtyBase << "-";
 	}
-	std::ostringstream ss, ss2;
-	if (_game->getSavedGame()->getMonthsPassed() > -1)
-	{
-		ss << _base->getStorageItems()->getItem(_items[_sel]);
-	}
-	else
-	{
-		ss << "-";
-	}
-	ss2 << cQty;
+	ssQtyCraft << getRow().cQty - getRow().amount;
+	_lstEquipment->setCellText(_sel, 1, ssQtyBase.str());
+	_lstEquipment->setCellText(_sel, 2, ssQtyCraft.str());
 
-	Uint8 color;
-	if (cQty == 0)
-	{
-		RuleItem *rule = _game->getMod()->getItem(_items[_sel], true);
-		if (rule->getBattleType() == BT_AMMO)
-		{
-			color = _ammoColor;
-		}
-		else
-		{
-			color = _lstEquipment->getColor();
-		}
-	}
-	else
+	RuleItem *rule = static_cast<RuleItem*> (getRow().rule);
+	Uint8 color = _lstEquipment->getColor();
+	if (getRow().cQty - getRow().amount != 0)
 	{
 		color = _lstEquipment->getSecondaryColor();
 	}
+	else if (rule->getBattleType() == BT_AMMO)
+	{
+		color = _ammoColor;
+	}
 	_lstEquipment->setRowColor(_sel, color);
-	_lstEquipment->setCellText(_sel, 1, ss.str());
-	_lstEquipment->setCellText(_sel, 2, ss2.str());
-
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
-*/}
+}
 
 /**
  * Moves the selected item to the base.

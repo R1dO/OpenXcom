@@ -72,12 +72,14 @@ private:
 	std::vector<int> _rows;
 	int _totalItems, _totalVehicles, _totalVehicleSpace;  // In Craft.
 	Uint8 _ammoColor;
-	/// Updates quantities of item.
-	void updateQuantity();
+	/// Gets the row of the current selection.
+	EquipmentRow &getRow() { return _items[_rows[_sel]]; }
 	/// Updates displayed item list, and derived values.
 	void updateList();
 	/// Updates derived values entities.
 	void updateDerivedInfo();
+	/// Updates quantity strings and row color of the selected item.
+	void updateItemRow();
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);
