@@ -53,7 +53,7 @@ namespace OpenXcom
  * @param base Pointer to the base to get info from.
  * @param craft ID of the selected craft.
  */
-CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _craft(craft), _base(base), _totalItems(0), _totalVehicles(0), _totalVehicleSpace(0), _ammoColor(0)
+CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _craft(craft), _base(base), _totalCraftItems(0), _totalCraftVehicles(0), _totalCraftCrewSpace(0), _ammoColor(0)
 {
 	Craft *c = _base->getCrafts()->at(_craft);
 	bool craftHasACrew = c->getNumSoldiers() > 0;
@@ -149,14 +149,14 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 					size *= size;
 					// Assume we can only assign vehicles to craft (not fixed weapons like BIODRONE_MELEE_WEAPON)
 					cQty = c->getVehicleCount(*i);
-					_totalVehicles += cQty;
-					_totalVehicleSpace += cQty * size;
+					_totalCraftVehicles += cQty;
+					_totalCraftCrewSpace += cQty * size;
 				}
 			}
 			else
 			{
 				cQty = c->getItems()->getItem(*i);
-				_totalItems += cQty;
+				_totalCraftItems += cQty;
 			}
 			if (bQty > 0 || cQty > 0)
 			{
@@ -589,8 +589,8 @@ void CraftEquipmentState::moveRightByValue(int change)
 void CraftEquipmentState::updateDerivedInfo()
 {
 	Craft *c = _base->getCrafts()->at(_craft);
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceMax() - c->getNumSoldiers() - _totalVehicleSpace));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getNumSoldiers() + _totalVehicleSpace));
+	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceMax() - c->getNumSoldiers() - _totalCraftCrewSpace));
+	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getNumSoldiers() + _totalCraftCrewSpace));
 }
 
 /**

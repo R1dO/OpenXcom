@@ -70,7 +70,7 @@ private:
 	Base *_base;
 	std::vector<EquipmentRow> _items;
 	std::vector<int> _rows;
-	int _totalItems, _totalVehicles, _totalVehicleSpace;  // In Craft.
+	int _totalCraftItems, _totalCraftVehicles, _totalCraftCrewSpace;
 	Uint8 _ammoColor;
 	/// Gets the row of the current selection.
 	EquipmentRow &getRow() { return _items[_rows[_sel]]; }
