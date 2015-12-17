@@ -309,10 +309,10 @@ void CraftEquipmentState::lstEquipmentLeftArrowRelease(Action *action)
  */
 void CraftEquipmentState::lstEquipmentLeftArrowClick(Action *action)
 {
-	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT) moveLeftByValue(INT_MAX);
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT) moveToBase(INT_MAX);
 	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
 	{
-		moveLeftByValue(1);
+		moveToBase(1);
 		_timerRight->setInterval(250);
 		_timerLeft->setInterval(250);
 	}
@@ -346,10 +346,10 @@ void CraftEquipmentState::lstEquipmentRightArrowRelease(Action *action)
  */
 void CraftEquipmentState::lstEquipmentRightArrowClick(Action *action)
 {
-	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT) moveRightByValue(INT_MAX);
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT) moveToCraft(INT_MAX);
 	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
 	{
-		moveRightByValue(1);
+		moveToCraft(1);
 		_timerRight->setInterval(250);
 		_timerLeft->setInterval(250);
 	}
@@ -369,7 +369,7 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
 		if (action->getAbsoluteXMouse() >= _lstEquipment->getArrowsLeftEdge() &&
 			action->getAbsoluteXMouse() <= _lstEquipment->getArrowsRightEdge())
 		{
-			moveRightByValue(Options::changeValueByMouseWheel);
+			moveToCraft(Options::changeValueByMouseWheel);
 		}
 	}
 	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
@@ -379,7 +379,7 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
 		if (action->getAbsoluteXMouse() >= _lstEquipment->getArrowsLeftEdge() &&
 			action->getAbsoluteXMouse() <= _lstEquipment->getArrowsRightEdge())
 		{
-			moveLeftByValue(Options::changeValueByMouseWheel);
+			moveToBase(Options::changeValueByMouseWheel);
 		}
 	}
 }
@@ -422,85 +422,60 @@ void CraftEquipmentState::moveLeft()
 {
 	_timerLeft->setInterval(50);
 	_timerRight->setInterval(50);
-	moveLeftByValue(1);
+	moveToBase(1);
 }
 
 /**
- * Moves the given number of items (selected) to the base.
- * @param change Item difference.
+ * Moves the given number of items to the base.
+ * Updates EquipmentRow::amount and derived totals.
+ * @param change Amount to move from craft to base.
  */
-void CraftEquipmentState::moveLeftByValue(int change)
-{/*
-	Craft *c = _base->getCrafts()->at(_craft);
-	RuleItem *item = _game->getMod()->getItem(_items[_sel], true);
-	int cQty = 0;
-	if (item->isFixed()) cQty = c->getVehicleCount(_items[_sel]);
-	else cQty = c->getItems()->getItem(_items[_sel]);
-	if (change <= 0 || cQty <= 0) return;
-	change = std::min(cQty, change);
-	// Convert vehicle to item
-	if (item->isFixed())
+void CraftEquipmentState::moveToBase(int change)
+{
+	if (change < 0 || getRow().cQty <= getRow().amount) return; // Invalid or not enough in craft
+	change = std::min(getRow().cQty - getRow().amount, change); // Max based on in craft items, taking into account previous changes.
+
+	if (getRow().space > 0) // Its a vehicle
 	{
-		if (!item->getCompatibleAmmo()->empty())
+		RuleItem *item = static_cast<RuleItem*> (getRow().rule);
+		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
+
+		if (! vehicleAmmoClips.empty())
 		{
-			// Calculate how much ammo needs to be added to the base.
-			RuleItem *ammo = _game->getMod()->getItem(item->getCompatibleAmmo()->front(), true);
-			int ammoPerVehicle;
-			if (ammo->getClipSize() > 0 && item->getClipSize() > 0)
+			// Refund ammoClips.
+			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first); //
+			int clipsPerVehicle = vehicleAmmoClips.begin()->second;
+
+			// Locate and update ammo in list.
+			std::map<std::string, size_t>::const_iterator search = _vehicleAmmoRow.find(ammo->getType());
+			if (search != _vehicleAmmoRow.end())
 			{
-				ammoPerVehicle = item->getClipSize() / ammo->getClipSize();
-			}
-			else
-			{
-				ammoPerVehicle = ammo->getClipSize();
-			}
-			// Put the vehicles and their ammo back as separate items.
-			if (_game->getSavedGame()->getMonthsPassed() != -1)
-			{
-				_base->getStorageItems()->addItem(_items[_sel], change);
-				_base->getStorageItems()->addItem(ammo->getType(), ammoPerVehicle * change);
-			}
-			// now delete the vehicles from the craft.
-			for (std::vector<Vehicle*>::iterator i = c->getVehicles()->begin(); i != c->getVehicles()->end() && change > 0; )
-			{
-				if ((*i)->getRules() == item)
-				{
-					delete (*i);
-					i = c->getVehicles()->erase(i);
-					--change;
-				}
-				else ++i;
+				// Adjust compatible ammo row.
+				_totalCraftItems += change * clipsPerVehicle;	// Vehicle ammo is supposed to be free of charge.
+				size_t currentSel = _sel;
+				_sel = search->second; // Mimic mouse selection (even when row is hidden).
+				moveToBase(change*clipsPerVehicle);
+				_sel = currentSel; // Return focus to vehicle row.
 			}
 		}
-		else
-		{
-			if (_game->getSavedGame()->getMonthsPassed() != -1)
-			{
-				_base->getStorageItems()->addItem(_items[_sel], change);
-			}
-			for (std::vector<Vehicle*>::iterator i = c->getVehicles()->begin(); i != c->getVehicles()->end() && change > 0; )
-			{
-				if ((*i)->getRules() == item)
-				{
-					delete (*i);
-					i = c->getVehicles()->erase(i);
-					--change;
-				}
-				else ++i;
-			}
-		}
+		// Positive values move towards base, hence amount in craft decrease.
+		_totalCraftVehicles -= change;
+		_totalCraftCrewSpace -= change * getRow().space;
 	}
 	else
 	{
-		c->getItems()->removeItem(_items[_sel], change);
-		_totalItems -= change;
-		if (_game->getSavedGame()->getMonthsPassed() > -1)
-		{
-			_base->getStorageItems()->addItem(_items[_sel], change);
-		}
+		_totalCraftItems -= change;
 	}
-	updateQuantity();
-*/}
+	getRow().amount += change; // To base is positive
+
+	if (_game->isSkirmish())
+	{
+		getRow().bQty = -1 * getRow().amount;
+	}
+
+	updateItemRow();
+	updateDerivedInfo();
+}
 
 /**
  * Moves the selected item to the craft.
@@ -509,111 +484,112 @@ void CraftEquipmentState::moveRight()
 {
 	_timerLeft->setInterval(50);
 	_timerRight->setInterval(50);
-	moveRightByValue(1);
+	moveToCraft(1);
 }
 
 /**
- * Moves the given number of items (selected) to the craft.
- * @param change Item difference.
+ * Moves the given number of items to the craft.
+ * Updates EquipmentRow::amount and derived totals.
+ * @param change Amount to move from base to craft.
  */
-void CraftEquipmentState::moveRightByValue(int change)
-{/*
-	Craft *c = _base->getCrafts()->at(_craft);
-	RuleItem *item = _game->getMod()->getItem(_items[_sel], true);
-	int bqty = _base->getStorageItems()->getItem(_items[_sel]);
-	if (_game->getSavedGame()->getMonthsPassed() == -1)
+void CraftEquipmentState::moveToCraft(int change)
+{
+	if (_game->isSkirmish())
 	{
 		if (change == INT_MAX)
 		{
 			change = 10;
 		}
-		bqty = change;
+		getRow().bQty += change;
 	}
-	if (0 >= change || 0 >= bqty) return;
-	change = std::min(bqty, change);
-	// Do we need to convert item to vehicle?
-	if (item->isFixed())
-	{
-		int size = 4;
-		if (_game->getMod()->getUnit(item->getType()))
-		{
-			size = _game->getMod()->getArmor(_game->getMod()->getUnit(item->getType())->getArmor(), true)->getSize();
-			size *= size;
-		}
-		// Check if there's enough room
-		int room = std::min(c->getRules()->getVehicles() - c->getNumVehicles(), c->getSpaceAvailable() / size);
-		if (room > 0)
-		{
-			change = std::min(room, change);
-			if (!item->getCompatibleAmmo()->empty())
-			{
-				// And now let's see if we can add the total number of vehicles.
-				RuleItem *ammo = _game->getMod()->getItem(item->getCompatibleAmmo()->front(), true);
-				int ammoPerVehicle, clipSize;
-				if (ammo->getClipSize() > 0 && item->getClipSize() > 0)
-				{
-					clipSize = item->getClipSize();
-					ammoPerVehicle = clipSize / ammo->getClipSize();
-				}
-				else
-				{
-					clipSize = ammo->getClipSize();
-					ammoPerVehicle = clipSize;
-				}
+	if (change < 0 || getRow().bQty <= -1 * getRow().amount) return; // Invalid or not enough in craft
+	std::wstring errorMessage;
+	Craft *c = _base->getCrafts()->at(_craft);
 
-				int baseQty = _base->getStorageItems()->getItem(ammo->getType()) / ammoPerVehicle;
-				if (_game->getSavedGame()->getMonthsPassed() == -1)
-					baseQty = change;
-				int canBeAdded = std::min(change, baseQty);
-				if (canBeAdded > 0)
-				{
-					for (int i = 0; i < canBeAdded; ++i)
-					{
-						if (_game->getSavedGame()->getMonthsPassed() != -1)
-						{
-							_base->getStorageItems()->removeItem(ammo->getType(), ammoPerVehicle);
-							_base->getStorageItems()->removeItem(_items[_sel]);
-						}
-						c->getVehicles()->push_back(new Vehicle(item, clipSize, size));
-					}
-				}
-				else
-				{
-					// So we haven't managed to increase the count of vehicles because of the ammo
-					_timerRight->stop();
-					LocalizedText msg(tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(ammoPerVehicle).arg(tr(ammo->getType())));
-					_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
-				}
-			}
-			else
-				for (int i = 0; i < change; ++i)
-				{
-					c->getVehicles()->push_back(new Vehicle(item, item->getClipSize(), size));
-					if (_game->getSavedGame()->getMonthsPassed() != -1)
-					{
-						_base->getStorageItems()->removeItem(_items[_sel]);
-					}
-				}
+	change = std::min(getRow().bQty + getRow().amount, change);  // Take into account previous changes.
+	if (getRow().space > 0) // Its a vehicle
+	{
+		// Check if there's enough room.
+		int room = std::min((c->getRules()->getVehicles() - _totalCraftVehicles),
+		                    (c->getSpaceMax() - c->getNumSoldiers() - _totalCraftCrewSpace) / getRow().space);
+		if (room < 0) // RuleSet changes since last save.
+		{
+			moveToBase(abs(room));
+			return;
 		}
+		change = std::min(room, change);
+		RuleItem *item = static_cast<RuleItem*> (getRow().rule);
+		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
+
+		if (! vehicleAmmoClips.empty())
+		{
+			// And now let's see if we can add the total number of vehicles.
+			// This will always return false if first compatibleAmmo has too little clips, even when a
+			// hypothetical 2nd kind has enough. Not that it matters since we can't choose ingame which
+			// kind of compatibleAmmo a vehicle should use.
+			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first); //
+			int clipsPerVehicle = vehicleAmmoClips.begin()->second;
+
+			// Locate and update ammo in list.
+			std::map<std::string, size_t>::const_iterator search = _vehicleAmmoRow.find(ammo->getType());
+			if (search == _vehicleAmmoRow.end())
+			{
+				// Ammo disappeared from _items, or vehicle was teleported into _items.
+				errorMessage = tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(tr(ammo->getType()));
+				return;
+			}
+			// Include leftover clips (when ammo row is visible).
+			int extraClips =  (_items[search->second].cQty - _items[search->second].amount) -
+			                  (getRow().cQty - getRow().amount) * clipsPerVehicle;
+			int maxByClips = change;
+			if (_game->isCampaign())
+			{
+				maxByClips = (_items[search->second].bQty + _items[search->second].amount + extraClips) / clipsPerVehicle;
+			}
+			if (maxByClips < change)
+			{
+				// So we haven't managed to increase the count of vehicles because of the ammo
+				errorMessage = tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(tr(ammo->getType()));
+				change = maxByClips;
+			}
+
+			if (extraClips >= change * clipsPerVehicle)
+			{
+				_totalCraftItems -= change * clipsPerVehicle - extraClips;  // Vehicle ammo is supposed to be free of charge.
+				size_t currentSel = _sel;
+				_sel = search->second; // Mimic mouse selection (even when row is hidden).
+				moveToCraft(change * clipsPerVehicle - extraClips);
+				_sel = currentSel; // Return focus to vehicle row.
+			}
+		}
+		_totalCraftVehicles += change;
+		_totalCraftCrewSpace += change * getRow().space;
 	}
 	else
 	{
-		if (c->getRules()->getMaxItems() > 0 && _totalItems + change > c->getRules()->getMaxItems())
+		if (c->getRules()->getMaxItems() > 0 && (_totalCraftItems + change > c->getRules()->getMaxItems()))
 		{
-			_timerRight->stop();
-			LocalizedText msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getRules()->getMaxItems()));
-			_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
-			change = c->getRules()->getMaxItems() - _totalItems;
+			errorMessage = tr("STR_NO_MORE_EQUIPMENT_ALLOWED").arg(c->getRules()->getMaxItems());
+			change = std::max(-1*getRow().cQty, c->getRules()->getMaxItems() - _totalCraftItems);
 		}
-		c->getItems()->addItem(_items[_sel],change);
-		_totalItems += change;
-		if (_game->getSavedGame()->getMonthsPassed() > -1)
-		{
-			_base->getStorageItems()->removeItem(_items[_sel],change);
-		}
+		_totalCraftItems += change;
 	}
-	updateQuantity();
-*/}
+
+	getRow().amount -= change; // To craft is negative.
+	if (_game->isSkirmish())
+	{
+		getRow().bQty = -1 * getRow().amount;
+	}
+	updateItemRow();
+	updateDerivedInfo();
+
+	if (! errorMessage.empty())
+	{
+		RuleInterface *menuInterface = _game->getMod()->getInterface("craftEquipment");
+		_timerRight->stop();
+		_game->pushState(new ErrorMessageState(errorMessage, _palette, menuInterface->getElement("errorMessage")->color, "BACK04.SCR", menuInterface->getElement("errorPalette")->color));
+	}
+}
 
 /**
  * Updates derived values entities.
@@ -634,7 +610,7 @@ void CraftEquipmentState::btnClearClick(Action *)
 {
 	for (_sel = 0; _sel != _items.size(); ++_sel)
 	{
-		moveLeftByValue(INT_MAX);
+		moveToBase(INT_MAX);
 	}
 }
 

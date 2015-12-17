@@ -110,11 +110,11 @@ public:
 	/// Moves an item to the base.
 	void moveLeft();
 	/// Moves the given number of items to the base.
-	void moveLeftByValue(int change);
+	void moveToBase(int change);
 	/// Moves an item to the craft.
 	void moveRight();
 	/// Moves the given number of items to the craft.
-	void moveRightByValue(int change);
+	void moveToCraft(int change);
 	/// Empties the contents of the craft, moving all of the items back to the base.
 	void btnClearClick(Action *action);
 	/// Handler for clicking the Inventory button.
