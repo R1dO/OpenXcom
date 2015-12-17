@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <yaml-cpp/yaml.h>
+#include "../Engine/State.h"
 
 namespace OpenXcom
 {
@@ -54,7 +55,7 @@ class Mod;
  * Represents the static data for a unit that is generated on the battlescape, this includes: HWPs, aliens and civilians.
  * @sa Soldier BattleUnit
  */
-class Unit
+class Unit : public State
 {
 private:
 	std::string _type;
@@ -83,6 +84,8 @@ public:
 	std::string getType() const;
 	/// Gets the unit's stats.
 	UnitStats *getStats();
+	/// Gets the unit's size on the battlefield.
+	int getBattleSize() const;
 	/// Gets the unit's height when standing.
 	int getStandHeight() const;
 	/// Gets the unit's height when kneeling.
@@ -123,6 +126,8 @@ public:
 	const std::vector<std::vector<std::string> > &getBuiltInWeapons() const;
 	/// Gets whether the alien can be captured alive.
 	bool getCapturable() const;
+	/// Gets a list with max amounts of compatible clips a vehicle can contain.
+	const std::map<std::string, int> getCompatibleAmmoClips() const;
 };
 
 }
