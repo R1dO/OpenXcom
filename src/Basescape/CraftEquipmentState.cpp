@@ -538,7 +538,7 @@ void CraftEquipmentState::moveToCraft(int change)
 				errorMessage = tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(tr(ammo->getType()));
 				return;
 			}
-			// Include leftover clips (when ammo row is visible).
+			// Check for discrepancy in clips on craft vs vehicle (when ammo row is visible).
 			int extraClips =  (_items[search->second].cQty - _items[search->second].amount) -
 			                  (getRow().cQty - getRow().amount) * clipsPerVehicle;
 			int maxByClips = change;
@@ -553,14 +553,12 @@ void CraftEquipmentState::moveToCraft(int change)
 				change = maxByClips;
 			}
 
-			if (extraClips >= change * clipsPerVehicle)
-			{
-				_totalCraftItems -= change * clipsPerVehicle - extraClips;  // Vehicle ammo is supposed to be free of charge.
-				size_t currentSel = _sel;
-				_sel = search->second; // Mimic mouse selection (even when row is hidden).
-				moveToCraft(change * clipsPerVehicle - extraClips);
-				_sel = currentSel; // Return focus to vehicle row.
-			}
+			_totalCraftItems -= change * clipsPerVehicle - extraClips;  // Vehicle ammo is supposed to be free of charge.
+			size_t currentSel = _sel;
+			_sel = search->second; // Mimic mouse selection (even when row is hidden).
+			moveToCraft(change * clipsPerVehicle - extraClips);
+			_sel = currentSel; // Return focus to vehicle row.
+
 		}
 		_totalCraftVehicles += change;
 		_totalCraftCrewSpace += change * getRow().space;
