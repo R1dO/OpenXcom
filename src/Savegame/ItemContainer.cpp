@@ -97,6 +97,41 @@ void ItemContainer::removeItem(const std::string &id, int qty)
 }
 
 /**
+ * Set the item amount in the container to given value.
+ * @param id Item ID.
+ * @param qty Item quantity.
+ *
+ * @note negative values are not allowed due to removeItem() call.
+ */
+void ItemContainer::setItem(const std::string &id, int qty)
+{
+	updateItem(id, qty - getItem(id));
+}
+
+/**
+ * Updates an item amount in the container.
+ * Calls correct function based on sign of ``qty``.
+ * @param id Item ID.
+ * @param qty Item quantity.
+ */
+void ItemContainer::updateItem(const std::string &id, int qty)
+{
+	if (id.empty() || qty == 0)
+	{
+		return;
+	}
+	if (qty > 0)
+	{
+		addItem(id, qty);
+	}
+	else
+	{
+		removeItem(id, abs(qty));
+	}
+}
+
+
+/**
  * Returns the quantity of an item in the container.
  * @param id Item ID.
  * @return Item quantity.
