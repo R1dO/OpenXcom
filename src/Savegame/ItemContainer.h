@@ -48,6 +48,8 @@ public:
 	void addItem(const std::string &id, int qty = 1);
 	/// Removes an item from the container.
 	void removeItem(const std::string &id, int qty = 1);
+	/// Updates an item amount in the container.
+	void updateItem(const std::string &id, int qty = 0);
 	/// Gets an item in the container.
 	int getItem(const std::string &id) const;
 	/// Gets the total quantity of items in the container.
