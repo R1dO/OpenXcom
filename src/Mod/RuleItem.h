@@ -186,6 +186,8 @@ public:
 	int getExplosionSpeed() const;
 	/// How many auto shots does this weapon fire.
 	int getAutoShots() const;
+	/// Is this item an ammo clip?
+	bool isAmmo() const;
 	/// is this item a 2 handed weapon?
 	bool isRifle() const;
 	/// is this item a single handed weapon?

@@ -179,6 +179,10 @@ public:
 	void unload(const Mod *mod);
 	/// Reuses a base item.
 	void reuseItem(const std::string &item);
+	/// Add a vehicle of a specific type to the craft using default values.
+	void addVehicle(const std::string &vehicleType, const Mod *mod);
+	/// Remove a specific vehicle from craft.
+	void removeVehicle(const std::string &vehicleType);
 };
 
 }

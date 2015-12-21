@@ -747,6 +747,15 @@ int RuleItem::getAutoShots() const
 }
 
 /**
+ * Is this item an ammo clip?
+ * @return whether or not it is an ammo clip.
+ */
+bool RuleItem::isAmmo() const
+{
+	return (_battleType == BT_AMMO);
+}
+
+/**
  * is this item a rifle?
  * @return whether or not it is a rifle.
  */
