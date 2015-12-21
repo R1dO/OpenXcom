@@ -130,10 +130,27 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_lstEquipment->onRightArrowClick((ActionHandler)&CraftEquipmentState::lstEquipmentRightArrowClick);
 	_lstEquipment->onMousePress((ActionHandler)&CraftEquipmentState::lstEquipmentMousePress);
 
-	// Since vehicle ammo is stored implicitly while assigned to craft we need something to
-	// temporarily store vehicle ammo on craft (we cannot assume it is already in the list when
-	// needed while building the struct).
-	std::map<std::string, int> craftVehicleAmmo; // <first compatible vehicle ammo, amount in craft>.
+	// Vehicle ammo is stored implicitly while assigned to craft, hence we need some sort of
+	// pre-processing (we cannot assume it is already in the list when a vehicle is encountered).
+	std::map<std::string, int> inCraftVehicleAmmo;
+	for (std::vector<Vehicle*>::iterator v = c->getVehicles()->begin(); v != c->getVehicles()->end(); ++v)
+	{
+		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit((*v)->getRules()->getType())->getCompatibleAmmoClips();
+		if (! vehicleAmmoClips.empty())
+		{
+			// Update map, allow multiple vehicles to share ammo.
+			std::map<std::string, int>::iterator ammoKey = inCraftVehicleAmmo.find(vehicleAmmoClips.begin()->first);
+			if (ammoKey == inCraftVehicleAmmo.end())
+			{
+				inCraftVehicleAmmo.insert(*vehicleAmmoClips.begin());
+			}
+			else
+			{
+				ammoKey->second += vehicleAmmoClips.begin()->second;
+			}
+		}
+	}
+	// EquipmentRow struct
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
@@ -148,7 +165,15 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			if (! item->isFixed()) // Normal equipment
 			{
 				cQty = c->getItems()->getItem(*i);
-				_totalCraftItems += cQty;
+				_totalCraftItems += cQty; // Before if() since vehicle ammo is supposed to be free of charge.
+				if(item->isAmmo())
+				{
+					std::map<std::string, int>::iterator ammoKey = inCraftVehicleAmmo.find(item->getType());
+					if (ammoKey != inCraftVehicleAmmo.end())
+					{
+						cQty += ammoKey->second;
+					}
+				}
 			}
 			// Assume we can only assign vehicles to craft (not fixed weapons like BIODRONE_MELEE_WEAPON).
 			else if (item->isFixed() && _game->getMod()->getUnit(item->getType()))
@@ -158,25 +183,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 				cQty = c->getVehicleCount(*i);
 				_totalCraftVehicles += cQty;
 				_totalCraftCrewSpace += cQty * size;
-
-				// Check if vehicle needs ammo.
-				std::map<std::string, int> vehicleAmmoClips = vehicle->getCompatibleAmmoClips();
-				if (! vehicleAmmoClips.empty())
-				{
-					// If we want to get fancy iterate instead of just choosing ``begin()``.
-					// Current code will choose the ammo that comes first alphabetically.
-					int clipsPerVehicle = vehicleAmmoClips.begin()->second;
-					std::map<std::string, int>::iterator ammoKey = craftVehicleAmmo.find(vehicleAmmoClips.begin()->first);
-					// Update post-processing map, allow multiple vehicles to share ammo
-					if (ammoKey == craftVehicleAmmo.end())
-					{
-						craftVehicleAmmo.insert(std::make_pair(vehicleAmmoClips.begin()->first, clipsPerVehicle * cQty));
-					}
-					else
-					{
-						ammoKey->second += clipsPerVehicle * cQty;
-					}
-				}
 			}
 
 			if (bQty > 0 || cQty > 0)
@@ -184,18 +190,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 				EquipmentRow row = { item, tr(*i), size, bQty, cQty, 0 };
 				_items.push_back(row);
 			}
-		}
-	}
-	// Post-process: Update vehicle ammo in struct and store its row #.
-	_vehicleAmmoRow.clear();
-	for (std::vector<EquipmentRow>::iterator i = _items.begin(); i != _items.end(); ++i)
-	{
-		RuleItem *rule = static_cast<RuleItem *> (i->rule);
-		std::map<std::string, int>::const_iterator search = craftVehicleAmmo.find(rule->getType());
-		if (search != craftVehicleAmmo.end())
-		{
-			_vehicleAmmoRow.insert(std::make_pair(rule->getType(), i - _items.begin()));
-			i->cQty += search->second;
 		}
 	}
 
