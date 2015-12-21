@@ -1057,4 +1057,34 @@ void Craft::reuseItem(const std::string& item)
 		_status = "STR_REFUELLING";
 }
 
+/**
+ * Add a vehicle of a specific type to the craft using default values.
+ * @param vehicle Vehicle type.
+ * @param mod Pointer to mod.
+ */
+void Craft::addVehicle(const std::string &vehicleType, const Mod *mod)
+{
+	Unit *vehicle = mod->getUnit(vehicleType);
+	Vehicle *v = new Vehicle(mod->getItem(vehicleType),
+		                       vehicle->getCompatibleAmmoClips().begin()->second,
+		                       vehicle->getBattleSize());
+	_vehicles.push_back(v);
+}
+
+/**
+ * Remove a specific vehicle from craft.
+ * @param vehicle Vehicle type.
+ */
+void Craft::removeVehicle(const std::string &vehicleType)
+{
+	for (std::vector<Vehicle*>::iterator v = _vehicles.begin(); v != _vehicles.end(); ++v)
+	{
+		if ((*v)->getRules()->getType() == vehicleType)
+		{
+			_vehicles.erase(v);
+			return;
+		}
+	}
+}
+
 }

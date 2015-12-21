@@ -308,13 +308,13 @@ const std::map<std::string, int> Unit::getCompatibleAmmoClips() const
 	int shotsPerVehicle = _game->getMod()->getItem(_type)->getClipSize();
 
 	for (std::vector<std::string>::const_iterator
-		   i = _game->getMod()->getItem(_type)->getCompatibleAmmo()->begin();
+	     i = _game->getMod()->getItem(_type)->getCompatibleAmmo()->begin();
 	     i != _game->getMod()->getItem(_type)->getCompatibleAmmo()->end(); ++i)
 	{
 		// It would be more intuitive if ``_clipsize`` on a vehicle (item) would represent number of
 		// ammo clips it can contain. Just like ``_clipsize`` on an ammo item represent number of shots
 		// a clip contains. Since that would probably require quite some alterations it is better to
-		// keep legacy behavior. Hence a bit more temporal variables to follow reasoning.
+		// keep legacy behavior.
 		int clipsPerItem = 0;
 		int shotsPerClip = _game->getMod()->getItem(*i)->getClipSize();
 		if (shotsPerClip > 0 && shotsPerVehicle > 0) // TFTD USO style
