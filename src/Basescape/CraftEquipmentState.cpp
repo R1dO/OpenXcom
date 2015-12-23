@@ -565,8 +565,8 @@ void CraftEquipmentState::moveToCraft(int change)
 	{
 		if (c->getRules()->getMaxItems() > 0 && (_totalCraftItems + change > c->getRules()->getMaxItems()))
 		{
-			errorMessage = tr("STR_NO_MORE_EQUIPMENT_ALLOWED",(c->getRules()->getMaxItems()));
-			change = std::max(-1*getRow().cQty, c->getRules()->getMaxItems() - _totalCraftItems);
+			errorMessage = tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getRules()->getMaxItems());
+			change = 0; // Let player decide which items to remove.
 		}
 		_totalCraftItems += change;
 	}
