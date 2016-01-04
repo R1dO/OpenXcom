@@ -165,7 +165,10 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			if (! item->isFixed()) // Normal equipment
 			{
 				cQty = c->getItems()->getItem(*i);
-				_totalCraftItems += cQty; // Before if() since vehicle ammo is supposed to be free of charge.
+				_totalCraftItems += cQty;
+
+				// If this item is a vehicle ammoclip, add implicitly stored amount.
+				// Don't add to ``_totalCraftitems``, it is free of charge in original.
 				if(item->isAmmo())
 				{
 					std::map<std::string, int>::iterator ammoKey = inCraftVehicleAmmo.find(item->getType());
@@ -271,10 +274,39 @@ void CraftEquipmentState::think()
 
 /**
  * Returns to the previous screen.
+ * Apply the requested changes.
  * @param action Pointer to an action.
  */
 void CraftEquipmentState::btnOkClick(Action *)
 {
+	for (std::vector<EquipmentRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	{
+		RuleItem *rule = static_cast<RuleItem*> (i->rule);
+		_base->getStorageItems()->updateItem(rule->getType(), i->amount);
+
+		Craft *c = _base->getCrafts()->at(_craft);
+		if (rule->isFixed())  // A vehicle (initializer already kept fixed bio weapons out)
+		{
+			// No need to check if enough ammo assigned or returned, unless users are
+			// allowed to change it manually (all other cases should be covered by the
+			// ``moveTo*`` functions).
+			for (int j = 0; j < abs(i->amount); ++j)
+			{
+				if (i->amount > 0) // Remove vehicle from craft.
+				{
+					c->removeVehicle(rule->getType());
+				}
+				if (i->amount < 0) // Add vehicle to craft.
+				{
+					c->addVehicle(rule->getType(), _game->getMod());
+				}
+			}
+		}
+		else if (rule->getBigSprite() != -1) // Vehicle ammo is stored in vehicle NOT craft.
+		{
+			c->getItems()->updateItem(rule->getType(), -1 * i->amount);
+		}
+	}
 	_game->popState();
 }
 
