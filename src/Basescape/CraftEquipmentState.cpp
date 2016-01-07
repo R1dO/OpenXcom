@@ -130,21 +130,21 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_lstEquipment->onRightArrowClick((ActionHandler)&CraftEquipmentState::lstEquipmentRightArrowClick);
 	_lstEquipment->onMousePress((ActionHandler)&CraftEquipmentState::lstEquipmentMousePress);
 
-	// Vehicle ammo is stored implicitly while assigned to craft, hence we need some sort of
-	// pre-processing (we cannot assume it is already in the list when a vehicle is encountered).
+	// Vehicle ammo is stored implicitly while assigned to craft, some sort of
+	// pre-processing is needed (it's not safe to assume the ammo entry exist when
+	// a vehicle is encountered).
 	std::map<std::string, int> inCraftVehicleAmmo;
 	for (std::vector<Vehicle*>::iterator v = c->getVehicles()->begin(); v != c->getVehicles()->end(); ++v)
 	{
 		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit((*v)->getRules()->getType())->getCompatibleAmmoClips();
 		if (! vehicleAmmoClips.empty())
 		{
-			// Update map, allow multiple vehicles to share ammo.
 			std::map<std::string, int>::iterator ammoKey = inCraftVehicleAmmo.find(vehicleAmmoClips.begin()->first);
 			if (ammoKey == inCraftVehicleAmmo.end())
 			{
 				inCraftVehicleAmmo.insert(*vehicleAmmoClips.begin());
 			}
-			else
+			else  // Allow multiple vehicles to share ammo.
 			{
 				ammoKey->second += vehicleAmmoClips.begin()->second;
 			}
@@ -168,7 +168,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 				_totalCraftItems += cQty;
 
 				// If this item is a vehicle ammoclip, add implicitly stored amount.
-				// Don't add to ``_totalCraftitems``, it is free of charge in original.
+				// Don't add to ``_totalCraftitems`` it is free of charge in original.
 				if(item->isAmmo())
 				{
 					std::map<std::string, int>::iterator ammoKey = inCraftVehicleAmmo.find(item->getType());
@@ -178,13 +178,12 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 					}
 				}
 			}
-			// Assume we can only assign vehicles to craft (not fixed weapons like BIODRONE_MELEE_WEAPON).
+			// Include only vehicles, not fixed items belonging to another category.
 			else if (item->isFixed() && _game->getMod()->getUnit(item->getType()))
 			{
-				Unit *vehicle = _game->getMod()->getUnit(item->getType());
 				cQty = c->getVehicleCount(*i);
 				_totalCraftVehicles += cQty;
-				_totalCraftCrewSpace += cQty * vehicle->getBattleSize();
+				_totalCraftCrewSpace += cQty * _game->getMod()->getUnit(item->getType())->getBattleSize();
 			}
 
 			if (bQty > 0 || cQty > 0)
