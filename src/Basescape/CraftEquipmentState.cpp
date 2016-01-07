@@ -271,6 +271,22 @@ void CraftEquipmentState::think()
 }
 
 /**
+ * Returns to the previous screen.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::btnCancelClick(Action *)
+{
+	// Visits to inventory might have altered the base and craft lists.
+	for (std::vector<EquipmentRow>::iterator i = _items.begin(); i != _items.end(); ++i)
+	{
+		i->amount = 0;
+	}
+	performTransfer();
+
+	_game->popState();
+}
+
+/**
  * Apply requested changes and return to the previous screen.
  * @param action Pointer to an action.
  */

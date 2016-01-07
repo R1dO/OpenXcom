@@ -92,6 +92,8 @@ public:
 	void init();
 	/// Runs the timers.
 	void think();
+	/// Handler for clicking the Cancel button.
+	void btnCancelClick(Action *action);
 	/// Handler for clicking the OK button.
 	void btnOkClick(Action *action);
 	/// Handler for pressing a Move Left arrow in the list.
