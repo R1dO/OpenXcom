@@ -295,7 +295,7 @@ const std::vector<std::vector<std::string> > &Unit::getBuiltInWeapons() const
  */
 const std::map<std::string, int> Unit::getCompatibleAmmoClips() const
 {
-	std::map<std::string, int> compatibleClipsPerItem;
+	std::map<std::string, int> compatibleClipsAmount;
 	int shotsPerVehicle = _game->getMod()->getItem(_type)->getClipSize();
 
 	for (std::vector<std::string>::const_iterator
@@ -316,9 +316,9 @@ const std::map<std::string, int> Unit::getCompatibleAmmoClips() const
 		{
 			clipsPerItem = shotsPerClip; // UFO HWP style
 		}
-		compatibleClipsPerItem.insert(std::make_pair(*i, clipsPerItem));
+		compatibleClipsAmount.insert(std::make_pair(*i, clipsPerItem));
 	}
-	return compatibleClipsPerItem;
+	return compatibleClipsAmount;
 }
 
 /**
