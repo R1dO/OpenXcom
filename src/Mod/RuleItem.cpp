@@ -21,7 +21,9 @@
 #include "../Engine/Exception.h"
 #include "../Engine/SurfaceSet.h"
 #include "../Engine/Surface.h"
+#include "../Engine/Game.h"
 #include "Mod.h"
+#include "RuleCraftWeapon.h"
 
 namespace OpenXcom
 {
@@ -403,6 +405,54 @@ std::vector<std::string> *RuleItem::getCompatibleAmmo()
 }
 
 /**
+ * Gets a list of compatible clips and the amount required by a weapon/vehicle.
+ *
+ * This includes clips required by a craft weapon.
+ * This excludes clips for @b medikits and/or @b battlescanners.
+ * @return A list of compatible clips and the amount required.
+ */
+const std::map<std::string, int> RuleItem::getCompatibleClips() const
+{
+	if (_fixedWeapon)
+	{
+		return _game->getMod()->getUnit(_type)->getCompatibleAmmoClips();
+	}
+
+	std::map<std::string, int> compatibleClipsPerItem;
+	if (!_compatibleAmmo.empty())
+	{
+		for (std::vector<std::string>::const_iterator i = _compatibleAmmo.begin(); i != _compatibleAmmo.end(); ++i)
+		{
+			int clips = std::max(_clipSize,1); // In case somebody defines a rifle needing multiple clips.
+			if (clips > 1 && _game->getMod()->getItem(*i)->getClipSize() > 1)
+			{
+				clips /= _game->getMod()->getItem(*i)->getClipSize();
+			}
+			compatibleClipsPerItem.insert(std::make_pair(*i, clips));
+		}
+	}
+	// No need to check ammo, but it might still be a craft weapon.
+	else if (_battleType != BT_AMMO)
+	{
+		const std::vector<std::string> &cw = _game->getMod()->getCraftWeaponsList();
+		for (std::vector<std::string>::const_iterator i = cw.begin(); i != cw.end(); ++i)
+		{
+			RuleCraftWeapon *rule = _game->getMod()->getCraftWeapon(*i);
+			if (rule->getLauncherItem() == _type)
+			{
+				int clips = rule->getAmmoMax();
+				if (clips > 1 && _game->getMod()->getItem(rule->getClipItem())->getClipSize() > 1) // Craft Cannon
+				{
+					clips /= _game->getMod()->getItem(rule->getClipItem())->getClipSize();
+				}
+				compatibleClipsPerItem.insert(std::make_pair(rule->getClipItem(), clips));
+			}
+		}
+	}
+	return compatibleClipsPerItem;
+}
+
+/**
  * Gets the item's damage type.
  * @return The damage type.
  */
@@ -753,6 +803,30 @@ int RuleItem::getAutoShots() const
 bool RuleItem::isAmmo() const
 {
 	return (_battleType == BT_AMMO);
+}
+
+/**
+ * Is this item a weapon clip?
+ *
+ * Either a battle item or a craft weapon.
+ * @return whether or not it is a weapon clip.
+ */
+bool RuleItem::isWeaponClip() const
+{
+	// Will behave unexpected if modders try to define craft weapon capacity via items.rul instead of crafts.rul.
+	// TODO: Add sanity check to RuleCraftWeapon::load ( isLauncheritem && mod::item::clipsize exists).
+	return _battleType == BT_AMMO || (_battleType == BT_NONE && _clipSize > 0);
+}
+
+/**
+ * Is this item a weapon that needs clips?
+ *
+ * @note Only valid for actual battle weapons (does not take into account craft weapons and vehicles).
+ * @return whether or not it is a weapon that needs an ammo clip.
+ */
+bool RuleItem::isWeaponUsingClips() const
+{
+	return _battleType == BT_FIREARM && !(_compatibleAmmo.empty() || _fixedWeapon);
 }
 
 /**

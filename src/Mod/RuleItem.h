@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <yaml-cpp/yaml.h>
+#include "../Engine/State.h"
 
 namespace OpenXcom
 {
@@ -37,7 +38,7 @@ class Mod;
  * storage size, sell price, etc.
  * @sa Item
  */
-class RuleItem
+class RuleItem : public State
 {
 private:
 	std::string _type, _name; // two types of objects can have the same name
@@ -130,6 +131,8 @@ public:
 	int getTUMelee() const;
 	/// Gets list of compatible ammo.
 	std::vector<std::string> *getCompatibleAmmo();
+	/// Gets a list of compatible clips and the amount required by a weapon/vehicle.
+	const std::map<std::string, int> getCompatibleClips() const;
 	/// Gets the item's damage type.
 	ItemDamageType getDamageType() const;
 	/// Gets the item's type.
@@ -188,6 +191,10 @@ public:
 	int getAutoShots() const;
 	/// Is this item an ammo clip?
 	bool isAmmo() const;
+	/// Is this item a weapon clip?
+	bool isWeaponClip() const;
+	/// Is this item a weapon that needs clips?
+	bool isWeaponUsingClips() const;
 	/// is this item a 2 handed weapon?
 	bool isRifle() const;
 	/// is this item a single handed weapon?
