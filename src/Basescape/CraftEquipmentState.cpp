@@ -461,10 +461,11 @@ void CraftEquipmentState::moveToBase(int change)
 			int clipsPerVehicle = vehicleAmmoClips.begin()->second;
 			// Locate and update ammo in list.
 			std::map<std::string, size_t>::const_iterator search = _ammoMap.find(ammo->getType());
-			if (search != _ammoMap.end())
+			if (search != _ammoMap.end()) // Adjust compatible ammo row.
 			{
-				// Adjust compatible ammo row.
-				_totalCraftItems += change * clipsPerVehicle;  // Vehicle ammo is supposed to be free of charge.
+				// Vehicle ammo is supposed to be free of charge.
+				_totalCraftItems += change * clipsPerVehicle;
+
 				size_t currentSel = _sel;
 				_sel = search->second; // Mimic mouse selection (even when row is hidden).
 				moveToBase(change * clipsPerVehicle);
@@ -568,8 +569,10 @@ void CraftEquipmentState::moveToCraft(int change)
 					errorMessage = tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(tr(ammo->getType()));
 					change = maxByClips;
 				}
+				// Vehicle ammo is supposed to be free of charge.
+				// Note: As before, this will take away clips from storage, hence store usage temporarily decreases (until HWP is unloaded).
+				_totalCraftItems -= change * clipsPerVehicle - extraClips;
 
-				_totalCraftItems -= change * clipsPerVehicle - extraClips;  // Vehicle ammo is supposed to be free of charge.
 				size_t currentSel = _sel;
 				_sel = search->second; // Mimic mouse selection (even when row is hidden).
 				moveToCraft(change * clipsPerVehicle - extraClips);
