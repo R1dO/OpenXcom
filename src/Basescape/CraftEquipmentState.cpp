@@ -435,8 +435,8 @@ void CraftEquipmentState::moveLeft()
  */
 void CraftEquipmentState::moveToBase(int change)
 {
-	if (change < 0 || getRow().cQty - getRow().assignedQty <= getRow().amount ) return; // Invalid or not enough in craft
-	change = std::min(getRow().cQty - getRow().assignedQty - getRow().amount, change); // Max based on in craft items, taking into account previous changes and reserved amounts
+	if (change < 0 || getRow().cQty <= getRow().amount ) return; // Invalid or not enough in craft
+	change = std::min(getRow().cQty - getRow().amount, change); // Max based on in craft items, taking into account previous changes.
 
 	RuleItem *item = getRow().rule;
 	if (item->isFixed()) // Its a vehicle
@@ -455,7 +455,7 @@ void CraftEquipmentState::moveToBase(int change)
 
 				size_t currentSel = _sel;
 				_sel = search->second; // Mimic mouse selection (even when row is hidden).
-				getRow().assignedQty -= change * clipsPerVehicle; // Remove protection from clips.
+				getRow().assignedQty -= change * clipsPerVehicle; // Remove protection from said amount of clips.
 				moveToBase(change * clipsPerVehicle);
 				_sel = currentSel; // Return focus to vehicle row.
 			}
@@ -463,6 +463,10 @@ void CraftEquipmentState::moveToBase(int change)
 		// Positive values move towards base, hence amount in craft decrease.
 		_totalCraftVehicles -= change;
 		_totalCraftCrewSpace -= change * _game->getMod()->getUnit(item->getType())->getBattleSize();
+	}
+	else if (item->getBigSprite() == -1) // Protect HWP ammo.
+	{
+		change = std::min(getRow().cQty - getRow().assignedQty - getRow().amount, change);
 	}
 	else
 	{
@@ -544,6 +548,7 @@ void CraftEquipmentState::moveToCraft(int change)
 			else
 			{
 				// Check for discrepancy in clips on craft vs vehicle (when ammo row is visible).
+				// Only relevant as long as vehicles are not allowed to resupply during a mission.
 				int extraClips =  (_items[search->second].cQty - _items[search->second].assignedQty - _items[search->second].amount);
 				int maxByClips = change;
 				if (_game->isCampaign())
@@ -556,9 +561,8 @@ void CraftEquipmentState::moveToCraft(int change)
 					errorMessage = tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(tr(ammo->getType()));
 					change = maxByClips;
 				}
-				// Vehicle ammo is supposed to be free of charge.
-				// Note: As before, this will take away clips from storage, hence store usage temporarily decreases (until HWP is unloaded).
-				_totalCraftItems -= change * clipsPerVehicle - extraClips;
+				// Vehicle ammo is supposed to be free of charge, so undo upcoming increase.
+				_totalCraftItems -= change * clipsPerVehicle;
 
 				size_t currentSel = _sel;
 				_sel = search->second; // Mimic mouse selection (even when row is hidden).
@@ -682,6 +686,7 @@ void CraftEquipmentState::performTransfer()
 		}
 		else if (rule->getBigSprite() == -1) // Vehicle ammo is stored in vehicle NOT craft, but allow extra items.
 		{
+			// Note: Adding to an incraft vehicle will temporarily decrease storage usage (untill HWP is unloaded).
 			c->getItems()->updateItem(rule->getType(), (i->cQty - i->amount - i->assignedQty) - craftQty);
 		}
 		else
