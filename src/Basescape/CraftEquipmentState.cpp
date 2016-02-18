@@ -62,9 +62,10 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craftId) : _sel(0), 
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
-	_btnOk = new TextButton((craftHasACrew || isNewBattle)? 148:288, 16, (craftHasACrew || isNewBattle)? 164:16, 176);
-	_btnClear = new TextButton(148, 16, 8, 176);
-	_btnInventory = new TextButton(148, 16, 8, 176);
+	_btnCancel = new TextButton(96, 16, 112, 176);
+	_btnOk = new TextButton(96, 16, 216, 176);
+	_btnClear = new TextButton(96, 16, 8, 176);
+	_btnInventory = new TextButton(96, 16, 8, 176);
 	_txtTitle = new Text(300, 17, 16, 7);
 	_txtItem = new Text(144, 9, 16, 32);
 	_txtStores = new Text(150, 9, 160, 32);
@@ -79,6 +80,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craftId) : _sel(0), 
 	_ammoColor = _game->getMod()->getInterface("craftEquipment")->getElement("ammoColor")->color;
 
 	add(_window, "window", "craftEquipment");
+	add(_btnCancel, "button", "craftEquipment");
 	add(_btnOk, "button", "craftEquipment");
 	add(_btnClear, "button", "craftEquipment");
 	add(_btnInventory, "button", "craftEquipment");
@@ -95,9 +97,13 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craftId) : _sel(0), 
 	// Set up objects
 	_window->setBackground(_game->getMod()->getSurface("BACK04.SCR"));
 
+	_btnCancel->setText(tr("STR_CANCEL"));
+	_btnCancel->onMouseClick((ActionHandler)&CraftEquipmentState::btnCancelClick);
+	_btnCancel->onKeyboardPress((ActionHandler)&CraftEquipmentState::btnCancelClick, Options::keyCancel);
+
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&CraftEquipmentState::btnOkClick);
-	_btnOk->onKeyboardPress((ActionHandler)&CraftEquipmentState::btnOkClick, Options::keyCancel);
+	_btnOk->onKeyboardPress((ActionHandler)&CraftEquipmentState::btnOkClick, Options::keyOk);
 
 	_btnClear->setText(tr("STR_UNLOAD_CRAFT"));
 	_btnClear->onMouseClick((ActionHandler)&CraftEquipmentState::btnClearClick);

@@ -17,11 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "../Engine/State.h"
 #include <vector>
 #include <string>
 #include "../Mod/RuleItem.h"
 #include <map>
+#include "../Engine/State.h"
 
 namespace OpenXcom
 {
@@ -68,7 +68,7 @@ class Craft;
 class CraftEquipmentState : public State
 {
 private:
-	TextButton *_btnOk, *_btnClear, *_btnInventory;
+	TextButton *_btnCancel, *_btnOk, *_btnClear, *_btnInventory;
 	Window *_window;
 	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew;
 	TextList *_lstEquipment;
