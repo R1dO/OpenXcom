@@ -51,14 +51,14 @@ namespace OpenXcom
  * Initializes all the elements in the Craft Equipment screen.
  * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
- * @param craft ID of the selected craft.
+ * @param craftId ID of the selected craft.
  */
-CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _craft(craft), _base(base), _totalCraftItems(0), _totalCraftVehicles(0), _totalCraftCrewSpace(0), _ammoColor(0)
+CraftEquipmentState::CraftEquipmentState(Base *base, size_t craftId) : _sel(0), _craftId(craftId), _base(base), _totalCraftItems(0), _totalCraftVehicles(0), _totalCraftCrewSpace(0), _ammoColor(0)
 {
-	Craft *c = _base->getCrafts()->at(_craft);
-	bool craftHasACrew = c->getNumSoldiers() > 0;
+	_craft = _base->getCrafts()->at(_craftId);
+	bool craftHasACrew = _craft->getNumSoldiers() > 0;
 	bool isNewBattle = _game->isSkirmish();
-	_totalCraftCrewSpace = c->getNumSoldiers();
+	_totalCraftCrewSpace = _craft->getNumSoldiers();
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -108,14 +108,14 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_btnInventory->setVisible(craftHasACrew && !isNewBattle);
 
 	_txtTitle->setBig();
-	_txtTitle->setText(tr("STR_EQUIPMENT_FOR_CRAFT").arg(c->getName(_game->getLanguage())));
+	_txtTitle->setText(tr("STR_EQUIPMENT_FOR_CRAFT").arg(_craft->getName(_game->getLanguage())));
 
 	_txtItem->setText(tr("STR_ITEM"));
 
 	_txtStores->setText(tr("STR_STORES"));
 
 	std::ostringstream ss3;
-	ss3 << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << c->getNumSoldiers();
+	ss3 << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << _craft->getNumSoldiers();
 	_txtCrew->setText(ss3.str());
 
 	_lstEquipment->setArrowColumn(203, ARROW_HORIZONTAL);
@@ -146,8 +146,8 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			int assignedQty = 0; // Minimum amount needed for soldier loadout or HWP ammo.
 			if (!item->isFixed()) // Normal equipment
 			{
-				cQty = c->getItems()->getItem(*i); // Does NOT include ammo inside vehicle.
-				assignedQty = c->getItemAssignedCount(*i);
+				cQty = _craft->getItems()->getItem(*i); // Does NOT include ammo inside vehicle.
+				assignedQty = _craft->getItemAssignedCount(*i);
 				// HWP ammo is supposed to be free of charge in original, hence it is
 				// actually a good thing cQty does not yet include that.
 				_totalCraftItems += cQty;
@@ -158,7 +158,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			}
 			else if (_game->getMod()->getUnit(item->getType())) // A vehicle
 			{
-				cQty = c->getVehicleCount(*i);
+				cQty = _craft->getVehicleCount(*i);
 				_totalCraftVehicles += cQty;
 				_totalCraftCrewSpace += cQty * _game->getMod()->getUnit(item->getType())->getBattleSize();
 			}
@@ -202,8 +202,7 @@ void CraftEquipmentState::init()
 
 	_game->getSavedGame()->setBattleGame(0);
 
-	Craft *c = _base->getCrafts()->at(_craft);
-	c->setInBattlescape(false);
+	_craft->setInBattlescape(false);
 
 	// It is likely assigned item numbers have changed.
 	updateList();
@@ -217,7 +216,6 @@ void CraftEquipmentState::init()
  */
 void CraftEquipmentState::updateList()
 {
-	Craft *c = _base->getCrafts()->at(_craft);
 	_lstEquipment->clearList();
 	_rows.clear();
 	for (size_t row = 0; row < _items.size(); ++row)
@@ -226,7 +224,7 @@ void CraftEquipmentState::updateList()
 		// Modify fields.
 		if (!item->isFixed()) // Inventory visits will probably affect the assignedQty field.
 		{
-			_items[row].assignedQty = c->getItemAssignedCount(item->getType());
+			_items[row].assignedQty = _craft->getItemAssignedCount(item->getType());
 		}
 		// Draw
 //		if (item->getBigSprite() == -1) // Vehicle ammo
@@ -510,15 +508,14 @@ void CraftEquipmentState::moveToCraft(int change)
 	}
 	if (change < 0 || getRow().bQty <= -1 * getRow().amount) return; // Invalid or not enough in craft
 	std::wstring errorMessage;
-	Craft *c = _base->getCrafts()->at(_craft);
 
 	RuleItem *item = getRow().rule;
 	change = std::min(getRow().bQty + getRow().amount, change);  // Take into account previous changes.
 	if (item->isFixed()) // Its a vehicle
 	{
 		// Check if there's enough room.
-		int room = std::min((c->getRules()->getVehicles() - _totalCraftVehicles),
-		                    (c->getSpaceMax() - _totalCraftCrewSpace) /
+		int room = std::min((_craft->getRules()->getVehicles() - _totalCraftVehicles),
+		                    (_craft->getSpaceMax() - _totalCraftCrewSpace) /
 		                    _game->getMod()->getUnit(item->getType())->getBattleSize());
 		if (room < 0) // RuleSet changes since last save.
 		{
@@ -576,9 +573,9 @@ void CraftEquipmentState::moveToCraft(int change)
 	}
 	else
 	{
-		if (c->getRules()->getMaxItems() > 0 && (_totalCraftItems + change > c->getRules()->getMaxItems()))
+		if (_craft->getRules()->getMaxItems() > 0 && (_totalCraftItems + change > _craft->getRules()->getMaxItems()))
 		{
-			errorMessage = tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getRules()->getMaxItems());
+			errorMessage = tr("STR_NO_MORE_EQUIPMENT_ALLOWED", _craft->getRules()->getMaxItems());
 			change = 0; // Let player decide which items to remove.
 		}
 		_totalCraftItems += change;
@@ -607,8 +604,7 @@ void CraftEquipmentState::moveToCraft(int change)
  */
 void CraftEquipmentState::updateDerivedInfo()
 {
-	Craft *c = _base->getCrafts()->at(_craft);
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceMax() - _totalCraftCrewSpace));
+	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(_craft->getSpaceMax() - _totalCraftCrewSpace));
 	_txtUsed->setText(tr("STR_SPACE_USED").arg(_totalCraftCrewSpace));
 }
 
@@ -630,8 +626,7 @@ void CraftEquipmentState::btnClearClick(Action *)
  */
 void CraftEquipmentState::btnInventoryClick(Action *)
 {
-	Craft *craft = _base->getCrafts()->at(_craft);
-	if (craft->getNumSoldiers() != 0)
+	if (_craft->getNumSoldiers() != 0)
 	{
 		// Update craft items first.
 		performTransfer();  // Updates baseitems as well but keeps codebase smaller.
@@ -640,7 +635,7 @@ void CraftEquipmentState::btnInventoryClick(Action *)
 		_game->getSavedGame()->setBattleGame(bgame);
 
 		BattlescapeGenerator bgen = BattlescapeGenerator(_game);
-		bgen.runInventory(craft);
+		bgen.runInventory(_craft);
 
 		_game->getScreen()->clear();
 		_game->pushState(new InventoryState(false, 0));
@@ -665,33 +660,32 @@ void CraftEquipmentState::performTransfer()
 		_base->getStorageItems()->updateItem(rule->getType(), (i->bQty + i->amount) - baseQty);
 
 		// Update craft storage
-		Craft *c = _base->getCrafts()->at(_craft);
-		int craftQty = c->getItems()->getItem(rule->getType());
+		int craftQty = _craft->getItems()->getItem(rule->getType());
 		if (rule->isFixed()) // craftQty = 0
 		{
 			// Take into account previous calls to this function.
 			// Note: ``vehicleQty`` is positive when moving towards craft.
-			int vehicleQty = (i->cQty - i->amount) - c->getVehicleCount(rule->getType());
+			int vehicleQty = (i->cQty - i->amount) - _craft->getVehicleCount(rule->getType());
 			for (int j = 0; j < abs(vehicleQty); ++j)
 			{
 				if (vehicleQty < 0)
 				{
-					c->removeVehicle(rule->getType());
+					_craft->removeVehicle(rule->getType());
 				}
 				if (vehicleQty > 0)
 				{
-					c->addVehicle(rule->getType(), _game->getMod());
+					_craft->addVehicle(rule->getType(), _game->getMod());
 				}
 			}
 		}
 		else if (rule->getBigSprite() == -1) // Vehicle ammo is stored in vehicle NOT craft, but allow extra items.
 		{
 			// Note: Adding to an incraft vehicle will temporarily decrease storage usage (untill HWP is unloaded).
-			c->getItems()->updateItem(rule->getType(), (i->cQty - i->amount - i->assignedQty) - craftQty);
+			_craft->getItems()->updateItem(rule->getType(), (i->cQty - i->amount - i->assignedQty) - craftQty);
 		}
 		else
 		{
-			c->getItems()->updateItem(rule->getType(), (i->cQty - i->amount) - craftQty);
+			_craft->getItems()->updateItem(rule->getType(), (i->cQty - i->amount) - craftQty);
 		}
 	}
 }

@@ -57,6 +57,7 @@ class Text;
 class TextList;
 class Timer;
 class Base;
+class Craft;
 
 /**
  * Equipment screen that lets the player
@@ -70,8 +71,9 @@ private:
 	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew;
 	TextList *_lstEquipment;
 	Timer *_timerLeft, *_timerRight;
-	size_t _sel, _craft;
+	size_t _sel, _craftId;
 	Base *_base;
+	Craft *_craft;
 	std::vector<EquipmentRow> _items;
 	std::vector<int> _rows;
 	std::map<std::string, size_t> _ammoMap;
