@@ -165,7 +165,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craftId) : _sel(0), 
 
 			if (bQty > 0 || cQty > 0)
 			{
-				EquipmentRow row = { item, tr(*i), bQty, cQty, 0, assignedQty };
+				EquipmentRow row = { item, tr(*i), bQty, cQty, assignedQty, 0 };
 				_items.push_back(row);
 				if (item->isAmmo()) // Track ammo since it will be referenced a lot.
 				{

@@ -38,6 +38,10 @@ struct EquipmentRow
 	std::wstring name;  ///< Translated name of item.
 	int bQty;  ///< Starting amount of base stores.
 	int cQty;  ///< Starting amount of craft.
+	int assignedQty;  /**< Reserved amount of item on the craft.
+	                   *
+	                   * Reservation due to assignment to soldier / HWP clips
+	                   */
 	int amount;  /**< Requested change.
 	              *
 	              * For consistency with other base specific transfer actions the
@@ -45,10 +49,6 @@ struct EquipmentRow
 	              * * Positive values moves an item from craft to base stores.
 	              * * Negative values moves an item from base stores to craft.
 	              */
-	int assignedQty;  /**< Reserved amount of item on the craft.
-	                   *
-	                   * Reservation due to assignment to soldier / HWP clips
-	                   */
 };
 
 class TextButton;
