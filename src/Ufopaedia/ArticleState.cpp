@@ -31,7 +31,6 @@ namespace OpenXcom
 
 	/**
 	 * Constructor
-	 * @param game Pointer to current game.
 	 * @param article_id The article id of this article state instance.
 	 */
 	ArticleState::ArticleState(const std::string &article_id) : _id(article_id)

@@ -31,7 +31,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Confirm Load screen.
- * @param game Pointer to the core game.
  * @param origin Game section that originated this state.
  * @param fileName Name of the save file without extension.
  */

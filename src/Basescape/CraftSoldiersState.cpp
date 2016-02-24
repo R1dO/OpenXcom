@@ -93,7 +93,6 @@ GET_SOLDIER_STAT_FN(woundRecovery, WoundRecovery)
 
 /**
  * Initializes all the elements in the Craft Soldiers screen.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  * @param craft ID of the selected craft.
  */

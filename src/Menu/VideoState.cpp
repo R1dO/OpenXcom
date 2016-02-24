@@ -39,7 +39,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Intro screen.
- * @param game Pointer to the core game.
  * @param wasLetterBoxed Was the game letterboxed?
  */
 VideoState::VideoState(const std::vector<std::string> *videos, const std::vector<std::string> *tracks, bool useUfoAudioSequence)

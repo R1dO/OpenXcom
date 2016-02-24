@@ -35,7 +35,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Mission Detected window.
- * @param game Pointer to the core game.
  * @param mission Pointer to the respective Mission Site.
  * @param state Pointer to the Geoscape.
  */

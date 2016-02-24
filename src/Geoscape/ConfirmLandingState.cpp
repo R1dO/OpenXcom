@@ -43,7 +43,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Confirm Landing window.
- * @param game Pointer to the core game.
  * @param craft Pointer to the craft to confirm.
  * @param texture Texture of the landing site.
  * @param shade Shade of the landing site.

@@ -40,7 +40,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Base Defense screen.
- * @param game Pointer to the core game.
  * @param base Pointer to the base being attacked.
  * @param ufo Pointer to the attacking ufo.
  * @param state Pointer to the Geoscape.

@@ -40,7 +40,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Saved Game screen.
- * @param game Pointer to the core game.
  * @param origin Game section that originated this state.
  */
 ListLoadOriginalState::ListLoadOriginalState(OptionsOrigin origin) : _origin(origin)

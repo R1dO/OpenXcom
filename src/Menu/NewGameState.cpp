@@ -34,7 +34,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Difficulty window.
- * @param game Pointer to the core game.
  */
 NewGameState::NewGameState()
 {

@@ -40,7 +40,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the productions start screen.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  * @param item The RuleManufacture to produce.
  */

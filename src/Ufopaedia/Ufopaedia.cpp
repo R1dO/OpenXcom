@@ -100,7 +100,6 @@ namespace OpenXcom
 
 	/**
 	 * Creates a new article state dependent on the given article definition.
-	 * @param game Pointer to actual game.
 	 * @param article Article definition to create from.
 	 * @returns Article state object if created, 0 otherwise.
 	 */

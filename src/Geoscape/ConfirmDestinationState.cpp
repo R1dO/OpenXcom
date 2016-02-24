@@ -35,7 +35,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Confirm Destination window.
- * @param game Pointer to the core game.
  * @param craft Pointer to the craft to retarget.
  * @param target Pointer to the selected target (NULL if it's just a point on the globe).
  */

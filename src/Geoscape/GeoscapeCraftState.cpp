@@ -43,7 +43,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Geoscape Craft window.
- * @param game Pointer to the core game.
  * @param craft Pointer to the craft to display.
  * @param globe Pointer to the Geoscape globe.
  * @param waypoint Pointer to the last UFO position (if redirecting the craft).

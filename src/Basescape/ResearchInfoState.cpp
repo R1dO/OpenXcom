@@ -39,7 +39,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the ResearchProject screen.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  * @param rule A RuleResearch which will be used to create a new ResearchProject
  */
@@ -50,7 +49,6 @@ ResearchInfoState::ResearchInfoState(Base *base, RuleResearch *rule) : _base(bas
 
 /**
  * Initializes all the elements in the ResearchProject screen.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  * @param project A ResearchProject to modify
  */

@@ -30,7 +30,6 @@ namespace OpenXcom
 {
 /**
  * Initializes all the elements in the Research Required screen.
- * @param game Pointer to the core game.
  * @param item Pointer to the researched weapon.
  */
 ResearchRequiredState::ResearchRequiredState(RuleItem *item)

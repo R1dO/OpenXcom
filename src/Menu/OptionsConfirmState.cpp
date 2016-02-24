@@ -35,7 +35,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Confirm Display Options screen.
- * @param game Pointer to the core game.
  * @param origin Game section that originated this state.
  */
 OptionsConfirmState::OptionsConfirmState(OptionsOrigin origin) : _origin(origin), _countdown(15)

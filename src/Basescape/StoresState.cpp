@@ -35,7 +35,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Stores window.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  */
 StoresState::StoresState(Base *base) : _base(base)

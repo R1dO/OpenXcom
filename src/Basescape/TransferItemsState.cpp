@@ -50,7 +50,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Transfer screen.
- * @param game Pointer to the core game.
  * @param baseFrom Pointer to the source base.
  * @param baseTo Pointer to the destination base.
  */

@@ -41,7 +41,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Action Menu window.
- * @param game Pointer to the core game.
  * @param action Pointer to the action.
  * @param x Position on the x-axis.
  * @param y position on the y-axis.

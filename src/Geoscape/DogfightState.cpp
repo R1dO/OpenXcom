@@ -227,7 +227,6 @@ const int DogfightState::_projectileBlobs[4][6][3] =
 };
 /**
  * Initializes all the elements in the Dogfight window.
- * @param game Pointer to the core game.
  * @param state Pointer to the Geoscape.
  * @param craft Pointer to the craft intercepting.
  * @param ufo Pointer to the UFO being intercepted.

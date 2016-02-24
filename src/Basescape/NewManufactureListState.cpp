@@ -36,7 +36,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the productions list screen.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  */
 NewManufactureListState::NewManufactureListState(Base *base) : _base(base)

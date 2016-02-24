@@ -37,7 +37,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Craft Weapons window.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  * @param craft ID of the selected craft.
  * @param weapon ID of the selected weapon.

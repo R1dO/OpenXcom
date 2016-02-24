@@ -35,7 +35,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Prime Grenade window.
- * @param game Pointer to the core game.
  * @param action Pointer to the action.
  * @param inInventoryView Called from inventory?
  * @param grenadeInInventory Pointer to associated grenade.

@@ -39,7 +39,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Multiple Targets window.
- * @param game Pointer to the core game.
  * @param targets List of targets to display.
  * @param craft Pointer to craft to retarget (NULL if none).
  * @param state Pointer to the Geoscape state.

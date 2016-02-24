@@ -46,7 +46,6 @@ Game* State::_game = 0;
 /**
  * Initializes a brand new state with no child elements.
  * By default states are full-screen.
- * @param game Pointer to the core game.
  */
 State::State() : _screen(true), _modal(0), _ruleInterface(0), _ruleInterfaceParent(0)
 {

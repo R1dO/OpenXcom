@@ -41,7 +41,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Unit Info screen.
- * @param game Pointer to the core game.
  * @param unit Pointer to the selected unit.
  * @param parent Pointer to parent Battlescape.
  * @param fromInventory Is player coming from the inventory?

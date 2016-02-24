@@ -41,7 +41,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Load Game screen.
- * @param game Pointer to the core game.
  * @param origin Game section that originated this state.
  * @param filename Name of the save file without extension.
  * @param palette Parent state palette.
@@ -53,7 +52,6 @@ LoadGameState::LoadGameState(OptionsOrigin origin, const std::string &filename, 
 
 /**
  * Initializes all the elements in the Load Game screen.
- * @param game Pointer to the core game.
  * @param origin Game section that originated this state.
  * @param type Type of auto-load being used.
  * @param palette Parent state palette.

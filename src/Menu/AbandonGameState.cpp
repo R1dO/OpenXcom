@@ -36,7 +36,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Abandon Game screen.
- * @param game Pointer to the core game.
  * @param origin Game section that originated this state.
  */
 AbandonGameState::AbandonGameState(OptionsOrigin origin) : _origin(origin)

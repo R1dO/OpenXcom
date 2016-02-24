@@ -32,7 +32,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Low Fuel window.
- * @param game Pointer to the core game.
  * @param craft Pointer to the craft to display.
  * @param state Pointer to the Geoscape.
  */

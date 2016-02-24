@@ -44,7 +44,6 @@ namespace OpenXcom
 {
 /**
  * Initializes all the elements in the Monthly Report screen.
- * @param game Pointer to the core game.
  * @param psi Show psi training afterwards?
  * @param globe Pointer to the globe.
  */

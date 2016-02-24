@@ -33,7 +33,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Save Game screen.
- * @param game Pointer to the core game.
  * @param origin Game section that originated this state.
  */
 ListSaveState::ListSaveState(OptionsOrigin origin) : ListGamesState(origin, 1, false), _previousSelectedRow(-1), _selectedRow(-1)

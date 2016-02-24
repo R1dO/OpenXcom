@@ -34,7 +34,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Confirm Transfer window.
- * @param game Pointer to the core game.
  * @param base Pointer to the destination base.
  * @param state Pointer to the Transfer state.
  */

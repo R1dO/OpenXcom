@@ -31,7 +31,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Restore Defaults screen.
- * @param game Pointer to the core game.
  * @param origin Game section that originated this state.
  * @param state Pointer to the base Options state.
  */

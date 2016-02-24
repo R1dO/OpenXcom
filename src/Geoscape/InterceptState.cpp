@@ -39,7 +39,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Intercept window.
- * @param game Pointer to the core game.
  * @param globe Pointer to the Geoscape globe.
  * @param base Pointer to base to show contained crafts (NULL to show all crafts).
  * @param target Pointer to target to intercept (NULL to ask user for target).

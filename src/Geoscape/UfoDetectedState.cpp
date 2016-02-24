@@ -41,7 +41,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Ufo Detected window.
- * @param game Pointer to the core game.
  * @param ufo Pointer to the UFO to get info from.
  * @param state Pointer to the Geoscape.
  * @param detected Was the UFO detected?

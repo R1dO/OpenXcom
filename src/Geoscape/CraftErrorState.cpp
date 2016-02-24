@@ -31,7 +31,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in a Craft Error window.
- * @param game Pointer to the core game.
  * @param state Pointer to the Geoscape state.
  * @param msg Error message.
  */

@@ -77,7 +77,6 @@ struct compareSaveTimestamp : public std::binary_function<SaveInfo&, SaveInfo&, 
 
 /**
  * Initializes all the elements in the Saved Game screen.
- * @param game Pointer to the core game.
  * @param origin Game section that originated this state.
  * @param firstValidRow First row containing saves.
  * @param autoquick Show auto/quick saved games?

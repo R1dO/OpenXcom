@@ -44,7 +44,6 @@ void GoToMainMenuState::init()
 
 /**
  * Initializes all the elements in the Main Menu window.
- * @param game Pointer to the core game.
  */
 MainMenuState::MainMenuState()
 {

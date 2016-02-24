@@ -34,7 +34,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Confirmation screen.
- * @param game Pointer to the core game.
  * @param origin Game section that originated this state.
  * @param save Name of the save file to delete.
  */

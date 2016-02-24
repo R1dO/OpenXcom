@@ -32,7 +32,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements.
- * @param game Pointer to the core game.
  * @param msg Message string.
  */
 InfoboxOKState::InfoboxOKState(const std::string &msg)

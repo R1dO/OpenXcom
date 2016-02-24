@@ -30,7 +30,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Ufo Lost window.
- * @param game Pointer to the core game.
  * @param id Name of the UFO.
  */
 UfoLostState::UfoLostState(const std::string &id) : _id(id)

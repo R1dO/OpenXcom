@@ -42,7 +42,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Craft Armor screen.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  * @param craft ID of the selected craft.
  */

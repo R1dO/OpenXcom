@@ -34,7 +34,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in a Base Name window.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to name.
  * @param globe Pointer to the Geoscape globe.
  * @param first Is this the first base in the game?

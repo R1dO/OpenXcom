@@ -34,7 +34,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Target Info window.
- * @param game Pointer to the core game.
  * @param target Pointer to the target to show info from.
  * @param globe Pointer to the Geoscape globe.
  */

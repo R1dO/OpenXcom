@@ -49,7 +49,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Soldier Info screen.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from. NULL to use the dead soldiers list.
  * @param soldierId ID of the selected soldier.
  */

@@ -34,7 +34,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Place Facility window.
- * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  * @param select Pointer to the selection state.
  * @param rule Pointer to the facility ruleset to build.

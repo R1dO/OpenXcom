@@ -31,7 +31,6 @@ namespace OpenXcom
 {
 /**
  * Initializes all the elements in the EndResearch screen.
- * @param game Pointer to the core game.
  * @param newResearch Pointer to the completed research (or 0, if the ufopedia article shouldn't popup again).
  * @param bonus Pointer to bonus unlocked research.
  * @param research Pointer to the research project.
