@@ -666,24 +666,23 @@ void CraftEquipmentState::performTransfer()
 		int craftQty = _craft->getItems()->getItem(rule->getType());
 		if (rule->isFixed()) // craftQty = 0
 		{
-			// Take into account previous calls to this function.
-			// Note: ``vehicleQty`` is positive when moving towards craft.
-			int vehicleQty = (i->cQty - i->amount) - _craft->getVehicleCount(rule->getType());
-			for (int j = 0; j < abs(vehicleQty); ++j)
+			// See EquipmentRow.amount for definition of direction based on sign of variable.
+			int vehicleAmount = _craft->getVehicleCount(rule->getType()) - (i->cQty - i->amount);
+			for (int j = 0; j < abs(vehicleAmount); ++j)
 			{
-				if (vehicleQty < 0)
+				if (vehicleAmount > 0)
 				{
 					_craft->removeVehicle(rule->getType());
 				}
-				if (vehicleQty > 0)
+				if (vehicleAmount < 0)
 				{
 					_craft->addVehicle(rule->getType(), _game->getMod());
 				}
 			}
 		}
-		else if (rule->getBigSprite() == -1) // Vehicle ammo is stored in vehicle NOT craft, but allow extra items.
+		else if (rule->getBigSprite() == -1) // Vehicle ammo is stored in vehicle NOT craft, allow extra clips.
 		{
-			// Note: Adding to an incraft vehicle will temporarily decrease storage usage (untill HWP is unloaded).
+			// Adding to an incraft vehicle will temporarily decrease storage usage (untill vehicle is unloaded).
 			_craft->getItems()->updateItem(rule->getType(), (i->cQty - i->amount - i->assignedQty) - craftQty);
 		}
 		else
