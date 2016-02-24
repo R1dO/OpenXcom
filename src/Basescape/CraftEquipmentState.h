@@ -38,10 +38,11 @@ struct EquipmentRow
 	std::wstring name;  ///< Translated name of item.
 	int bQty;  ///< Starting amount of base stores.
 	int cQty;  ///< Starting amount of craft.
-	int assignedQty;  /**< Reserved amount of item on the craft.
-	                   *
-	                   * Reservation due to assignment to soldier / HWP clips
-	                   */
+	int rQty;  /**< Reserved amount of item on the craft.
+	            *
+	            * Reservation due to assignment to soldier or clips assigned to vehicles.
+	            * @note Does not necessarily mean protected against changes.
+	            */
 	int amount;  /**< Requested change.
 	              *
 	              * For consistency with other base specific transfer actions the

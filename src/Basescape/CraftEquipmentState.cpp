@@ -143,17 +143,17 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craftId) : _sel(0), 
 		{
 			int bQty = _base->getStorageItems()->getItem(*i);
 			int cQty = 0;  // Number of items in craft
-			int assignedQty = 0; // Minimum amount needed for soldier loadout or HWP ammo.
+			int rQty = 0;  // Minimum amount needed for soldier loadout or HWP ammo.
 			if (!item->isFixed()) // Normal equipment
 			{
 				cQty = _craft->getItems()->getItem(*i); // Does NOT include ammo inside vehicle.
-				assignedQty = _craft->getItemAssignedCount(*i);
+				rQty = _craft->getItemAssignedCount(*i);
 				// HWP ammo is supposed to be free of charge in original, hence it is
 				// actually a good thing cQty does not yet include that.
 				_totalCraftItems += cQty;
 				if (item->getBigSprite() == -1)
 				{
-					cQty += assignedQty; // Include ammo inside vehicles.
+					cQty += rQty;  // Include ammo inside vehicles.
 				}
 			}
 			else if (_game->getMod()->getUnit(item->getType())) // A vehicle
@@ -165,7 +165,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craftId) : _sel(0), 
 
 			if (bQty > 0 || cQty > 0)
 			{
-				EquipmentRow row = { item, tr(*i), bQty, cQty, assignedQty, 0 };
+				EquipmentRow row = { item, tr(*i), bQty, cQty, rQty, 0 };
 				_items.push_back(row);
 				if (item->isAmmo()) // Track ammo since it will be referenced a lot.
 				{
@@ -224,7 +224,7 @@ void CraftEquipmentState::updateList()
 		// Modify fields.
 		if (!item->isFixed()) // Inventory visits will probably affect the assignedQty field.
 		{
-			_items[row].assignedQty = _craft->getItemAssignedCount(item->getType());
+			_items[row].rQty = _craft->getItemAssignedCount(item->getType());
 		}
 		// Draw
 //		if (item->getBigSprite() == -1) // Vehicle ammo
@@ -454,7 +454,7 @@ void CraftEquipmentState::moveToBase(int change)
 
 				size_t currentSel = _sel;
 				_sel = search->second; // Mimic mouse selection (even when row is hidden).
-				getRow().assignedQty -= change * clipsPerVehicle; // Remove protection from said amount of clips.
+				getRow().rQty -= change * clipsPerVehicle; // Remove protection from said amount of clips.
 				moveToBase(change * clipsPerVehicle);
 				_sel = currentSel; // Return focus to vehicle row.
 			}
@@ -465,7 +465,7 @@ void CraftEquipmentState::moveToBase(int change)
 	}
 	else if (item->getBigSprite() == -1) // Protect HWP ammo.
 	{
-		change = std::min(getRow().cQty - getRow().assignedQty - getRow().amount, change);
+		change = std::min(getRow().cQty - getRow().rQty - getRow().amount, change);
 	}
 	else
 	{
@@ -547,7 +547,7 @@ void CraftEquipmentState::moveToCraft(int change)
 			{
 				// Check for discrepancy in clips on craft vs vehicle (when ammo row is visible).
 				// Only relevant as long as vehicles are not allowed to resupply during a mission.
-				int extraClips =  (_items[search->second].cQty - _items[search->second].assignedQty - _items[search->second].amount);
+				int extraClips =  (_items[search->second].cQty - _items[search->second].rQty - _items[search->second].amount);
 				int maxByClips = change;
 				if (_game->isCampaign())
 				{
@@ -564,7 +564,7 @@ void CraftEquipmentState::moveToCraft(int change)
 
 				size_t currentSel = _sel;
 				_sel = search->second; // Mimic mouse selection (even when row is hidden).
-				getRow().assignedQty += change * clipsPerVehicle; // Protect said amount of clips.
+				getRow().rQty += change * clipsPerVehicle; // Protect said amount of clips.
 				moveToCraft(change * clipsPerVehicle - extraClips);
 				_sel = currentSel; // Return focus to vehicle row.
 			}
@@ -683,7 +683,7 @@ void CraftEquipmentState::performTransfer()
 		else if (rule->getBigSprite() == -1) // Vehicle ammo is stored in vehicle NOT craft, allow extra clips.
 		{
 			// Adding to an incraft vehicle will temporarily decrease storage usage (untill vehicle is unloaded).
-			_craft->getItems()->updateItem(rule->getType(), (i->cQty - i->amount - i->assignedQty) - craftQty);
+			_craft->getItems()->updateItem(rule->getType(), (i->cQty - i->amount - i->rQty) - craftQty);
 		}
 		else
 		{
