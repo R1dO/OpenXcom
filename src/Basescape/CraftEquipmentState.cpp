@@ -209,10 +209,10 @@ void CraftEquipmentState::init()
 }
 
 /**
- * Updates item list.
+ * Updates displayed item list.
  *
- * Uses updateItemRow() to redraw the appropriate row values.
- * Will always reset the row pointed to by the mouse.
+ * Redraws the list, uses updateItemRow() to set the row values.
+ * @note Hiding of specific list entries is covered by this function.
  */
 void CraftEquipmentState::updateList()
 {
@@ -257,12 +257,12 @@ void CraftEquipmentState::think()
 }
 
 /**
- * Returns to the previous screen.
+ * Undo requested changes and return to the previous screen.
  * @param action Pointer to an action.
  */
 void CraftEquipmentState::btnCancelClick(Action *)
 {
-	// Visits to inventory might have altered the base and craft lists.
+	// Visits to inventory might have altered the Base and Craft ItemLists.
 	for (std::vector<EquipmentRow>::iterator i = _items.begin(); i != _items.end(); ++i)
 	{
 		i->amount = 0;
@@ -428,6 +428,7 @@ void CraftEquipmentState::moveLeft()
 
 /**
  * Moves the given number of items to the base.
+ *
  * Updates EquipmentRow::amount and derived totals.
  * @param change Amount to move from craft to base.
  */
@@ -620,15 +621,16 @@ void CraftEquipmentState::btnClearClick(Action *)
 }
 
 /**
- * Displays the inventory screen for the soldiers
- * inside the craft.
- * @param action Pointer to an action.
+ * Displays the inventory screen for the soldiers assigned to the current craft.
+ *
+ * Updates Craft ItemContainer as well since Inventory class is not aware of the
+ * EquipmentRow struct.
+ * * @param action Pointer to an action.
  */
 void CraftEquipmentState::btnInventoryClick(Action *)
 {
 	if (_craft->getNumSoldiers() != 0)
 	{
-		// Update craft items first.
 		performTransfer();  // Updates baseitems as well but keeps codebase smaller.
 
 		SavedBattleGame *bgame = new SavedBattleGame();
@@ -644,13 +646,14 @@ void CraftEquipmentState::btnInventoryClick(Action *)
 
 /**
  * Performs the transfer between base and craft.
- * Updates every row since previous calls could have altered any value.
  *
- * This function does not check ammo requirements for vehicles. Those are
- * already covered by the ``moveToBase()`` and ``moveToCraft()`` functions.
+ * @note
+ * Ammo requirement checks for vehicles and any special handling are covered by
+ * the moveToBase() and moveToCraft() functions.
  */
 void CraftEquipmentState::performTransfer()
 {
+	// Check each row since previous calls could have altered any value.
 	for (std::vector<EquipmentRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
 		RuleItem *rule = i->rule;

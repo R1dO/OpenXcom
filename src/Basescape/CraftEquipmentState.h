@@ -83,7 +83,7 @@ private:
 	EquipmentRow &getRow() { return _items[_rows[_sel]]; }
 	/// Resets state.
 	void init();
-	/// Runs the timers.
+	/// Runs the arrow timers.
 	void think();
 	/// Handler for clicking the Cancel button.
 	void btnCancelClick(Action *action);
@@ -107,9 +107,9 @@ private:
 	void lstEquipmentRightArrowClick(Action *action);
 	/// Handler for pressing-down a mouse-button in the list.
 	void lstEquipmentMousePress(Action *action);
-	/// Moves an item to the base.
+	/// Moves the selected item to the base.
 	void moveLeft();
-	/// Moves an item to the craft.
+	/// Moves the selected item to the craft.
 	void moveRight();
 	/// Moves the given number of items to the base.
 	void moveToBase(int change);
@@ -117,11 +117,11 @@ private:
 	void moveToCraft(int change);
 	/// Performs the transfer between base and craft.
 	void performTransfer();
-	/// Updates displayed item list, and derived values.
-	void updateDerivedInfo();
 	/// Updates derived values entities.
-	void updateItemRow();
+	void updateDerivedInfo();
 	/// Updates quantity strings and row color of the selected item.
+	void updateItemRow();
+	/// Updates displayed item list.
 	void updateList();
 public:
 	/// Creates the Craft Equipment state.
