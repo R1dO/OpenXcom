@@ -682,7 +682,7 @@ void CraftEquipmentState::performTransfer()
 		}
 		else if (rule->getBigSprite() == -1) // Vehicle ammo is stored in vehicle NOT craft, allow extra clips.
 		{
-			// Adding to an incraft vehicle will temporarily decrease storage usage (untill vehicle is unloaded).
+			// Adding to an incraft vehicle will temporarily decrease storage usage (until vehicle is unloaded).
 			_craft->getItems()->updateItem(rule->getType(), (i->cQty - i->amount - i->rQty) - craftQty);
 		}
 		else

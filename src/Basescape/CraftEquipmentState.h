@@ -29,24 +29,25 @@ namespace OpenXcom
 /**
  * Structure to keep track of requested changes to craft equipment.
  *
- * Deliberately not using TransferRow since the latter one is geared more toward
- * transferring between bases (can lead to false expectations).
+ * Slightly different to TransferRow hence redefined.
  */
 struct EquipmentRow
 {
 	RuleItem *rule;  ///< Pointer to ruleset of item.
 	std::wstring name;  ///< Translated name of item.
-	int bQty;  ///< Starting amount of base stores.
-	int cQty;  ///< Starting amount of craft.
-	int rQty;  /**< Reserved amount of item on the craft.
+	int bQty;  ///< Starting amount in base stores.
+	int cQty;  ///< Starting amount in craft cargo hold.
+	int rQty;  /**< Reserved amount of item on craft.
 	            *
-	            * Reservation due to assignment to soldier or clips assigned to vehicles.
+	            * Reservation due to:
+	            * * Soldiers aggressively defending their shiny stuff.
+	            * * Engineers objecting to soldiers loading ammo into their toys.
+	            *
 	            * @note Does not necessarily mean protected against changes.
 	            */
 	int amount;  /**< Requested change.
 	              *
-	              * For consistency with other base specific transfer actions the
-	              * direction of change is defined as:
+	              * For consistency direction of change is defined as:
 	              * * Positive values moves an item from craft to base stores.
 	              * * Negative values moves an item from base stores to craft.
 	              */
