@@ -104,7 +104,7 @@ void ItemContainer::removeItem(const std::string &id, int qty)
  */
 void ItemContainer::updateItem(const std::string &id, int qty)
 {
-	if (id.empty() || qty == 0)
+	if (qty == 0)
 	{
 		return;
 	}
