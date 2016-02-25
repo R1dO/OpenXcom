@@ -709,7 +709,11 @@ void CraftEquipmentState::performTransfer()
 				}
 			}
 		}
-		else if (rule->getBigSprite() != -1) // Vehicle ammo is stored in vehicle NOT craft.
+		else if (rule->getBigSprite() == -1) // Vehicle ammo is stored in vehicle NOT craft, but allow extra items.
+		{
+			c->getItems()->updateItem(rule->getType(), (i->cQty - i->amount - i->assignedQty) - craftQty);
+		}
+		else
 		{
 			c->getItems()->updateItem(rule->getType(), (i->cQty - i->amount) - craftQty);
 		}
