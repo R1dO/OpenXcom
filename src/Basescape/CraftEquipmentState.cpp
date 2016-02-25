@@ -270,42 +270,13 @@ void CraftEquipmentState::think()
 	_timerRight->think(this, 0);
 }
 
-
 /**
- * Returns to the previous screen.
- * Apply the requested changes.
+ * Apply requested changes and return to the previous screen.
  * @param action Pointer to an action.
  */
 void CraftEquipmentState::btnOkClick(Action *)
 {
-	for (std::vector<EquipmentRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
-	{
-		RuleItem *rule = static_cast<RuleItem*> (i->rule);
-		_base->getStorageItems()->updateItem(rule->getType(), i->amount);
-
-		Craft *c = _base->getCrafts()->at(_craft);
-		if (rule->isFixed())  // A vehicle (initializer already kept fixed bio weapons out)
-		{
-			// No need to check if enough ammo assigned or returned, unless users are
-			// allowed to change it manually (all other cases should be covered by the
-			// ``moveTo*`` functions).
-			for (int j = 0; j < abs(i->amount); ++j)
-			{
-				if (i->amount > 0) // Remove vehicle from craft.
-				{
-					c->removeVehicle(rule->getType());
-				}
-				if (i->amount < 0) // Add vehicle to craft.
-				{
-					c->addVehicle(rule->getType(), _game->getMod());
-				}
-			}
-		}
-		else if (rule->getBigSprite() != -1) // Vehicle ammo is stored in vehicle NOT craft.
-		{
-			c->getItems()->updateItem(rule->getType(), -1 * i->amount);
-		}
-	}
+	performTransfer();
 	_game->popState();
 }
 
@@ -651,6 +622,9 @@ void CraftEquipmentState::btnInventoryClick(Action *)
 	Craft *craft = _base->getCrafts()->at(_craft);
 	if (craft->getNumSoldiers() != 0)
 	{
+		// Update craft items first.
+		performTransfer();  // Updates baseitems as well but keeps codebase smaller.
+
 		SavedBattleGame *bgame = new SavedBattleGame();
 		_game->getSavedGame()->setBattleGame(bgame);
 
@@ -659,6 +633,51 @@ void CraftEquipmentState::btnInventoryClick(Action *)
 
 		_game->getScreen()->clear();
 		_game->pushState(new InventoryState(false, 0));
+	}
+}
+
+/**
+ * Performs the transfer between base and craft.
+ * Updates every row since previous calls could have altered any value.
+ *
+ * This function does not check ammo requirements for vehicles. Those are
+ * already covered by the ``moveToBase`` and ``moveToCraft`` functions. They are
+ * hidden (see updateList()) since users are not supposed to alter them.
+ */
+void CraftEquipmentState::performTransfer()
+{
+	for (std::vector<EquipmentRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	{
+		RuleItem *rule = static_cast<RuleItem*> (i->rule);
+
+		// Update base storage
+		int baseQty = _base->getStorageItems()->getItem(rule->getType());
+		_base->getStorageItems()->updateItem(rule->getType(), (i->bQty + i->amount) - baseQty);
+
+		// Update craft storage
+		Craft *c = _base->getCrafts()->at(_craft);
+		int craftQty = c->getItems()->getItem(rule->getType());
+		if (rule->isFixed()) // craftQty = 0
+		{
+			// Take into account previous calls to this function.
+			// Note: ``vehicleQty`` is positive when moving towards craft.
+			int vehicleQty = (i->cQty - i->amount) - c->getVehicleCount(rule->getType());
+			for (int j = 0; j < abs(vehicleQty); ++j)
+			{
+				if (vehicleQty < 0)
+				{
+					c->removeVehicle(rule->getType());
+				}
+				if (vehicleQty > 0)
+				{
+					c->addVehicle(rule->getType(), _game->getMod());
+				}
+			}
+		}
+		else if (rule->getBigSprite() != -1) // Vehicle ammo is stored in vehicle NOT craft.
+		{
+			c->getItems()->updateItem(rule->getType(), (i->cQty - i->amount) - craftQty);
+		}
 	}
 }
 

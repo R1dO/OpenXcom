@@ -81,6 +81,8 @@ private:
 	void updateDerivedInfo();
 	/// Updates quantity strings and row color of the selected item.
 	void updateItemRow();
+	/// Performs the transfer between base and craft.
+	void performTransfer();
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);
