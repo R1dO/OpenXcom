@@ -1068,21 +1068,26 @@ void Craft::reuseItem(const std::string& item)
 
 /**
  * Add a vehicle of a specific type to the craft using default values.
- * @param vehicle Vehicle type.
+ * @param vehicleType Vehicle type.
  * @param mod Pointer to mod.
  */
 void Craft::addVehicle(const std::string &vehicleType, const Mod *mod)
 {
 	Unit *vehicle = mod->getUnit(vehicleType);
-	Vehicle *v = new Vehicle(mod->getItem(vehicleType),
-		                       vehicle->getCompatibleAmmoClips().begin()->second,
-		                       vehicle->getBattleSize());
+	RuleItem *rule = mod->getItem(vehicleType);
+	int projectiles = -1;
+	if (!vehicle->getCompatibleProjectiles().empty())
+	{
+		// Cutting corners ... use only first defined ammo.
+		projectiles = vehicle->getCompatibleProjectiles().begin()->second;
+	}
+	Vehicle *v = new Vehicle(rule, projectiles, vehicle->getBattleSize());
 	_vehicles.push_back(v);
 }
 
 /**
  * Remove a specific vehicle from craft.
- * @param vehicle Vehicle type.
+ * @param vehicleType Vehicle type.
  */
 void Craft::removeVehicle(const std::string &vehicleType)
 {
