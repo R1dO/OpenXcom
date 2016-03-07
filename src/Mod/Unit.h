@@ -128,6 +128,8 @@ public:
 	bool getCapturable() const;
 	/// Gets a list with max amounts of compatible clips a vehicle can contain.
 	const std::map<std::string, int> getCompatibleAmmoClips() const;
+	/// Gets a list with max amounts of compatible projectiles a vehicle can contain.
+	const std::map<std::string, int> getCompatibleProjectiles() const;
 };
 
 }

@@ -311,10 +311,10 @@ const std::map<std::string, int> Unit::getCompatibleAmmoClips() const
 	     i = _game->getMod()->getItem(_type)->getCompatibleAmmo()->begin();
 	     i != _game->getMod()->getItem(_type)->getCompatibleAmmo()->end(); ++i)
 	{
-		// It would be more intuitive if ``_clipsize`` on a vehicle (item) would represent number of
-		// ammo clips it can contain. Just like ``_clipsize`` on an ammo item represent number of shots
-		// a clip contains. Since that would probably require quite some alterations it is better to
-		// keep legacy behavior.
+		// Is it not more intuitive if ``_clipsize`` on a vehicle (item) would represent number of
+		// ammo clips it can contain? Just like ``_clipsize`` on an ammo item represent number of shots
+		// a clip contains. Or would that break too much?
+		// Current implementation uses legacy behavior.
 		int clipsPerItem = 0;
 		int shotsPerClip = _game->getMod()->getItem(*i)->getClipSize();
 		if (shotsPerClip > 0 && shotsPerVehicle > 0) // TFTD USO style
@@ -328,6 +328,33 @@ const std::map<std::string, int> Unit::getCompatibleAmmoClips() const
 		compatibleClipsPerItem.insert(std::make_pair(*i, clipsPerItem));
 	}
 	return compatibleClipsPerItem;
+}
+
+/**
+ * Gets a list with max amounts of compatible projectiles a vehicle can contain.
+ *
+ * @return Mapping between compatible ammo and max amount of projectiles (shots).
+ */
+const std::map<std::string, int> Unit::getCompatibleProjectiles() const
+{
+	std::map<std::string, int> compatibleProjectilesAmount;
+	int shotsPerVehicle = _game->getMod()->getItem(_type)->getClipSize();
+
+	for (std::vector<std::string>::const_iterator
+	     i = _game->getMod()->getItem(_type)->getCompatibleAmmo()->begin();
+	     i != _game->getMod()->getItem(_type)->getCompatibleAmmo()->end(); ++i)
+	{
+		int shotsPerClip = _game->getMod()->getItem(*i)->getClipSize();
+		if (shotsPerVehicle != 0) // TFTD USO style or unlimited (-1).
+		{
+			compatibleProjectilesAmount.insert(std::make_pair(*i, shotsPerVehicle));
+		}
+		else // UFO HWP style
+		{
+			compatibleProjectilesAmount.insert(std::make_pair(*i, shotsPerClip));
+		}
+	}
+	return compatibleProjectilesAmount;
 }
 
 }
