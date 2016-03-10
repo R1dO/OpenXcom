@@ -943,21 +943,33 @@ int Craft::getVehicleCount(const std::string &vehicle) const
 }
 
 /**
- * Returns the total amount of a specific item from all the soldiers inventory.
+ * Get the total "assigned to unit on craft" count of a specific item.
+ *
+ * Where unit is either a vehicle or a soldier.
  * @param item Specific item.
- * @return Amount of the specific item
+ * @return Total amount of the specific item assigned to inventories.
  */
 int Craft::getItemAssignedCount(const std::string &item) const
 {
 	int total = 0;
-	for (std::vector<Soldier*>::iterator i = _base->getSoldiers()->begin(); i != _base->getSoldiers()->end(); ++i)
-	{
-		if ((*i)->getCraft() == this)
-			total+=(*i)->getItemCount(item);
-	}
+	if (getNumSoldiers() != 0)
+		for (std::vector<Soldier*>::const_iterator i = _base->getSoldiers()->begin(); i != _base->getSoldiers()->end(); ++i)
+		{
+			if ((*i)->getCraft() == this)
+				total+=(*i)->getItemCount(item);
+		}
+	if (getNumVehicles() != 0)
+		for (std::vector<Vehicle*>::const_iterator v = _vehicles.begin(); v != _vehicles.end(); ++v)
+		{
+			std::vector<std::string> *vehicleAmmo = (*v)->getRules()->getCompatibleAmmo();
+			//Shortcut since only 1 ammo kind is stored in the save, and game will always use first from list.
+			if (!vehicleAmmo->empty() && vehicleAmmo->front() == item)
+			{
+				total += (*v)->getClips();
+			}
+		}
 	return total;
 }
-
 
 /**
  * Returns the craft's dogfight status.
