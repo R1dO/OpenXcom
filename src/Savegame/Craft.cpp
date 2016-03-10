@@ -1102,6 +1102,7 @@ void Craft::addVehicle(const std::string &vehicleType, const Mod *mod)
 		projectiles = vehicle->getCompatibleProjectiles().begin()->second;
 	}
 	Vehicle *v = new Vehicle(rule, projectiles, vehicle->getBattleSize());
+	_vehicles.push_back(v);
 }
 
 /**
