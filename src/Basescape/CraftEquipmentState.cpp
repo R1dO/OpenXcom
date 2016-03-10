@@ -514,10 +514,10 @@ void CraftEquipmentState::moveToCraft(int change)
 	change = std::min(getRow().bQty + getRow().amount, change);  // Take into account previous changes.
 	if (item->isFixed()) // Its a vehicle
 	{
+		Unit *vehicle = static_cast<Unit*> (_game->getMod()->getUnit(item->getType()));
 		// Check if there's enough room.
 		int room = std::min((_craft->getRules()->getVehicles() - _totalCraftVehicles),
-		                    (_craft->getSpaceMax() - _totalCraftCrewSpace) /
-		                    _game->getMod()->getUnit(item->getType())->getBattleSize());
+		                    (_craft->getSpaceMax() - _totalCraftCrewSpace) / vehicle->getBattleSize());
 		if (room < 0) // RuleSet changes since last save.
 		{
 			moveToBase(abs(room));
@@ -525,15 +525,14 @@ void CraftEquipmentState::moveToCraft(int change)
 		}
 		change = std::min(room, change);
 
-		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
-		if (!vehicleAmmoClips.empty())
+		if (!vehicle->getCompatibleAmmoClips().empty())
 		{
-			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first);
+			RuleItem *ammo = _game->getMod()->getItem(vehicle->getCompatibleAmmoClips().begin()->first);
 			// And now let's see if we can add the total number of vehicles.
 			// This will always return false if first compatibleAmmo has too little clips, even when a
 			// hypothetical 2nd kind has enough. Not that it matters since we can't choose ingame which
 			// kind of compatibleAmmo a vehicle should use.
-			int clipsPerVehicle = vehicleAmmoClips.begin()->second;
+			int clipsPerVehicle = vehicle->getCompatibleAmmoClips().begin()->second;
 
 			// Locate and update ammo in list.
 			std::map<std::string, size_t>::const_iterator search = _ammoMap.find(ammo->getType());
@@ -570,7 +569,7 @@ void CraftEquipmentState::moveToCraft(int change)
 			}
 		}
 		_totalCraftVehicles += change;
-		_totalCraftCrewSpace += change * _game->getMod()->getUnit(item->getType())->getBattleSize();
+		_totalCraftCrewSpace += change * vehicle->getBattleSize();
 	}
 	else
 	{
