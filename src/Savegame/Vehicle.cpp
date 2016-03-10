@@ -17,6 +17,8 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "Vehicle.h"
+#include "../Engine/Game.h"
+#include "../Mod/Mod.h"
 #include "../Mod/RuleItem.h"
 
 namespace OpenXcom
@@ -72,8 +74,8 @@ RuleItem *Vehicle::getRules() const
 }
 
 /**
- * Returns the ammo contained in this vehicle.
- * @return Weapon ammo.
+ * Returns the ammo (projectiles) contained in this vehicle.
+ * @return Weapon ammo (projectiles).
  */
 int Vehicle::getAmmo() const
 {
@@ -82,6 +84,22 @@ int Vehicle::getAmmo() const
 		return 255;
 	}
 	return _ammo;
+}
+
+/**
+ * Returns the ammo (clips) contained in this vehicle.
+ * @return Weapon ammo (clips).
+ */
+int Vehicle::getClips() const
+{
+	if (_ammo == -1 || _game->getMod()->getUnit(_rules->getType())->getCompatibleAmmoClips().empty())
+	{
+		return 0;
+	}
+	//Shortcut since only 1 ammo kind is stored in the save and game will always use first from list.
+	int craftMaxClips = _game->getMod()->getUnit(_rules->getType())->getCompatibleAmmoClips().begin()->second;
+	int craftMaxProjectiles = _game->getMod()->getUnit(_rules->getType())->getCompatibleProjectiles().begin()->second;
+	return _ammo * craftMaxClips / craftMaxProjectiles;
 }
 
 /**

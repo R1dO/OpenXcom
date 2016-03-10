@@ -18,6 +18,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <yaml-cpp/yaml.h>
+#include "../Engine/State.h"
 
 namespace OpenXcom
 {
@@ -29,7 +30,7 @@ class RuleItem;
  * Contains variable info about a vehicle like ammo.
  * @sa RuleItem
  */
-class Vehicle
+class Vehicle : public State
 {
 private:
 	RuleItem *_rules;
@@ -45,8 +46,10 @@ public:
 	YAML::Node save() const;
 	/// Gets the vehicle's ruleset.
 	RuleItem *getRules() const;
-	/// Gets the vehicle's ammo.
+	/// Returns the ammo (projectiles) contained in this vehicle.
 	int getAmmo() const;
+	/// Returns the ammo (clips) contained in this vehicle.
+	int getClips() const;
 	/// Sets the vehicle's ammo.
 	void setAmmo(int ammo);
 	/// Gets the vehicle's size.
