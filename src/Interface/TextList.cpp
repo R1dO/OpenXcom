@@ -469,7 +469,7 @@ void TextList::setPalette(SDL_Color *colors, int firstcolor, int ncolors)
 
 /**
  * Changes the resources for the text in the list
- * and calculates the selector and visible amount of rows.
+ * and calculates the selector.
  * @param big Pointer to large-size font.
  * @param small Pointer to small-size font.
  * @param lang Pointer to current language.
@@ -900,13 +900,25 @@ void TextList::updateArrows()
 
 /**
  * Updates the amount of visible rows according to the
- * current list and font size.
+ * current list, font size and scroll position.
  */
 void TextList::updateVisible()
 {
 	_visibleRows = 0;
+	if (_rows.empty())
+		return;
 	for (int y = 0; y < getHeight(); y += _font->getHeight() + _font->getSpacing())
 	{
+		int currentRow = line + _scroll;
+		if ( _rows.size() < currentRow )  // Ran out of items to display.
+		{
+			break;
+		}
+		// Wrapped rows should only be counted once.
+		if ( line > 0 && _rows[currentRow] == _rows[currentRow - 1] )
+		{
+			continue;
+		}
 		_visibleRows++;
 	}
 	updateArrows();
@@ -938,6 +950,7 @@ void TextList::draw()
 	int y = 0;
 	if (!_rows.empty())
 	{
+		updateVisible(); // First point where visible rows is usefull (after init).
 		// for wrapped items, offset the draw height above the visible surface
 		// so that the correct row appears at the top
 		for (int row = _scroll; row > 0 && _rows[row] == _rows[row - 1]; --row)
@@ -1231,8 +1244,8 @@ void TextList::scrollTo(size_t scroll)
 	if (!_scrolling)
 		return;
 	_scroll = Clamp(scroll, (size_t)(0), _rows.size() - _visibleRows);
+	updateVisible();
 	draw(); // can't just set _redraw here because reasons
-	updateArrows();
 }
 
 /**
