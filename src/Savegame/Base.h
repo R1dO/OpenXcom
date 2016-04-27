@@ -161,6 +161,8 @@ public:
 	int getCraftMaintenance() const;
 	/// Gets the base's soldiers of a certain type.
 	int getSoldierCount(const std::string &soldier) const;
+	/// Gets the armor amount of a certain type equiped by soldiers.
+	int getSoldierArmorCount(const std::string &armor) const;
 	/// Gets the base's personnel maintenance.
 	int getPersonnelMaintenance() const;
 	/// Gets the base's facility maintenance.

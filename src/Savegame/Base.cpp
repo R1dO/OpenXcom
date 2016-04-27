@@ -1090,6 +1090,24 @@ int Base::getAllocatedSoldiers(const std::string &soldier) const
 	return qtyReserved;
 }
 
+ /**
+ * Gets the armor amount of a certain type equiped by soldiers.
+ * @param armor Armor type.
+ * @return Total amount equiped by soldiers.
+ */
+int Base::getSoldierArmorCount(const std::string &armor) const
+{
+	int qtyOnSoldiers = 0;
+	for (std::vector<Soldier*>::const_iterator i = _soldiers.begin(); i != _soldiers.end(); ++i)
+	{
+		if ((*i)->getArmor()->getStoreItem() == armor)
+		{
+			qtyOnSoldiers++;
+		}
+	}
+	return qtyOnSoldiers;
+}
+
 /**
  * Returns the total amount of soldiers of
  * a certain type stored in the base.
