@@ -96,6 +96,8 @@ public:
 	bool isQuitting() const;
 	/// Returns whether the game is in campaign mode.
 	bool isCampaign() const;
+	/// Returns whether the game is in Skirmish (battle) mode.
+	bool isSkirmish() const;
 	/// Loads the default and current language.
 	void loadLanguages();
 	/// Sets up the audio.
