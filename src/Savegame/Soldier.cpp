@@ -486,6 +486,26 @@ std::vector<EquipmentLayoutItem*> *Soldier::getEquipmentLayout()
 }
 
 /**
+ * Gets the total amount of a specific item from the soldiers inventory.
+ * @param item Specific item.
+ * @return Number of items.
+ */
+int Soldier::getItemCount(const std::string &item) const
+{
+	int total = 0;
+	for (std::vector<EquipmentLayoutItem*>::const_iterator
+	     i = _equipmentLayout.begin(); i != _equipmentLayout.end(); ++i)
+	{
+		if ((*i)->getItemType() == item || (*i)->getAmmoItem() == item)
+		{
+			total++;
+		}
+
+	}
+	return total;
+}
+
+/**
  * Trains a soldier's Psychic abilities after 1 month.
  */
 void Soldier::trainPsi()

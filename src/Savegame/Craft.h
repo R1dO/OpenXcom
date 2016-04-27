@@ -167,6 +167,8 @@ public:
 	int getSpaceUsed() const;
 	/// Gets the craft's vehicles of a certain type.
 	int getVehicleCount(const std::string &vehicle) const;
+	/// Get the total "assigned to unit on craft" count of a specific item.
+	int getItemAssignedCount(const std::string &item) const;
 	/// Sets the craft's dogfight status.
 	void setInDogfight(const bool inDogfight);
 	/// Gets if the craft is in dogfight.

@@ -943,6 +943,23 @@ int Craft::getVehicleCount(const std::string &vehicle) const
 }
 
 /**
+ * Returns the total amount of a specific item from all the soldiers inventory.
+ * @param item Specific item.
+ * @return Amount of the specific item
+ */
+int Craft::getItemAssignedCount(const std::string &item) const
+{
+	int total = 0;
+	for (std::vector<Soldier*>::iterator i = _base->getSoldiers()->begin(); i != _base->getSoldiers()->end(); ++i)
+	{
+		if ((*i)->getCraft() == this)
+			total+=(*i)->getItemCount(item);
+	}
+	return total;
+}
+
+
+/**
  * Returns the craft's dogfight status.
  * @return Is the craft ion a dogfight?
  */

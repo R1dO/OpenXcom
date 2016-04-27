@@ -124,6 +124,8 @@ public:
 	void heal();
 	/// Gets the soldier's equipment-layout.
 	std::vector<EquipmentLayoutItem*> *getEquipmentLayout();
+	/// Gets the soldiers total amount of a specific item.
+	int getItemCount(const std::string &item) const;
 	/// Trains a soldier's psychic stats
 	void trainPsi();
 	/// Trains a soldier's psionic abilities (anytimePsiTraining option).
