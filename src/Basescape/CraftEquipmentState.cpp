@@ -114,10 +114,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 
 	_txtStores->setText(tr("STR_STORES"));
 
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
-
 	std::ostringstream ss3;
 	ss3 << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << c->getNumSoldiers();
 	_txtCrew->setText(ss3.str());
@@ -170,6 +166,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			}
 		}
 	}
+	updateDerivedInfo();
 
 	_timerLeft = new Timer(250);
 	_timerLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeft);
@@ -575,6 +572,18 @@ void CraftEquipmentState::moveRightByValue(int change)
 	}
 	updateQuantity();
 */}
+
+/**
+ * Updates derived values entities.
+ *
+ * Values between title and list.
+ */
+void CraftEquipmentState::updateDerivedInfo()
+{
+	Craft *c = _base->getCrafts()->at(_craft);
+	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceMax() - c->getNumSoldiers() - _totalVehicleSpace));
+	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getNumSoldiers() + _totalVehicleSpace));
+}
 
 /**
  * Empties the contents of the craft, moving all of the items back to the base.

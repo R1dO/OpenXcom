@@ -72,6 +72,8 @@ private:
 	Uint8 _ammoColor;
 	/// Updates quantities of item.
 	void updateQuantity();
+	/// Updates derived values entities.
+	void updateDerivedInfo();
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);
