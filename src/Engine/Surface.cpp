@@ -636,17 +636,27 @@ void Surface::draw()
 	// Show text borders for debugging
 	if (Options::debugUi)
 	{
-		SDL_Rect r;
-		r.w = getWidth();
-		r.h = getHeight();
-		r.x = 0;
-		r.y = 0;
-		this->drawRect(&r, 5);
-		r.w-=2;
-		r.h-=2;
-		r.x++;
-		r.y++;
-		this->drawRect(&r, 0);
+		SDL_Rect nw, se;
+
+		//lower + right line (se)
+		se.w = getWidth();
+		se.h = getHeight();
+		se.x = 0;
+		se.y = 0;
+		this->drawRect(&se, 1);
+
+		// override with upper + left line (nw)
+		nw.w = getWidth()-1;
+		nw.h = getHeight()-1;
+		nw.x = 0;
+		nw.y = 0;
+		this->drawRect(&nw, 5);
+
+		nw.w-=1;
+		nw.h-=1;
+		nw.x++;
+		nw.y++;
+		this->drawRect(&nw, 0);
 	}
 }
 
