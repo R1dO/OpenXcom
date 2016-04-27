@@ -643,14 +643,14 @@ void Surface::draw()
 		se.h = getHeight();
 		se.x = 0;
 		se.y = 0;
-		this->drawRect(&se, 1);
+		this->drawRect(&se, 5);
 
 		// override with upper + left line (nw)
 		nw.w = getWidth()-1;
 		nw.h = getHeight()-1;
 		nw.x = 0;
 		nw.y = 0;
-		this->drawRect(&nw, 5);
+		this->drawRect(&nw, 1);
 
 		nw.w-=1;
 		nw.h-=1;
