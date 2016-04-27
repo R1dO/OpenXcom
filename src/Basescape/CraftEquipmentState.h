@@ -24,6 +24,28 @@
 namespace OpenXcom
 {
 
+/**
+ * Structure to keep track of requested changes to craft equipment.
+ *
+ * Deliberately not using TransferRow since the latter one is geared more toward
+ * transferring between bases (can lead to false expectations).
+ */
+struct EquipmentRow
+{
+	void *rule;  ///< Pointer to ruleset of item.
+	std::wstring name;  ///< Translated name of item.
+	int space;  ///< Amount of crew size an item uses (for vehicles).
+	int bQty;  ///< Starting amount of base stores.
+	int cQty;  ///< Starting amount of craft.
+	int amount; /**< Requested change.
+	             *
+	             * For consistency with other base specific transfer actions the
+	             * direction of change is defined as:
+	             * * Positive values moves an item from craft to base stores.
+	             * * Negative values moves an item from base stores to craft.
+	             */
+};
+
 class TextButton;
 class Window;
 class Text;
@@ -45,8 +67,8 @@ private:
 	Timer *_timerLeft, *_timerRight;
 	size_t _sel, _craft;
 	Base *_base;
-	std::vector<std::string> _items;
-	int _totalItems;
+	std::vector<EquipmentRow> _items;
+	int _totalItems, _totalVehicles, _totalVehicleSpace;  // In Craft.
 	Uint8 _ammoColor;
 	/// Updates quantities of item.
 	void updateQuantity();

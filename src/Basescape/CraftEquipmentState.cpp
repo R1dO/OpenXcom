@@ -54,7 +54,7 @@ namespace OpenXcom
  * @param base Pointer to the base to get info from.
  * @param craft ID of the selected craft.
  */
-CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _craft(craft), _base(base), _totalItems(0), _ammoColor(0)
+CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _craft(craft), _base(base), _totalItems(0), _totalVehicles(0), _totalVehicleSpace(0), _ammoColor(0)
 {
 	Craft *c = _base->getCrafts()->at(_craft);
 	bool craftHasACrew = c->getNumSoldiers() > 0;
@@ -135,63 +135,39 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_lstEquipment->onRightArrowClick((ActionHandler)&CraftEquipmentState::lstEquipmentRightArrowClick);
 	_lstEquipment->onMousePress((ActionHandler)&CraftEquipmentState::lstEquipmentMousePress);
 
-	int row = 0;
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
-		RuleItem *rule = _game->getMod()->getItem(*i);
-		int cQty = 0;
-		if (rule->isFixed())
+		RuleItem *item = _game->getMod()->getItem(*i);
+		if (item->getBattleType() != BT_NONE &&
+		    item->getBattleType() != BT_CORPSE &&
+		    _game->getSavedGame()->isResearched(item->getRequirements()))
 		{
-			cQty = c->getVehicleCount(*i);
-		}
-		else
-		{
-			cQty = c->getItems()->getItem(*i);
-			_totalItems += cQty;
-		}
-		if (rule->getBigSprite() > -1 && rule->getBattleType() != BT_NONE && rule->getBattleType() != BT_CORPSE &&
-			_game->getSavedGame()->isResearched(rule->getRequirements()) &&
-			(_base->getStorageItems()->getItem(*i) > 0 || cQty > 0))
-		{
-			_items.push_back(*i);
-			std::ostringstream ss, ss2;
-			if (_game->getSavedGame()->getMonthsPassed() > -1)
+			int bQty = _base->getStorageItems()->getItem(*i);
+			int cQty = 0;  // Number of items in craft
+			int size = 0;  // Crew space cost of item.
+			if (item->isFixed())
 			{
-				ss << _base->getStorageItems()->getItem(*i);
-			}
-			else
-			{
-				ss << "-";
-			}
-			ss2 << cQty;
-
-			std::string s = tr(*i);
-			if (rule->getBattleType() == BT_AMMO)
-			{
-				s.insert(0, "  ");
-			}
-			_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
-
-			Uint8 color;
-			if (cQty == 0)
-			{
-				if (rule->getBattleType() == BT_AMMO)
+				if (_game->getMod()->getUnit(item->getType())) // A vehicle
 				{
-					color = _ammoColor;
-				}
-				else
-				{
-					color = _lstEquipment->getColor();
+					size = _game->getMod()->getArmor(_game->getMod()->getUnit(item->getType())->getArmor())->getSize();
+					size *= size;
+					// Assume we can only assign vehicles to craft (not fixed weapons like BIODRONE_MELEE_WEAPON)
+					cQty = c->getVehicleCount(*i);
+					_totalVehicles += cQty;
+					_totalVehicleSpace += cQty * size;
 				}
 			}
 			else
 			{
-					color = _lstEquipment->getSecondaryColor();
+				cQty = c->getItems()->getItem(*i);
+				_totalItems += cQty;
 			}
-			_lstEquipment->setRowColor(row, color);
-
-			++row;
+			if (bQty > 0 || cQty > 0)
+			{
+				EquipmentRow row = { item, tr(*i), size, bQty, cQty, 0 };
+				_items.push_back(row);
+			}
 		}
 	}
 
@@ -352,7 +328,7 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
  * selected item on the list.
  */
 void CraftEquipmentState::updateQuantity()
-{
+{/*
 	Craft *c = _base->getCrafts()->at(_craft);
 	RuleItem *item = _game->getMod()->getItem(_items[_sel], true);
 	int cQty = 0;
@@ -398,7 +374,7 @@ void CraftEquipmentState::updateQuantity()
 
 	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
 	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
-}
+*/}
 
 /**
  * Moves the selected item to the base.
@@ -415,7 +391,7 @@ void CraftEquipmentState::moveLeft()
  * @param change Item difference.
  */
 void CraftEquipmentState::moveLeftByValue(int change)
-{
+{/*
 	Craft *c = _base->getCrafts()->at(_craft);
 	RuleItem *item = _game->getMod()->getItem(_items[_sel], true);
 	int cQty = 0;
@@ -485,7 +461,7 @@ void CraftEquipmentState::moveLeftByValue(int change)
 		}
 	}
 	updateQuantity();
-}
+*/}
 
 /**
  * Moves the selected item to the craft.
@@ -502,7 +478,7 @@ void CraftEquipmentState::moveRight()
  * @param change Item difference.
  */
 void CraftEquipmentState::moveRightByValue(int change)
-{
+{/*
 	Craft *c = _base->getCrafts()->at(_craft);
 	RuleItem *item = _game->getMod()->getItem(_items[_sel], true);
 	int bqty = _base->getStorageItems()->getItem(_items[_sel]);
@@ -598,7 +574,7 @@ void CraftEquipmentState::moveRightByValue(int change)
 		}
 	}
 	updateQuantity();
-}
+*/}
 
 /**
  * Empties the contents of the craft, moving all of the items back to the base.
