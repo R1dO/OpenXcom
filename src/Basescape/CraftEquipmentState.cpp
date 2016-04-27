@@ -166,6 +166,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 		}
 	}
 	updateDerivedInfo();
+	updateList();
 
 	_timerLeft = new Timer(250);
 	_timerLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeft);
@@ -193,6 +194,31 @@ void CraftEquipmentState::init()
 
 	Craft *c = _base->getCrafts()->at(_craft);
 	c->setInBattlescape(false);
+}
+
+/**
+ * Updates displayed item list.
+ * Sets the name of each list item.
+ */
+void CraftEquipmentState::updateList()
+{
+	_lstEquipment->clearList();
+	_rows.clear();
+	for (size_t row = 0; row < _items.size(); ++row)
+	{
+		RuleItem *item = _items[row].rule;
+//		if (item->getBigSprite() == -1) // Vehicle ammo
+//		{
+//			continue;
+//		}
+		std::wstring ssName = _items[row].name;
+		if (item->getBattleType() == BT_AMMO)
+		{
+			ssName.insert(0, L"  ");
+		}
+		_lstEquipment->addRow(3, ssName.c_str(), L"", L"");
+		_rows.push_back(row);
+	}
 }
 
 /**

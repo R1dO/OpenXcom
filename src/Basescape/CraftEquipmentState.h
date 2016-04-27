@@ -69,10 +69,13 @@ private:
 	size_t _sel, _craft;
 	Base *_base;
 	std::vector<EquipmentRow> _items;
+	std::vector<int> _rows;
 	int _totalItems, _totalVehicles, _totalVehicleSpace;  // In Craft.
 	Uint8 _ammoColor;
 	/// Updates quantities of item.
 	void updateQuantity();
+	/// Updates displayed item list, and derived values.
+	void updateList();
 	/// Updates derived values entities.
 	void updateDerivedInfo();
 public:
