@@ -71,7 +71,7 @@ private:
 	Base *_base;
 	std::vector<EquipmentRow> _items;
 	std::vector<int> _rows;
-	std::map<std::string, size_t> _vehicleAmmoRow;
+	std::map<std::string, size_t> _ammoMap;
 	int _totalCraftItems, _totalCraftVehicles, _totalCraftCrewSpace;
 	Uint8 _ammoColor;
 	/// Gets the row of the current selection.

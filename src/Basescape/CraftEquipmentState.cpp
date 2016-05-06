@@ -151,6 +151,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 		}
 	}
 	// EquipmentRow struct
+	_ammoMap.clear();
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
@@ -434,21 +435,19 @@ void CraftEquipmentState::moveToBase(int change)
 		RuleItem *item = static_cast<RuleItem*> (getRow().rule);
 		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
 
-		if (! vehicleAmmoClips.empty())
+		if (! vehicleAmmoClips.empty()) // Refund ammoClips.
 		{
-			// Refund ammoClips.
 			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first); //
 			int clipsPerVehicle = vehicleAmmoClips.begin()->second;
-
 			// Locate and update ammo in list.
-			std::map<std::string, size_t>::const_iterator search = _vehicleAmmoRow.find(ammo->getType());
-			if (search != _vehicleAmmoRow.end())
+			std::map<std::string, size_t>::const_iterator search = _ammoMap.find(ammo->getType());
+			if (search != _ammoMap.end())
 			{
 				// Adjust compatible ammo row.
-				_totalCraftItems += change * clipsPerVehicle;	// Vehicle ammo is supposed to be free of charge.
+				_totalCraftItems += change * clipsPerVehicle;  // Vehicle ammo is supposed to be free of charge.
 				size_t currentSel = _sel;
 				_sel = search->second; // Mimic mouse selection (even when row is hidden).
-				moveToBase(change*clipsPerVehicle);
+				moveToBase(change * clipsPerVehicle);
 				_sel = currentSel; // Return focus to vehicle row.
 			}
 		}
@@ -517,16 +516,16 @@ void CraftEquipmentState::moveToCraft(int change)
 
 		if (! vehicleAmmoClips.empty())
 		{
+			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first); //
 			// And now let's see if we can add the total number of vehicles.
 			// This will always return false if first compatibleAmmo has too little clips, even when a
 			// hypothetical 2nd kind has enough. Not that it matters since we can't choose ingame which
 			// kind of compatibleAmmo a vehicle should use.
-			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first); //
 			int clipsPerVehicle = vehicleAmmoClips.begin()->second;
 
 			// Locate and update ammo in list.
-			std::map<std::string, size_t>::const_iterator search = _vehicleAmmoRow.find(ammo->getType());
-			if (search == _vehicleAmmoRow.end())
+			std::map<std::string, size_t>::const_iterator search = _ammoMap.find(ammo->getType());
+			if (search == _ammoMap.end())
 			{
 				// Ammo disappeared from _items, or vehicle was teleported into _items.
 				errorMessage = tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(tr(ammo->getType()));
