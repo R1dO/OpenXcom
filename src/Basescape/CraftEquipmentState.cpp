@@ -190,6 +190,10 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			{
 				EquipmentRow row = { item, tr(*i), size, bQty, cQty, 0 };
 				_items.push_back(row);
+				if (item->isAmmo()) // Track ammo since it will be referenced a lot.
+				{
+					_ammoMap[item->getType()] = _items.size() - 1;
+				}
 			}
 		}
 	}
