@@ -162,7 +162,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 		{
 			int bQty = _base->getStorageItems()->getItem(*i);
 			int cQty = 0;  // Number of items in craft
-			int size = 0;  // Crew space cost of item.
 			if (! item->isFixed()) // Normal equipment
 			{
 				cQty = c->getItems()->getItem(*i);
@@ -180,15 +179,14 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			else if (item->isFixed() && _game->getMod()->getUnit(item->getType()))
 			{
 				Unit *vehicle = _game->getMod()->getUnit(item->getType());
-				size = vehicle->getBattleSize();
 				cQty = c->getVehicleCount(*i);
 				_totalCraftVehicles += cQty;
-				_totalCraftCrewSpace += cQty * size;
+				_totalCraftCrewSpace += cQty * vehicle->getBattleSize();
 			}
 
 			if (bQty > 0 || cQty > 0)
 			{
-				EquipmentRow row = { item, tr(*i), size, bQty, cQty, 0 };
+				EquipmentRow row = { item, tr(*i), bQty, cQty, 0 };
 				_items.push_back(row);
 				if (item->isAmmo()) // Track ammo since it will be referenced a lot.
 				{
@@ -434,9 +432,9 @@ void CraftEquipmentState::moveToBase(int change)
 	if (change < 0 || getRow().cQty <= getRow().amount) return; // Invalid or not enough in craft
 	change = std::min(getRow().cQty - getRow().amount, change); // Max based on in craft items, taking into account previous changes.
 
-	if (getRow().space > 0) // Its a vehicle
+	RuleItem *item = getRow().rule;
+	if (item->isFixed()) // Its a vehicle
 	{
-		RuleItem *item = getRow().rule;
 		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
 
 		if (! vehicleAmmoClips.empty()) // Refund ammoClips.
@@ -457,7 +455,7 @@ void CraftEquipmentState::moveToBase(int change)
 		}
 		// Positive values move towards base, hence amount in craft decrease.
 		_totalCraftVehicles -= change;
-		_totalCraftCrewSpace -= change * getRow().space;
+		_totalCraftCrewSpace -= change * _game->getMod()->getUnit(item->getType())->getBattleSize();
 	}
 	else
 	{
@@ -503,19 +501,20 @@ void CraftEquipmentState::moveToCraft(int change)
 	std::wstring errorMessage;
 	Craft *c = _base->getCrafts()->at(_craft);
 
+	RuleItem *item = getRow().rule;
 	change = std::min(getRow().bQty + getRow().amount, change);  // Take into account previous changes.
-	if (getRow().space > 0) // Its a vehicle
+	if (item->isFixed()) // Its a vehicle
 	{
 		// Check if there's enough room.
 		int room = std::min((c->getRules()->getVehicles() - _totalCraftVehicles),
-		                    (c->getSpaceMax() - c->getNumSoldiers() - _totalCraftCrewSpace) / getRow().space);
+		                    (c->getSpaceMax() - c->getNumSoldiers() - _totalCraftCrewSpace) /
+		                    _game->getMod()->getUnit(item->getType())->getBattleSize());
 		if (room < 0) // RuleSet changes since last save.
 		{
 			moveToBase(abs(room));
 			return;
 		}
 		change = std::min(room, change);
-		RuleItem *item = getRow().rule;
 		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
 
 		if (! vehicleAmmoClips.empty())
@@ -560,7 +559,7 @@ void CraftEquipmentState::moveToCraft(int change)
 			}
 		}
 		_totalCraftVehicles += change;
-		_totalCraftCrewSpace += change * getRow().space;
+		_totalCraftCrewSpace += change * _game->getMod()->getUnit(item->getType())->getBattleSize();
 	}
 	else
 	{

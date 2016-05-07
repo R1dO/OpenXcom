@@ -36,7 +36,6 @@ struct EquipmentRow
 {
 	RuleItem *rule;  ///< Pointer to ruleset of item.
 	std::wstring name;  ///< Translated name of item.
-	int space;  ///< Amount of crew size an item uses (for vehicles).
 	int bQty;  ///< Starting amount of base stores.
 	int cQty;  ///< Starting amount of craft.
 	int amount; /**< Requested change.
