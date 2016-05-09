@@ -131,26 +131,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_lstEquipment->onRightArrowClick((ActionHandler)&CraftEquipmentState::lstEquipmentRightArrowClick);
 	_lstEquipment->onMousePress((ActionHandler)&CraftEquipmentState::lstEquipmentMousePress);
 
-	// Vehicle ammo is stored implicitly while assigned to craft, some sort of
-	// pre-processing is needed (it's not safe to assume the ammo entry exist when
-	// a vehicle is encountered).
-	std::map<std::string, int> inCraftVehicleAmmo;
-	for (std::vector<Vehicle*>::iterator v = c->getVehicles()->begin(); v != c->getVehicles()->end(); ++v)
-	{
-		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit((*v)->getRules()->getType())->getCompatibleAmmoClips();
-		if (! vehicleAmmoClips.empty())
-		{
-			std::map<std::string, int>::iterator ammoKey = inCraftVehicleAmmo.find(vehicleAmmoClips.begin()->first);
-			if (ammoKey == inCraftVehicleAmmo.end())
-			{
-				inCraftVehicleAmmo.insert(*vehicleAmmoClips.begin());
-			}
-			else  // Allow multiple vehicles to share ammo.
-			{
-				ammoKey->second += vehicleAmmoClips.begin()->second;
-			}
-		}
-	}
 	// EquipmentRow struct
 	_ammoMap.clear();
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
@@ -164,26 +144,19 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			int bQty = _base->getStorageItems()->getItem(*i);
 			int cQty = 0;  // Number of items in craft
 			int assignedQty = 0; // Minimum amount needed for soldier loadout or HWP ammo.
-			if (! item->isFixed()) // Normal equipment
+			if (!item->isFixed()) // Normal equipment
 			{
-				cQty = c->getItems()->getItem(*i);
+				cQty = c->getItems()->getItem(*i); // Does NOT include ammo inside vehicle.
 				assignedQty = c->getItemAssignedCount(*i);
+				// HWP ammo is supposed to be free of charge in original, hence it is
+				// actually a good thing cQty does not yet include that.
 				_totalCraftItems += cQty;
-
-				// If this item is a vehicle ammoclip, add implicitly stored amount.
-				// Don't add to ``_totalCraftitems`` it is free of charge in original.
-				if(item->isAmmo())
+				if (item->getBigSprite() == -1)
 				{
-					std::map<std::string, int>::iterator ammoKey = inCraftVehicleAmmo.find(item->getType());
-					if (ammoKey != inCraftVehicleAmmo.end())
-					{
-						cQty += ammoKey->second;
-						assignedQty += ammoKey->second; // In case HWP shares ammo with other weapons.
-					}
+					cQty += assignedQty; // Include ammo inside vehicles.
 				}
 			}
-			// Include only vehicles, not fixed items belonging to another category.
-			else if (item->isFixed() && _game->getMod()->getUnit(item->getType()))
+			else if (_game->getMod()->getUnit(item->getType())) // A vehicle
 			{
 				cQty = c->getVehicleCount(*i);
 				_totalCraftVehicles += cQty;
