@@ -231,20 +231,31 @@ void CraftEquipmentState::init()
 
 	Craft *c = _base->getCrafts()->at(_craft);
 	c->setInBattlescape(false);
+
+	// It is likely assigned item numbers have changed.
+	updateList();
 }
 
 /**
- * Updates displayed item list.
- * Sets the name of each list item, uses updateItemRow() to set values.
+ * Updates item list.
+ *
+ * Uses updateItemRow() to redraw the appropriate row values.
  * Will always reset the row pointed to by the mouse.
  */
 void CraftEquipmentState::updateList()
 {
+	Craft *c = _base->getCrafts()->at(_craft);
 	_lstEquipment->clearList();
 	_rows.clear();
 	for (size_t row = 0; row < _items.size(); ++row)
 	{
 		RuleItem *item = _items[row].rule;
+		// Modify fields.
+		if (!item->isFixed()) // Inventory visits will probably affect the assignedQty field.
+		{
+			_items[row].assignedQty = c->getItemAssignedCount(item->getType());
+		}
+		// Draw
 //		if (item->getBigSprite() == -1) // Vehicle ammo
 //		{
 //			continue;
@@ -461,7 +472,7 @@ void CraftEquipmentState::moveToBase(int change)
 
 		if (! vehicleAmmoClips.empty()) // Refund ammoClips.
 		{
-			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first); //
+			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first);
 			int clipsPerVehicle = vehicleAmmoClips.begin()->second;
 			// Locate and update ammo in list.
 			std::map<std::string, size_t>::const_iterator search = _ammoMap.find(ammo->getType());
@@ -543,7 +554,7 @@ void CraftEquipmentState::moveToCraft(int change)
 
 		if (! vehicleAmmoClips.empty())
 		{
-			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first); //
+			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first);
 			// And now let's see if we can add the total number of vehicles.
 			// This will always return false if first compatibleAmmo has too little clips, even when a
 			// hypothetical 2nd kind has enough. Not that it matters since we can't choose ingame which
@@ -666,14 +677,13 @@ void CraftEquipmentState::btnInventoryClick(Action *)
  * Updates every row since previous calls could have altered any value.
  *
  * This function does not check ammo requirements for vehicles. Those are
- * already covered by the ``moveToBase`` and ``moveToCraft`` functions. They are
- * hidden (see updateList()) since users are not supposed to alter them.
+ * already covered by the ``moveToBase()`` and ``moveToCraft()`` functions.
  */
 void CraftEquipmentState::performTransfer()
 {
 	for (std::vector<EquipmentRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
-		RuleItem *rule = static_cast<RuleItem*> (i->rule);
+		RuleItem *rule = i->rule;
 
 		// Update base storage
 		int baseQty = _base->getStorageItems()->getItem(rule->getType());
