@@ -469,8 +469,7 @@ void CraftEquipmentState::moveToBase(int change)
 	if (item->isFixed()) // Its a vehicle
 	{
 		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
-
-		if (! vehicleAmmoClips.empty()) // Refund ammoClips.
+		if (!vehicleAmmoClips.empty()) // Refund ammoClips.
 		{
 			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first);
 			int clipsPerVehicle = vehicleAmmoClips.begin()->second;
@@ -550,9 +549,9 @@ void CraftEquipmentState::moveToCraft(int change)
 			return;
 		}
 		change = std::min(room, change);
-		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
 
-		if (! vehicleAmmoClips.empty())
+		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
+		if (!vehicleAmmoClips.empty())
 		{
 			RuleItem *ammo = _game->getMod()->getItem(vehicleAmmoClips.begin()->first);
 			// And now let's see if we can add the total number of vehicles.
@@ -572,8 +571,7 @@ void CraftEquipmentState::moveToCraft(int change)
 			else
 			{
 				// Check for discrepancy in clips on craft vs vehicle (when ammo row is visible).
-				int extraClips =  (_items[search->second].cQty - _items[search->second].amount) -
-													(getRow().cQty - getRow().amount) * clipsPerVehicle;
+				int extraClips =  (_items[search->second].cQty - _items[search->second].assignedQty - _items[search->second].amount);
 				int maxByClips = change;
 				if (_game->isCampaign())
 				{
@@ -591,7 +589,7 @@ void CraftEquipmentState::moveToCraft(int change)
 
 				size_t currentSel = _sel;
 				_sel = search->second; // Mimic mouse selection (even when row is hidden).
-				getRow().assignedQty += change * clipsPerVehicle - extraClips; // Protect said amount of clips.
+				getRow().assignedQty += change * clipsPerVehicle; // Protect said amount of clips.
 				moveToCraft(change * clipsPerVehicle - extraClips);
 				_sel = currentSel; // Return focus to vehicle row.
 			}
