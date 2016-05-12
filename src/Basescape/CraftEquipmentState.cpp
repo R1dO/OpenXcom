@@ -540,7 +540,7 @@ void CraftEquipmentState::moveToCraft(int change)
 			if (search == _ammoMap.end())
 			{
 				// Ammo disappeared from _items, or vehicle was teleported into _items.
-				errorMessage = tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(tr(ammo->getType()));
+				errorMessage = tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(clipsPerVehicle).arg(tr(ammo->getType()));
 				change = 0;
 			}
 			else
@@ -556,7 +556,7 @@ void CraftEquipmentState::moveToCraft(int change)
 				if (maxByClips < change)
 				{
 					// So we haven't managed to increase the count of vehicles because of the ammo
-					errorMessage = tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(tr(ammo->getType()));
+					errorMessage = tr("STR_NOT_ENOUGH_AMMO_TO_ARM_HWP").arg(clipsPerVehicle).arg(tr(ammo->getType()));
 					change = maxByClips;
 				}
 				// Vehicle ammo is supposed to be free of charge, so undo upcoming increase.
