@@ -79,19 +79,6 @@ private:
 	Uint8 _ammoColor;
 	/// Gets the row of the current selection.
 	EquipmentRow &getRow() { return _items[_rows[_sel]]; }
-	/// Updates displayed item list, and derived values.
-	void updateList();
-	/// Updates derived values entities.
-	void updateDerivedInfo();
-	/// Updates quantity strings and row color of the selected item.
-	void updateItemRow();
-	/// Performs the transfer between base and craft.
-	void performTransfer();
-public:
-	/// Creates the Craft Equipment state.
-	CraftEquipmentState(Base *base, size_t craft);
-	/// Cleans up the Craft Equipment state.
-	~CraftEquipmentState();
 	/// Resets state.
 	void init();
 	/// Runs the timers.
@@ -100,6 +87,10 @@ public:
 	void btnCancelClick(Action *action);
 	/// Handler for clicking the OK button.
 	void btnOkClick(Action *action);
+	/// Empties the contents of the craft, moving all of the items back to the base.
+	void btnClearClick(Action *action);
+	/// Handler for clicking the Inventory button.
+	void btnInventoryClick(Action *action);
 	/// Handler for pressing a Move Left arrow in the list.
 	void lstEquipmentLeftArrowPress(Action *action);
 	/// Handler for releasing a Move Left arrow in the list.
@@ -116,16 +107,25 @@ public:
 	void lstEquipmentMousePress(Action *action);
 	/// Moves an item to the base.
 	void moveLeft();
-	/// Moves the given number of items to the base.
-	void moveToBase(int change);
 	/// Moves an item to the craft.
 	void moveRight();
+	/// Moves the given number of items to the base.
+	void moveToBase(int change);
 	/// Moves the given number of items to the craft.
 	void moveToCraft(int change);
-	/// Empties the contents of the craft, moving all of the items back to the base.
-	void btnClearClick(Action *action);
-	/// Handler for clicking the Inventory button.
-	void btnInventoryClick(Action *action);
+	/// Performs the transfer between base and craft.
+	void performTransfer();
+	/// Updates displayed item list, and derived values.
+	void updateDerivedInfo();
+	/// Updates derived values entities.
+	void updateItemRow();
+	/// Updates quantity strings and row color of the selected item.
+	void updateList();
+public:
+	/// Creates the Craft Equipment state.
+	CraftEquipmentState(Base *base, size_t craft);
+	/// Cleans up the Craft Equipment state.
+	~CraftEquipmentState();
 };
 
 }
