@@ -175,9 +175,11 @@ void Game::run()
 			_states.back()->handle(&action);
 		}
 
+		std::vector<SDL_Event> eventqueue;
 		// Process events
 		while (SDL_PollEvent(&_event))
 		{
+			eventqueue.push_back(_event);
 			if (CrossPlatform::isQuitShortcut(_event))
 				_event.type = SDL_QUIT;
 			switch (_event.type)
