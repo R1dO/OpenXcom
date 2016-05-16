@@ -61,6 +61,8 @@ public:
 	void think();
 	/// Handler for clicking the OK button.
 	void btnOkClick(Action *action);
+	/// Handler for clicking the item in the list.
+	void lstEquipmentClick(Action *action);
 	/// Handler for pressing a Move Left arrow in the list.
 	void lstEquipmentLeftArrowPress(Action *action);
 	/// Handler for releasing a Move Left arrow in the list.

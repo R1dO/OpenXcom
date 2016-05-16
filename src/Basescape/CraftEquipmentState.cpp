@@ -134,6 +134,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_lstEquipment->onRightArrowRelease((ActionHandler)&CraftEquipmentState::lstEquipmentRightArrowRelease);
 	_lstEquipment->onRightArrowClick((ActionHandler)&CraftEquipmentState::lstEquipmentRightArrowClick);
 	_lstEquipment->onMousePress((ActionHandler)&CraftEquipmentState::lstEquipmentMousePress);
+	_lstEquipment->onMouseClick((ActionHandler)&CraftEquipmentState::lstEquipmentClick, 0);
 
 	int row = 0;
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
@@ -316,6 +317,18 @@ void CraftEquipmentState::lstEquipmentRightArrowClick(Action *action)
 		_timerRight->setInterval(250);
 		_timerLeft->setInterval(250);
 	}
+}
+
+/**
+ * Handles the mouse-buttons ont the item names.
+ * @param action Pointer to an action.
+ * @parblock
+ * - A left mouse-button click will reset the changes for the item.
+ * - A right mouse-button click will open the ufopedia description of the item.
+ * @endparblock
+ */
+void CraftEquipmentState::lstEquipmentClick(Action *action)
+{
 }
 
 /**
