@@ -1033,8 +1033,8 @@ en-US:
   STR_TIME_UNITS_RESERVED_FOR_KNEELING: "Time Units reserved for Kneeling"
   STR_TIME_UNITS_RESERVED_FOR_KNEELING_AND_FIRING: "TUs reserved for Kneeling and Firing"
   STR_UNITS_IN_CRAFT:
-    one: "{N} Unit in X-Com Craft"
-    other: "{N} Units in X-Com Craft"
+    one: "{N} Unit in X-Com Submarine"
+    other: "{N} Units in X-Com Submarine"
   STR_CORPSE: "Corpse"
   STR_UNLOAD_CRAFT: "Unload"
   STR_HAS_BEEN_KILLED_MALE: "{0}{NEWLINE}has been killed"
