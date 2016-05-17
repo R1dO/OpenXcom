@@ -120,7 +120,7 @@ namespace OpenXcom
 		_lstInfo->setColumns(2, 140, 60);
 		_lstInfo->setDot(true);
 
-		_lstInfo->addRow(2, tr("STR_CONSTRUCTION_TIME").c_str(), tr("STR_DAY", facility->getBuildTime()).c_str());
+		_lstInfo->addRow(2, tr("STR_CONSTRUCTION_TIME").c_str(), tr("STR_#_DAYS", facility->getBuildTime()).c_str());
 		_lstInfo->setCellColor(0, 1, Palette::blockOffset(13)+0);
 
 		std::ostringstream ss;

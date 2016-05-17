@@ -439,7 +439,7 @@ void SoldierInfoState::init()
 
 	if (_soldier->getWoundRecovery() > 0)
 	{
-		_txtRecovery->setText(tr("STR_WOUND_RECOVERY").arg(tr("STR_DAY", _soldier->getWoundRecovery())));
+		_txtRecovery->setText(tr("STR_WOUND_RECOVERY").arg(tr("STR_#_DAYS", _soldier->getWoundRecovery())));
 	}
 	else
 	{

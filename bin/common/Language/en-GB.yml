@@ -428,10 +428,10 @@ en-GB:
   STR_GENERAL_STORES: "General Stores"
   STR_ALIEN_CONTAINMENT: "Alien Containment"
 # Date/Time related
-  STR_DAY:
+  STR_#_DAYS:
     one: "{N} day"
     other: "{N} days"
-  STR_HOUR:
+  STR_#_HOURS:
     one: "{N} hour"
     other: "{N} hours"
   STR_DAYS_HOURS_LEFT: "Days/Hours Left"

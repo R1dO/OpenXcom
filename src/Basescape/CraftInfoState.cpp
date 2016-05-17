@@ -309,11 +309,11 @@ std::string CraftInfoState::formatTime(int total)
 	ss << "\n(";
 	if (days > 0)
 	{
-		ss << tr("STR_DAY", days) << "/";
+		ss << tr("STR_#_DAYS", days) << "/";
 	}
 	if (hours > 0)
 	{
-		ss << tr("STR_HOUR", hours);
+		ss << tr("STR_#_HOURS", hours);
 	}
 	ss << ")";
 	return ss.str();

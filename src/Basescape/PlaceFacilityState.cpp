@@ -97,7 +97,7 @@ PlaceFacilityState::PlaceFacilityState(Base *base, RuleBaseFacility *rule) : _ba
 	_txtTime->setText(tr("STR_CONSTRUCTION_TIME_UC"));
 
 	_numTime->setBig();
-	_numTime->setText(tr("STR_DAY", _rule->getBuildTime()));
+	_numTime->setText(tr("STR_#_DAYS", _rule->getBuildTime()));
 
 	_txtMaintenance->setText(tr("STR_MAINTENANCE_UC"));
 
