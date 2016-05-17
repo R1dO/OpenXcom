@@ -117,7 +117,7 @@ SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _
 
 	_txtSales->setText(tr("STR_VALUE_OF_SALES").arg(Unicode::formatFunding(_total)));
 
-	_txtFunds->setText(tr("STR_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
+	_txtFunds->setText(tr("STR_FUNDS_UC").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
 
 	_txtSpaceUsed->setVisible(Options::storageLimitsEnforced);
 
