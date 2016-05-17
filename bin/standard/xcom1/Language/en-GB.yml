@@ -979,16 +979,6 @@ en-GB:
   STR_UNITS_IN_CRAFT:
     one: "{N} Unit in X-Com Craft"
     other: "{N} Units in X-Com Craft"
-  STR_UNITS_OUTSIDE:
-    one: "{N} Unit left outside"
-    other: "{N} Units left outside"
-  STR_UNITS_IN_ENTRANCE:
-    one: "{N} Unit in Entrance"
-    other: "{N} Units in Entrance"
-  STR_UNITS_IN_EXIT:
-    one: "{N} Unit in Target Exit"
-    other: "{N} Units in Target Exit"
-  STR_ABORT_MISSION_QUESTION: "Abort Mission?"
   STR_CORPSE: "Corpse"
   STR_UNLOAD_CRAFT: "Unload"
   STR_HAS_BEEN_KILLED_MALE: "{0}{NEWLINE}has been killed"
