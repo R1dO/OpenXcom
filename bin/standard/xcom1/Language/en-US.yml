@@ -71,12 +71,6 @@ en-US:
   STR_CANCEL: "Cancel"
   STR_COST_UC: "COST>"
   STR_CONSTRUCTION_TIME_UC: "CONSTRUCTION TIME>"
-  STR_DAY:
-    one: "{N} day"
-    other: "{N} days"
-  STR_HOUR:
-    one: "{N} hour"
-    other: "{N} hours"
   STR_MAINTENANCE_UC: "MAINTENANCE>"
   STR_OK: "OK"
   STR_INSTALLATION: "Installation"
@@ -105,7 +99,6 @@ en-US:
   STR_UNITS_PRODUCED: "Units Produced"
   STR_TOTAL_TO_PRODUCE: "Total to Produce"
   STR_COST__PER__UNIT: "Cost{NEWLINE}per{NEWLINE}Unit"
-  STR_DAYS_HOURS_LEFT: "Days/Hours Left"
   STR_NEW_PRODUCTION: "New Production"
   STR_PRODUCTION_ITEMS: "Production Items"
   STR_CATEGORY: "CATEGORY"
@@ -142,7 +135,6 @@ en-US:
   STR_DEFENSE_STRENGTH: "Defense Strength"
   STR_TRANSFERS_UC: "TRANSFERS"
   STR_TRANSFERS: "Transfers"
-  STR_ARRIVAL_TIME_HOURS: "Arrival Time (hours)"
   STR_COST_: "Cost>{ALT}{0}"
   STR_AREA_: "Area>{ALT}{0}"
   STR_BASE_NAME: "Base Name?"

@@ -423,3 +423,12 @@ en-US:
   STR_SELL_SACK_UC: "SELL/SACK"
   STR_GEOSCAPE_UC: "GEOSCAPE"
   STR_FUNDS: "FUNDS> {ALT}{0}"
+# Date/Time related
+  STR_DAY:
+    one: "{N} day"
+    other: "{N} days"
+  STR_HOUR:
+    one: "{N} hour"
+    other: "{N} hours"
+  STR_DAYS_HOURS_LEFT: "Days/Hours Left"
+  STR_ARRIVAL_TIME_HOURS: "Arrival Time (hours)"
