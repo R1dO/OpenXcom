@@ -595,13 +595,9 @@ en-US:
   STR_WEAPON_RANGE: "Weapon Range"
 
   STR_AIR_LOCK: "Air-Lock"
-  STR_LABORATORY: "Laboratory"
-  STR_WORKSHOP: "Workshop"
   STR_STANDARD_SONAR: "Standard Sonar"
   STR_WIDE_ARRAY_SONAR: "Wide Array Sonar"
   STR_TORPEDO_DEFENSES: "Torpedo Defenses"
-  STR_GENERAL_STORES: "General Stores"
-  STR_ALIEN_CONTAINMENT: "Alien Containment"
   STR_GAUSS_DEFENSES: "Gauss Defenses"
   STR_SONIC_DEFENSES: "Sonic Defenses"
   STR_PWT_DEFENSES: "P.W.T. Defenses"

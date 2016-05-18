@@ -423,6 +423,10 @@ en-US:
   STR_SELL_SACK_UC: "SELL/SACK"
   STR_GEOSCAPE_UC: "GEOSCAPE"
   STR_FUNDS: "FUNDS> {ALT}{0}"
+  STR_LABORATORY: "Laboratory"
+  STR_WORKSHOP: "Workshop"
+  STR_GENERAL_STORES: "General Stores"
+  STR_ALIEN_CONTAINMENT: "Alien Containment"
 # Date/Time related
   STR_DAY:
     one: "{N} day"
