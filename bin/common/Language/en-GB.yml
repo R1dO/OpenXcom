@@ -458,6 +458,10 @@ en-GB:
   STR_1_HOUR: "1 Hour"
   STR_1_DAY: "1 Day"
 # Battlescape
+  STR_TIME_UNITS_SHORT: "TU>{ALT}{0}"
+  STR_ACCURACY_SHORT: "Acc>{ALT}{0}"
+  STR_WEIGHT: "Weight>{ALT}{0}/{1}"
+  STR_REACTIONS_SHORT: "React>{ALT}{0}"
   STR_UNITS_OUTSIDE:
     one: "{N} Unit left outside"
     other: "{N} Units left outside"
