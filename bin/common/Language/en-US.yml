@@ -458,6 +458,7 @@ en-US:
   STR_1_HOUR: "1 Hour"
   STR_1_DAY: "1 Day"
 # Battlescape
+  STR_ALIEN_ARTIFACT: "Alien Artifact"
   STR_THROW: "Throw"
   STR_AUTO_SHOT: "Auto Shot"
   STR_SNAP_SHOT: "Snap Shot"
