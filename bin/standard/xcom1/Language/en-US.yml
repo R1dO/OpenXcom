@@ -833,7 +833,6 @@ en-US:
   STR_RIGHT_ARMOR: "Right Armor"
   STR_REAR_ARMOR: "Rear Armor"
   STR_UNDER_ARMOR: "Under Armor"
-  STR_ROUNDS: "Rounds"
   STR_UNIT: "UNIT> {0}"
   STR_ENERGY: "ENERGY"
   STR_MORALE: "MORALE"
