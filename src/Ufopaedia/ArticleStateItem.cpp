@@ -77,7 +77,7 @@ namespace OpenXcom
 			add(_txtShotType);
 			_txtShotType->setColor(Palette::blockOffset(14)+15);
 			_txtShotType->setWordWrap(true);
-			_txtShotType->setText(tr("STR_SHOT_TYPE"));
+			_txtShotType->setText(tr("STR_SHOT_TYPE_UC"));
 
 			_txtAccuracy = new Text(50, 17, 104, 66);
 			add(_txtAccuracy);
@@ -89,7 +89,7 @@ namespace OpenXcom
 			add(_txtTuCost);
 			_txtTuCost->setColor(Palette::blockOffset(14)+15);
 			_txtTuCost->setWordWrap(true);
-			_txtTuCost->setText(tr("STR_TIME_UNIT_COST"));
+			_txtTuCost->setText(tr("STR_TIME_UNIT_COST_UC"));
 
 			_lstInfo = new TextList(204, 55, 8, 82);
 			add(_lstInfo);
@@ -195,7 +195,7 @@ namespace OpenXcom
 				add(_txtAmmo);
 				_txtAmmo->setColor(Palette::blockOffset(14)+15);
 				_txtAmmo->setAlign(ALIGN_CENTER);
-				_txtAmmo->setText(tr("STR_AMMO"));
+				_txtAmmo->setText(tr("STR_AMMO_UC"));
 
 				if (ammo_data->empty())
 				{
