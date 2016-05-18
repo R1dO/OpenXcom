@@ -523,3 +523,6 @@ en-US:
   STR_AGGRESSIVE_ATTACK: "AGGRESSIVE ATTACK"
   STR_DISENGAGING: "DISENGAGING"
   STR_MINIMISE_AT_STANDOFF_RANGE_ONLY: "Minimize at Standoff Range Only"
+# Factions and lifeforms
+  STR_ALIEN: "Alien"
+  STR_ZOMBIE: "Zombie"

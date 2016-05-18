@@ -481,7 +481,6 @@ en-US:
   STR_PERSONAL_ARMOR: "Personal Armor"
   STR_RAW_MATERIALS: "Raw Materials"
   STR_HWP_SOLID_HARPOON_BOLTS: "Solid Harpoon Bolts"
-  STR_ALIEN: "Alien"
 
   STR_AQUATOID: "Aquatoid"
   STR_GILLMAN: "Gill Man"
@@ -494,7 +493,6 @@ en-US:
   STR_TRISCENE: "Triscene"
   STR_HALLUCINOID: "Hallucinoid"
   STR_XARQUID: "Xarquid"
-  STR_ZOMBIE: "Zombie"
 
   STR_LIVE_COMMANDER: "Commander"
   STR_LIVE_NAVIGATOR: "Navigator"
