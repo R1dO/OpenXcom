@@ -541,5 +541,10 @@ en-US:
   STR_DISENGAGING: "DISENGAGING"
   STR_MINIMISE_AT_STANDOFF_RANGE_ONLY: "Minimize at Standoff Range Only"
 # Factions and lifeforms
+  STR_XCOM: "X-Com"
+  STR_ALIENS: "Aliens"
   STR_ALIEN: "Alien"
   STR_ZOMBIE: "Zombie"
+ # Research
+  STR_ALIEN_INFILTRATION: "Alien Infiltration"
+  STR_ALIEN_ORIGINS: "Alien Origins"
