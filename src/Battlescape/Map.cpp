@@ -54,10 +54,13 @@
   2) X axis goes downright. (width of the map)
   3) Y axis goes downleft. (length of the map
   4) Z axis goes up (height of the map)
+  5) Face direction increases clockwise.
+     * Looking down is 8
+     * Looking up is 9
 
-           0,0
-			/\
-	    y+ /  \ x+
+		     0,0 (and face direction 0)
+		    /\
+		y+ /  \ x+
 		   \  /
 		    \/
  */

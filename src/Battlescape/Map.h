@@ -38,6 +38,8 @@ class Text;
 class Tile;
 
 enum CursorType { CT_NONE, CT_NORMAL, CT_AIM, CT_PSI, CT_WAYPOINT, CT_THROW };
+enum MapDirections { MD_NORTH, MD_NORTH_EAST, MD_EAST, MD_SOUTH_EAST, MD_SOUTH, MD_SOUTH_WEST, MD_WEST, MD_NORTH_WEST, MD_DOWN, MD_UP };
+
 /**
  * Interactive map of the battlescape.
  */
