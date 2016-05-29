@@ -401,7 +401,7 @@ void CraftEquipmentState::updateItemRow()
 	_lstEquipment->setCellText(_sel, 1, ssQtyBase.str());
 	_lstEquipment->setCellText(_sel, 2, ssQtyCraft.str());
 
-	RuleItem *rule = static_cast<RuleItem*> (getRow().rule);
+	RuleItem *rule = getRow().rule;
 	Uint8 color = _lstEquipment->getColor();
 	if (getRow().cQty - getRow().amount != 0)
 	{
@@ -436,7 +436,7 @@ void CraftEquipmentState::moveToBase(int change)
 
 	if (getRow().space > 0) // Its a vehicle
 	{
-		RuleItem *item = static_cast<RuleItem*> (getRow().rule);
+		RuleItem *item = getRow().rule;
 		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
 
 		if (! vehicleAmmoClips.empty()) // Refund ammoClips.
@@ -515,7 +515,7 @@ void CraftEquipmentState::moveToCraft(int change)
 			return;
 		}
 		change = std::min(room, change);
-		RuleItem *item = static_cast<RuleItem*> (getRow().rule);
+		RuleItem *item = getRow().rule;
 		std::map<std::string, int> vehicleAmmoClips = _game->getMod()->getUnit(item->getType())->getCompatibleAmmoClips();
 
 		if (! vehicleAmmoClips.empty())
