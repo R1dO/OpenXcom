@@ -26,6 +26,8 @@
 #include "../Savegame/BattleUnit.h"
 #include "../Interface/Text.h"
 
+/// @file
+
 namespace OpenXcom
 {
 /**
