@@ -438,7 +438,7 @@ const std::map<std::string, int> RuleItem::getCompatibleClips() const
 		for (std::vector<std::string>::const_iterator i = cw.begin(); i != cw.end(); ++i)
 		{
 			RuleCraftWeapon *rule = _game->getMod()->getCraftWeapon(*i);
-			if (rule->getLauncherItem() == _type)
+			if (rule->getLauncherItem() == _type && rule->getClipItem() != "")
 			{
 				int clips = rule->getAmmoMax();
 				if (clips > 1 && _game->getMod()->getItem(rule->getClipItem())->getClipSize() > 1) // Craft Cannon
