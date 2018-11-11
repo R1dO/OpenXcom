@@ -18,7 +18,9 @@
  */
 #include "Unit.h"
 #include "../Engine/Exception.h"
+#include "../Engine/Game.h"
 #include "Mod.h"
+#include "Armor.h"
 
 namespace OpenXcom
 {
@@ -95,6 +97,18 @@ std::string Unit::getType() const
 UnitStats *Unit::getStats()
 {
 	return &_stats;
+}
+
+/**
+ * Gets the unit's size on the battlefield
+ * Primarily used to determine size of unit in craft.
+ * @return The unit's size.
+ */
+int Unit::getBattleSize() const
+{
+	int width = _game->getMod()->getArmor(_armor)->getSize();
+	int length = width; // Only square units are supported
+	return width * length;
 }
 
 /**
@@ -272,6 +286,39 @@ std::string Unit::getPsiWeapon() const
 const std::vector<std::vector<std::string> > &Unit::getBuiltInWeapons() const
 {
 	return _builtInWeapons;
+}
+
+/**
+ * Gets a list with max amounts of compatible clips a vehicle can contain.
+ *
+ * @return Mapping between compatible ammo and max amount of clips.
+ */
+const std::map<std::string, int> Unit::getCompatibleAmmoClips() const
+{
+	std::map<std::string, int> compatibleClipsPerItem;
+	int shotsPerVehicle = _game->getMod()->getItem(_type)->getClipSize();
+
+	for (std::vector<std::string>::const_iterator
+		   i = _game->getMod()->getItem(_type)->getCompatibleAmmo()->begin();
+	     i != _game->getMod()->getItem(_type)->getCompatibleAmmo()->end(); ++i)
+	{
+		// It would be more intuitive if ``_clipsize`` on a vehicle (item) would represent number of
+		// ammo clips it can contain. Just like ``_clipsize`` on an ammo item represent number of shots
+		// a clip contains. Since that would probably require quite some alterations it is better to
+		// keep legacy behavior. Hence a bit more temporal variables to follow reasoning.
+		int clipsPerItem = 0;
+		int shotsPerClip = _game->getMod()->getItem(*i)->getClipSize();
+		if (shotsPerClip > 0 && shotsPerVehicle > 0) // TFTD USO style
+		{
+			clipsPerItem = shotsPerVehicle / shotsPerClip;
+		}
+		else
+		{
+			clipsPerItem = shotsPerClip; // UFO HWP style
+		}
+		compatibleClipsPerItem.insert(std::make_pair(*i, clipsPerItem));
+	}
+	return compatibleClipsPerItem;
 }
 
 /**
