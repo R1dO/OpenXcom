@@ -420,3 +420,5 @@ en-US:
 #R1dO
   STR_ALTERNATE_BASE_SCREENS: "DEMO: Alternate Base Screens"
   STR_ALTERNATE_BASE_SCREENS_DESC: "Screens dealing with item management only show total values and what is currently in use (those are protected)."
+  STR_WEAPON_CLIPS_MULTIPLIER: "DEMO: Ammo multiplier on weapon transfer"
+  STR_WEAPON_CLIPS_MULTIPLIER_DESC: "When transferring a weapon to/from base stores, update all compatible ammo using this multiplier."

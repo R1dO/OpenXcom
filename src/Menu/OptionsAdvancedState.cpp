@@ -216,6 +216,11 @@ void OptionsAdvancedState::lstOptionsClick(Action *action)
 			min = 0;
 			max = 3;
 		}
+		else if (i == &Options::weaponTransferClipMultiplier)
+		{
+			min = 0;
+			max = 10;
+		}
 		else if (i == &Options::changeValueByMouseWheel)
 		{
 			min = 0;
