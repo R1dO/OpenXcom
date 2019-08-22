@@ -56,9 +56,10 @@ namespace OpenXcom
  * @param base Pointer to the base to get info from.
  * @param origin Game section that originated this state.
  */
-SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _total(0), _spaceChange(0), _origin(origin)
+SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _total(0), _spaceChange(0), _origin(origin), _clipMultiplier(0)
 {
 	bool overfull = Options::storageLimitsEnforced && _base->storesOverfull();
+	_clipMultiplier = Options::weaponTransferClipMultiplier;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);

@@ -58,6 +58,8 @@ private:
 	Timer *_timerInc, *_timerDec;
 	Uint8 _ammoColor;
 	OptionsOrigin _origin;
+	/// Multiplier for the weapon clips that are added per weapon change (does NOT apply to vehicles).
+	unsigned _clipMultiplier;
 	/// Gets the category of the current selection.
 	std::string getCategory(int sel) const;
 	/// Gets the row of the current selection.

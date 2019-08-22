@@ -48,6 +48,8 @@ private:
 	std::vector<std::string> _items;
 	int _totalItems;
 	Uint8 _ammoColor;
+	/// Multiplier for the weapon clips that are added per weapon change (does NOT apply to vehicles).
+	unsigned _clipMultiplier;
 	/// Updates quantities of item.
 	void updateQuantity();
 public:
