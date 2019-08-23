@@ -571,18 +571,18 @@ void PurchaseState::increaseByValue(int change)
 			}
 			break;
 		case TRANSFER_ITEM:
-		{
-			RuleItem *rule = (RuleItem*)getRow().rule;
-			double storesNeededPerItem = rule->getSize();
-			double freeStores = _base->getAvailableStores() - _base->getUsedStores() - _iQty;
-			double maxByStores = (double)(INT_MAX);
-			if (!AreSame(storesNeededPerItem, 0.0))
 			{
-				maxByStores = (freeStores + 0.05) / storesNeededPerItem;
+				RuleItem *rule = (RuleItem*)getRow().rule;
+				double storesNeededPerItem = rule->getSize();
+				double freeStores = _base->getAvailableStores() - _base->getUsedStores() - _iQty;
+				double maxByStores = (double)(INT_MAX);
+				if (!AreSame(storesNeededPerItem, 0.0))
+				{
+					maxByStores = (freeStores + 0.05) / storesNeededPerItem;
+				}
+				change = std::min((int)maxByStores, change);
+				_iQty += change * storesNeededPerItem;
 			}
-			change = std::min((int)maxByStores, change);
-			_iQty += change * storesNeededPerItem;
-		}
 			break;
 		}
 		getRow().amount += change;
