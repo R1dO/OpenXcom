@@ -753,7 +753,7 @@ int RuleItem::getAutoShots() const
  */
 bool RuleItem::isWeaponUsingClips() const
 {
-	return _battleType == BT_FIREARM && !_compatibleAmmo.empty();
+	return _battleType == BT_FIREARM && !(_compatibleAmmo.empty() || _fixedWeapon);
 }
 
 /**
