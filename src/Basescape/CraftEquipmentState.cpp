@@ -136,6 +136,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_lstEquipment->onRightArrowClick((ActionHandler)&CraftEquipmentState::lstEquipmentRightArrowClick);
 	_lstEquipment->onMousePress((ActionHandler)&CraftEquipmentState::lstEquipmentMousePress);
 
+	_ammoMap.clear();
 	int row = 0;
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
@@ -171,6 +172,8 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			if (rule->getBattleType() == BT_AMMO)
 			{
 				s.insert(0, "  ");
+				// Track ammo for the laziness option
+				_ammoMap[rule->getType()] = row;
 			}
 			_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
 
@@ -485,6 +488,22 @@ void CraftEquipmentState::moveLeftByValue(int change)
 			_base->getStorageItems()->addItem(_items[_sel], change);
 		}
 	}
+		// Adjust clips if necessary
+	if (_clipMultiplier > 0 && item->isWeaponUsingClips())
+	{
+		size_t selectedWeapon = _sel;
+		for (std::vector<std::string>::const_iterator i = item->getCompatibleAmmo()->begin(); i != item->getCompatibleAmmo()->end(); ++i)
+		{
+			std::map<std::string, size_t>::const_iterator search = _ammoMap.find(*i);
+			if (search != _ammoMap.end())
+			{
+				_sel = search->second; // Mimic mouse selection.
+				moveLeftByValue(change * _clipMultiplier);
+			}
+		}
+		_sel = selectedWeapon; // Return focus to weapon row.
+	}
+
 	updateQuantity();
 }
 
@@ -598,6 +617,22 @@ void CraftEquipmentState::moveRightByValue(int change)
 			_base->getStorageItems()->removeItem(_items[_sel],change);
 		}
 	}
+	// Adjust clips if necessary (and still allowed)
+	if (_clipMultiplier > 0 && item->isWeaponUsingClips())
+	{
+		size_t selectedWeapon = _sel;
+		for (std::vector<std::string>::const_iterator i = item->getCompatibleAmmo()->begin(); i != item->getCompatibleAmmo()->end(); ++i)
+		{
+			std::map<std::string, size_t>::const_iterator search = _ammoMap.find(*i);
+			if (search != _ammoMap.end())
+			{
+				_sel = search->second; // Mimic mouse selection.
+				moveRightByValue(change * _clipMultiplier);
+			}
+		}
+		_sel = selectedWeapon; // Return focus to weapon row.
+	}
+
 	updateQuantity();
 }
 

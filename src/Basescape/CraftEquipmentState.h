@@ -46,6 +46,7 @@ private:
 	size_t _sel, _craft;
 	Base *_base;
 	std::vector<std::string> _items;
+	std::map<std::string, size_t> _ammoMap;
 	int _totalItems;
 	Uint8 _ammoColor;
 	/// Multiplier for the weapon clips that are added per weapon change (does NOT apply to vehicles).
