@@ -747,6 +747,16 @@ int RuleItem::getAutoShots() const
 }
 
 /**
+ * Is this item a weapon that needs clips?
+ * @note Does not take into account craft or vehicle (HWP) weapons.
+ * @return whether or not it is a weapon that needs an ammo clip.
+ */
+bool RuleItem::isWeaponUsingClips() const
+{
+	return _battleType == BT_FIREARM && !_compatibleAmmo.empty();
+}
+
+/**
  * is this item a rifle?
  * @return whether or not it is a rifle.
  */
