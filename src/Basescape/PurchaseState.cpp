@@ -594,20 +594,35 @@ void PurchaseState::increaseByValue(int change)
 		updateItemStrings();
 
 		// Adjust clips if necessary
-		// Could lead to multiple warning dialogs while near limit(s), when a weapon has multiple compatible clips.
+		// Could lead to multiple warning dialogs while near limit(s) when a weapon has multiple compatible clips.
 		if (_clipMultiplier > 0 && getRow().type == TRANSFER_ITEM)
 		{
 			RuleItem *rule = (RuleItem*)getRow().rule;
-			if (rule->isWeaponUsingClips())
+			if (rule->isWeaponUsingClips() || rule->isFixed())
 			{
 				size_t selectedWeapon = _sel;
 				for (std::vector<std::string>::const_iterator i = rule->getCompatibleAmmo()->begin(); i != rule->getCompatibleAmmo()->end(); ++i)
 				{
+					int clipsPerItem = 1;
+					if (rule->isFixed()) // Vehicles need special care
+					{
+						int shotsPerVehicle = rule->getClipSize();
+						int shotsPerClip = _game->getMod()->getItem(*i)->getClipSize();
+						if (shotsPerClip > 0 && shotsPerVehicle > 0) // TFTD USO style
+						{
+							clipsPerItem = shotsPerVehicle / shotsPerClip;
+						}
+						else
+						{
+							clipsPerItem = shotsPerClip; // UFO HWP style
+						}
+					}
+
 					std::map<std::string, size_t>::const_iterator search = _ammoMap.find(*i);
 					if (search != _ammoMap.end())
 					{
 						_sel = search->second; // Mimic mouse selection.
-						increaseByValue(change * _clipMultiplier);
+						increaseByValue(change * clipsPerItem * _clipMultiplier);
 					}
 				}
 				_sel = selectedWeapon; // Return focus to weapon row.
@@ -665,16 +680,31 @@ void PurchaseState::decreaseByValue(int change)
 	if (_clipMultiplier > 0 && getRow().type == TRANSFER_ITEM)
 	{
 		RuleItem *rule = (RuleItem*)getRow().rule;
-		if (rule->isWeaponUsingClips())
+		if (rule->isWeaponUsingClips() || rule->isFixed())
 		{
 			size_t selectedWeapon = _sel;
 			for (std::vector<std::string>::const_iterator i = rule->getCompatibleAmmo()->begin(); i != rule->getCompatibleAmmo()->end(); ++i)
 			{
+				int clipsPerItem = 1;
+				if (rule->isFixed()) // Vehicles need special care
+				{
+					int shotsPerVehicle = rule->getClipSize();
+					int shotsPerClip = _game->getMod()->getItem(*i)->getClipSize();
+					if (shotsPerClip > 0 && shotsPerVehicle > 0) // TFTD USO style
+					{
+						clipsPerItem = shotsPerVehicle / shotsPerClip;
+					}
+					else
+					{
+						clipsPerItem = shotsPerClip; // UFO HWP style
+					}
+				}
+
 				std::map<std::string, size_t>::const_iterator search = _ammoMap.find(*i);
 				if (search != _ammoMap.end())
 				{
 					_sel = search->second; // Mimic mouse selection.
-					decreaseByValue(change * _clipMultiplier);
+					decreaseByValue(change * clipsPerItem * _clipMultiplier);
 				}
 			}
 			_sel = selectedWeapon; // Return focus to weapon row.
