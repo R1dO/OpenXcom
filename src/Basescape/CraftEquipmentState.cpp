@@ -617,7 +617,8 @@ void CraftEquipmentState::moveRightByValue(int change)
 			_base->getStorageItems()->removeItem(_items[_sel],change);
 		}
 	}
-	// Adjust clips if necessary (and still allowed)
+	// Adjust clips if necessary
+	// Could lead to multiple warning dialogs while near craft limit, when a weapon has multiple compatible clips.
 	if (_clipMultiplier > 0 && item->isWeaponUsingClips())
 	{
 		size_t selectedWeapon = _sel;
