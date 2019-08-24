@@ -597,16 +597,16 @@ void PurchaseState::increaseByValue(int change)
 		// Could lead to multiple warning dialogs while near limit(s) when a weapon has multiple compatible clips.
 		if (_clipMultiplier > 0 && getRow().type == TRANSFER_ITEM)
 		{
-			RuleItem *rule = (RuleItem*)getRow().rule;
-			if (rule->isWeaponUsingClips() || rule->isFixed())
+			RuleItem *item = (RuleItem*)getRow().rule;
+			if (item->isWeaponUsingClips() || item->isFixed())
 			{
 				size_t selectedWeapon = _sel;
-				for (std::vector<std::string>::const_iterator i = rule->getCompatibleAmmo()->begin(); i != rule->getCompatibleAmmo()->end(); ++i)
+				for (std::vector<std::string>::const_iterator i = item->getCompatibleAmmo()->begin(); i != item->getCompatibleAmmo()->end(); ++i)
 				{
 					int clipsPerItem = 1;
-					if (rule->isFixed()) // Vehicles need special care
+					if (item->isFixed()) // Vehicles need special care
 					{
-						int shotsPerVehicle = rule->getClipSize();
+						int shotsPerVehicle = item->getClipSize();
 						int shotsPerClip = _game->getMod()->getItem(*i)->getClipSize();
 						if (shotsPerClip > 0 && shotsPerVehicle > 0) // TFTD USO style
 						{
@@ -617,7 +617,6 @@ void PurchaseState::increaseByValue(int change)
 							clipsPerItem = shotsPerClip; // UFO HWP style
 						}
 					}
-
 					std::map<std::string, size_t>::const_iterator search = _ammoMap.find(*i);
 					if (search != _ammoMap.end())
 					{
@@ -679,16 +678,16 @@ void PurchaseState::decreaseByValue(int change)
 	// Adjust clips if necessary
 	if (_clipMultiplier > 0 && getRow().type == TRANSFER_ITEM)
 	{
-		RuleItem *rule = (RuleItem*)getRow().rule;
-		if (rule->isWeaponUsingClips() || rule->isFixed())
+		RuleItem *item = (RuleItem*)getRow().rule;
+		if (item->isWeaponUsingClips() || item->isFixed())
 		{
 			size_t selectedWeapon = _sel;
-			for (std::vector<std::string>::const_iterator i = rule->getCompatibleAmmo()->begin(); i != rule->getCompatibleAmmo()->end(); ++i)
+			for (std::vector<std::string>::const_iterator i = item->getCompatibleAmmo()->begin(); i != item->getCompatibleAmmo()->end(); ++i)
 			{
 				int clipsPerItem = 1;
-				if (rule->isFixed()) // Vehicles need special care
+				if (item->isFixed()) // Vehicles need special care
 				{
-					int shotsPerVehicle = rule->getClipSize();
+					int shotsPerVehicle = item->getClipSize();
 					int shotsPerClip = _game->getMod()->getItem(*i)->getClipSize();
 					if (shotsPerClip > 0 && shotsPerVehicle > 0) // TFTD USO style
 					{
