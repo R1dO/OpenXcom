@@ -597,10 +597,10 @@ void PurchaseState::increaseByValue(int change)
 		// Could lead to multiple warning dialogs while near limit(s) when a weapon has multiple compatible clips.
 		if (_clipMultiplier > 0 && getRow().type == TRANSFER_ITEM)
 		{
+			size_t selectedWeapon = _sel;
 			RuleItem *item = (RuleItem*)getRow().rule;
 			if (item->isWeaponUsingClips() || item->isFixed())
 			{
-				size_t selectedWeapon = _sel;
 				for (std::vector<std::string>::const_iterator i = item->getCompatibleAmmo()->begin(); i != item->getCompatibleAmmo()->end(); ++i)
 				{
 					int clipsPerItem = 1;
@@ -624,8 +624,26 @@ void PurchaseState::increaseByValue(int change)
 						increaseByValue(change * clipsPerItem * _clipMultiplier);
 					}
 				}
-				_sel = selectedWeapon; // Return focus to weapon row.
 			}
+			else if (item->getBattleType() == BT_NONE)
+			{
+				const std::vector<std::string> &cw = _game->getMod()->getCraftWeaponsList();
+				for (std::vector<std::string>::const_iterator i = cw.begin(); i != cw.end(); ++i)
+				{
+					RuleCraftWeapon *rule = _game->getMod()->getCraftWeapon(*i);
+					if (rule->getLauncherItem() == item->getType())
+					{
+						std::map<std::string, size_t>::const_iterator search = _ammoMap.find(rule->getClipItem());
+						if (search != _ammoMap.end())
+						{
+							int clipSize = std::max(_game->getMod()->getItem(search->first)->getClipSize(), 1);
+							_sel = search->second; // Mimic mouse selection.
+							increaseByValue(change * rule->getAmmoMax() / clipSize * _clipMultiplier);
+						}
+					}
+				}
+			}
+			_sel = selectedWeapon; // Return focus to weapon row.
 		}
 	}
 	else
@@ -678,10 +696,10 @@ void PurchaseState::decreaseByValue(int change)
 	// Adjust clips if necessary
 	if (_clipMultiplier > 0 && getRow().type == TRANSFER_ITEM)
 	{
+		size_t selectedWeapon = _sel;
 		RuleItem *item = (RuleItem*)getRow().rule;
 		if (item->isWeaponUsingClips() || item->isFixed())
 		{
-			size_t selectedWeapon = _sel;
 			for (std::vector<std::string>::const_iterator i = item->getCompatibleAmmo()->begin(); i != item->getCompatibleAmmo()->end(); ++i)
 			{
 				int clipsPerItem = 1;
@@ -706,8 +724,26 @@ void PurchaseState::decreaseByValue(int change)
 					decreaseByValue(change * clipsPerItem * _clipMultiplier);
 				}
 			}
-			_sel = selectedWeapon; // Return focus to weapon row.
 		}
+		else if (item->getBattleType() == BT_NONE)
+		{
+			const std::vector<std::string> &cw = _game->getMod()->getCraftWeaponsList();
+			for (std::vector<std::string>::const_iterator i = cw.begin(); i != cw.end(); ++i)
+			{
+				RuleCraftWeapon *rule = _game->getMod()->getCraftWeapon(*i);
+				if (rule->getLauncherItem() == item->getType())
+				{
+					std::map<std::string, size_t>::const_iterator search = _ammoMap.find(rule->getClipItem());
+					if (search != _ammoMap.end())
+					{
+						int clipSize = std::max(_game->getMod()->getItem(search->first)->getClipSize(), 1);
+						_sel = search->second; // Mimic mouse selection.
+						decreaseByValue(change * rule->getAmmoMax() / clipSize * _clipMultiplier);
+					}
+				}
+			}
+		}
+		_sel = selectedWeapon; // Return focus to weapon row.
 	}
 }
 
