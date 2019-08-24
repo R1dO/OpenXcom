@@ -52,6 +52,7 @@ private:
 	std::vector<int> _rows;
 	std::vector<std::string> _cats;
 	std::set<std::string> _craftWeapons, _armors;
+	std::map<std::string, size_t> _ammoMap;
 	size_t _sel;
 	int _total;
 	double _spaceChange;

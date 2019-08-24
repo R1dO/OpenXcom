@@ -316,6 +316,7 @@ void SellState::updateList()
 {
 	_lstItems->clearList();
 	_rows.clear();
+	_ammoMap.clear();
 	for (size_t i = 0; i < _items.size(); ++i)
 	{
 		std::string cat = _cats[_cbxCategory->getSelected()];
@@ -332,6 +333,7 @@ void SellState::updateList()
 			if (ammo)
 			{
 				name.insert(0, "  ");
+				_ammoMap.insert(std::make_pair(rule->getType(), _rows.size()));
 			}
 		}
 		std::ostringstream ssQty, ssAmount;
@@ -631,6 +633,59 @@ void SellState::changeByValue(int change, int dir)
 	default:
 		//TRANSFER_SCIENTIST and TRANSFER_ENGINEER do not own anything that takes storage
 		break;
+	}
+
+	// Adjust clips if necessary
+	if (_clipMultiplier > 0 && getRow().type == TRANSFER_ITEM)
+	{
+		size_t selectedWeapon = _sel;
+		RuleItem *item = (RuleItem*)getRow().rule;
+		if (item->isWeaponUsingClips() || item->isFixed())
+		{
+			for (std::vector<std::string>::const_iterator i = item->getCompatibleAmmo()->begin(); i != item->getCompatibleAmmo()->end(); ++i)
+			{
+				int clipsPerItem = 1;
+				if (item->isFixed()) // Vehicles need special care
+				{
+					int shotsPerVehicle = item->getClipSize();
+					int shotsPerClip = _game->getMod()->getItem(*i)->getClipSize();
+					if (shotsPerClip > 0 && shotsPerVehicle > 0) // TFTD USO style
+					{
+						clipsPerItem = shotsPerVehicle / shotsPerClip;
+					}
+					else
+					{
+						clipsPerItem = shotsPerClip; // UFO HWP style
+					}
+				}
+
+				std::map<std::string, size_t>::const_iterator search = _ammoMap.find(*i);
+				if (search != _ammoMap.end())
+				{
+					_sel = search->second; // Mimic mouse selection.
+					changeByValue(change * clipsPerItem * _clipMultiplier, dir);
+				}
+			}
+		}
+		else if (item->getBattleType() == BT_NONE)
+		{
+			const std::vector<std::string> &cw = _game->getMod()->getCraftWeaponsList();
+			for (std::vector<std::string>::const_iterator i = cw.begin(); i != cw.end(); ++i)
+			{
+				RuleCraftWeapon *rule = _game->getMod()->getCraftWeapon(*i);
+				if (rule->getLauncherItem() == item->getType())
+				{
+					std::map<std::string, size_t>::const_iterator search = _ammoMap.find(rule->getClipItem());
+					if (search != _ammoMap.end())
+					{
+						int clipSize = std::max(_game->getMod()->getItem(search->first)->getClipSize(), 1);
+						_sel = search->second; // Mimic mouse selection.
+						changeByValue(change * rule->getAmmoMax() / clipSize * _clipMultiplier, dir);
+					}
+				}
+			}
+		}
+		_sel = selectedWeapon; // Return focus to weapon row.
 	}
 
 	updateItemStrings();
