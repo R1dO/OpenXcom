@@ -620,8 +620,8 @@ void CraftEquipmentState::updateSubtitleLine()
 	if (_alternateScreen)
 	{
 		std::ostringstream ss1, ss2;
-		ss1 << tr("STR_SPACE_USED_UC") << ">" << Unicode::TOK_COLOR_FLIP << "999:999";
-		ss2 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << "99:99";
+		ss1 << tr("STR_SPACE_USED_UC") << ">" << Unicode::TOK_COLOR_FLIP << craft->getSpaceUsed() << ":" << craft->getSpaceMax();
+		ss2 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumVehicles() << ":" << craft->getRules()->getVehicles();
 		_txtSpaceUsage->setText(ss1.str());
 		_txtVehicleUsage->setText(ss2.str());
 	}
