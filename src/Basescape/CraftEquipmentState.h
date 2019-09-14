@@ -40,7 +40,7 @@ class CraftEquipmentState : public State
 private:
 	TextButton *_btnOk, *_btnClear, *_btnInventory;
 	Window *_window;
-	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew;
+	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew, *_txtSpaceUsage, *_txtVehicleUsage;
 	TextList *_lstEquipment;
 	Timer *_timerLeft, *_timerRight;
 	size_t _sel, _craft;
@@ -48,6 +48,8 @@ private:
 	std::vector<std::string> _items;
 	int _totalItems;
 	Uint8 _ammoColor;
+	/// Do we use the alternate base screen option?
+	bool _alternateScreen;
 	/// Updates quantities of item.
 	void updateQuantity();
 	/// Updates entities below screen title.

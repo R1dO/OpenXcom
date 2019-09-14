@@ -54,11 +54,12 @@ namespace OpenXcom
  * @param base Pointer to the base to get info from.
  * @param craft ID of the selected craft.
  */
-CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _craft(craft), _base(base), _totalItems(0), _ammoColor(0)
+CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _craft(craft), _base(base), _totalItems(0), _ammoColor(0), _alternateScreen(false)
 {
 	Craft *c = _base->getCrafts()->at(_craft);
 	bool craftHasACrew = c->getNumSoldiers() > 0;
 	bool isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
+	_alternateScreen = Options::alternateBaseScreens;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -72,6 +73,8 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_txtUsed = new Text(110, 9, 130, 24);
 	_txtCrew = new Text(71, 9, 244, 24);
 	_lstEquipment = new TextList(288, 128, 8, 40);
+	_txtSpaceUsage = new Text(110, 9, 16, 24);
+	_txtVehicleUsage = new Text(110, 9, 130, 24);
 
 	// Set palette
 	setInterface("craftEquipment");
@@ -89,6 +92,19 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	add(_txtUsed, "text", "craftEquipment");
 	add(_txtCrew, "text", "craftEquipment");
 	add(_lstEquipment, "list", "craftEquipment");
+	add(_txtSpaceUsage, "text", "craftEquipment");
+	add(_txtVehicleUsage, "text", "craftEquipment");
+
+	if (_alternateScreen)
+	{
+		_txtAvailable->setVisible(false);
+		_txtUsed->setVisible(false);
+	}
+	else
+	{
+		_txtSpaceUsage->setVisible(false);
+		_txtVehicleUsage->setVisible(false);
+	}
 
 	centerAllSurfaces();
 
@@ -600,8 +616,20 @@ void CraftEquipmentState::moveRightByValue(int change)
 void CraftEquipmentState::updateSubtitleLine()
 {
 	Craft *craft = _base->getCrafts()->at(_craft);
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(craft->getSpaceAvailable()));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(craft->getSpaceUsed()));
+
+	if (_alternateScreen)
+	{
+		std::ostringstream ss1, ss2;
+		ss1 << tr("STR_SPACE_USED_UC") << ">" << Unicode::TOK_COLOR_FLIP << "999:999";
+		ss2 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << "99:99";
+		_txtSpaceUsage->setText(ss1.str());
+		_txtVehicleUsage->setText(ss2.str());
+	}
+	else
+	{
+		_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(craft->getSpaceAvailable()));
+		_txtUsed->setText(tr("STR_SPACE_USED").arg(craft->getSpaceUsed()));
+	}
 
 	std::ostringstream ss;
 	ss << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumSoldiers();
