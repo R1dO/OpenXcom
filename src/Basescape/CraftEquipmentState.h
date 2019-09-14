@@ -50,6 +50,8 @@ private:
 	Uint8 _ammoColor;
 	/// Updates quantities of item.
 	void updateQuantity();
+	/// Updates entities below screen title.
+	void updateSubtitleLine();
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);

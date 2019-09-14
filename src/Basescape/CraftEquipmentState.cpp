@@ -114,14 +114,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 
 	_txtStores->setText(tr("STR_STORES"));
 
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
-
-	std::ostringstream ss3;
-	ss3 << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << c->getNumSoldiers();
-	_txtCrew->setText(ss3.str());
-
 	_lstEquipment->setArrowColumn(203, ARROW_HORIZONTAL);
 	_lstEquipment->setColumns(3, 156, 83, 41);
 	_lstEquipment->setSelectable(true);
@@ -194,6 +186,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			++row;
 		}
 	}
+	updateSubtitleLine();
 
 	_timerLeft = new Timer(250);
 	_timerLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeft);
@@ -396,8 +389,7 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setCellText(_sel, 1, ss.str());
 	_lstEquipment->setCellText(_sel, 2, ss2.str());
 
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+	updateSubtitleLine();
 }
 
 /**
@@ -598,6 +590,22 @@ void CraftEquipmentState::moveRightByValue(int change)
 		}
 	}
 	updateQuantity();
+}
+
+/**
+ * Updates entities below screen title.
+ *
+ * The (derived) values between title and list.
+ */
+void CraftEquipmentState::updateSubtitleLine()
+{
+	Craft *craft = _base->getCrafts()->at(_craft);
+	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(craft->getSpaceAvailable()));
+	_txtUsed->setText(tr("STR_SPACE_USED").arg(craft->getSpaceUsed()));
+
+	std::ostringstream ss;
+	ss << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumSoldiers();
+	_txtCrew->setText(ss.str());
 }
 
 /**
