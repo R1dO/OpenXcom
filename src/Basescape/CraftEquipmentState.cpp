@@ -67,12 +67,12 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_btnClear = new TextButton(148, 16, 8, 176);
 	_btnInventory = new TextButton(148, 16, 8, 176);
 	_txtTitle = new Text(300, 17, 16, 7);
-	_txtItem = new Text(144, 9, 16, 32);
-	_txtStores = new Text(150, 9, 160, 32);
+	_txtItem = new Text(144, 9, 16, 34);
+	_txtStores = new Text(150, 9, 160, 34);
 	_txtAvailable = new Text(110, 9, 16, 24);
 	_txtUsed = new Text(110, 9, 130, 24);
 	_txtCrew = new Text(71, 9, 244, 24);
-	_lstEquipment = new TextList(288, 128, 8, 40);
+	_lstEquipment = new TextList(288, 128, 8, 42);
 	_txtSpaceUsage = new Text(110, 9, 16, 24);
 	_txtVehicleUsage = new Text(110, 9, 130, 24);
 
