@@ -73,7 +73,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_txtUsed = new Text(110, 9, 130, 24);
 	_txtCrew = new Text(71, 9, 244, 24);
 	_lstEquipment = new TextList(288, 128, 8, 42);
-	_txtSpaceUsage = new Text(110, 9, 16, 24);
 	_txtVehicleUsage = new Text(110, 9, 130, 24);
 
 	// Set palette
@@ -92,17 +91,14 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	add(_txtUsed, "text", "craftEquipment");
 	add(_txtCrew, "text", "craftEquipment");
 	add(_lstEquipment, "list", "craftEquipment");
-	add(_txtSpaceUsage, "text", "craftEquipment");
 	add(_txtVehicleUsage, "text", "craftEquipment");
 
 	if (_alternateScreen)
 	{
-		_txtAvailable->setVisible(false);
 		_txtUsed->setVisible(false);
 	}
 	else
 	{
-		_txtSpaceUsage->setVisible(false);
 		_txtVehicleUsage->setVisible(false);
 	}
 
@@ -616,18 +612,16 @@ void CraftEquipmentState::moveRightByValue(int change)
 void CraftEquipmentState::updateSubtitleLine()
 {
 	Craft *craft = _base->getCrafts()->at(_craft);
+	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(craft->getSpaceAvailable()));
 
 	if (_alternateScreen)
 	{
-		std::ostringstream ss1, ss2;
-		ss1 << tr("STR_SPACE_USED_UC") << ">" << Unicode::TOK_COLOR_FLIP << craft->getSpaceUsed() << ":" << craft->getSpaceMax();
-		ss2 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumVehicles() << ":" << craft->getRules()->getVehicles();
-		_txtSpaceUsage->setText(ss1.str());
-		_txtVehicleUsage->setText(ss2.str());
+		std::ostringstream ss1;
+		ss1 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumVehicles() << ":" << craft->getRules()->getVehicles();
+		_txtVehicleUsage->setText(ss1.str());
 	}
 	else
 	{
-		_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(craft->getSpaceAvailable()));
 		_txtUsed->setText(tr("STR_SPACE_USED").arg(craft->getSpaceUsed()));
 	}
 

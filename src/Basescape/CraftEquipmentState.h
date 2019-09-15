@@ -40,7 +40,7 @@ class CraftEquipmentState : public State
 private:
 	TextButton *_btnOk, *_btnClear, *_btnInventory;
 	Window *_window;
-	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew, *_txtSpaceUsage, *_txtVehicleUsage;
+	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew, *_txtVehicleUsage;
 	TextList *_lstEquipment;
 	Timer *_timerLeft, *_timerRight;
 	size_t _sel, _craft;
