@@ -130,7 +130,14 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_txtStores->setText(tr("STR_STORES"));
 
 	_lstEquipment->setArrowColumn(203, ARROW_HORIZONTAL);
-	_lstEquipment->setColumns(3, 156, 83, 41);
+	if (_alternateScreen)
+	{
+		_lstEquipment->setColumns(4, 156, 25+48, 25, 26);
+	}
+	else
+	{
+		_lstEquipment->setColumns(3, 156, 83, 41);
+	}
 	_lstEquipment->setSelectable(true);
 	_lstEquipment->setBackground(_window);
 	_lstEquipment->setMargin(8);
@@ -162,7 +169,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			(_base->getStorageItems()->getItem(*i) > 0 || cQty > 0))
 		{
 			_items.push_back(*i);
-			std::ostringstream ss, ss2;
+			std::ostringstream ss, ss2, ss3;
 			if (_game->getSavedGame()->getMonthsPassed() > -1)
 			{
 				ss << _base->getStorageItems()->getItem(*i);
@@ -172,13 +179,21 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 				ss << "-";
 			}
 			ss2 << cQty;
+			ss3  << "[999]";
 
 			std::string s = tr(*i);
 			if (rule->getBattleType() == BT_AMMO)
 			{
 				s.insert(0, "  ");
 			}
-			_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
+			if (_alternateScreen)
+			{
+				_lstEquipment->addRow(4, s.c_str(), ss.str().c_str(), ss2.str().c_str(), ss3.str().c_str());
+			}
+			else
+			{
+				_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
+			}
 
 			Uint8 color;
 			if (cQty == 0)
