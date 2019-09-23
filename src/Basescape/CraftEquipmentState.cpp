@@ -74,6 +74,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_txtCrew = new Text(71, 9, 244, 24);
 	_lstEquipment = new TextList(288, 128, 8, 42);
 	_txtVehicleUsage = new Text(110, 9, 130, 24);
+	_txtCraftEquipment = new Text(85, 9, 235, 34);
 
 	// Set palette
 	setInterface("craftEquipment");
@@ -92,6 +93,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	add(_txtCrew, "text", "craftEquipment");
 	add(_lstEquipment, "list", "craftEquipment");
 	add(_txtVehicleUsage, "text", "craftEquipment");
+	add(_txtCraftEquipment, "text", "craftEquipment");
 
 	if (_alternateScreen)
 	{
@@ -100,6 +102,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	else
 	{
 		_txtVehicleUsage->setVisible(false);
+		_txtCraftEquipment->setVisible(false);
 	}
 
 	centerAllSurfaces();
@@ -616,9 +619,12 @@ void CraftEquipmentState::updateSubtitleLine()
 
 	if (_alternateScreen)
 	{
-		std::ostringstream ss1;
+		std::ostringstream ss1, ss2;
 		ss1 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumVehicles() << ":" << craft->getRules()->getVehicles();
 		_txtVehicleUsage->setText(ss1.str());
+		// Update the one entry in the spreadsheet header row.
+		ss2 << tr("STR_CRAFT") << ">" << Unicode::TOK_COLOR_FLIP << "9999:9999";
+		_txtCraftEquipment->setText(ss2.str());
 	}
 	else
 	{
