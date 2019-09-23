@@ -623,7 +623,11 @@ void CraftEquipmentState::updateSubtitleLine()
 		ss1 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumVehicles() << ":" << craft->getRules()->getVehicles();
 		_txtVehicleUsage->setText(ss1.str());
 		// Update the one entry in the spreadsheet header row.
-		ss2 << tr("STR_CRAFT") << ">" << Unicode::TOK_COLOR_FLIP << "9999:9999";
+		ss2 << tr("STR_CRAFT") << ">" << Unicode::TOK_COLOR_FLIP << _totalItems;
+		if (craft->getRules()->getMaxItems() > 0)
+		{
+			ss2 << ":" << craft->getRules()->getMaxItems();
+		}
 		_txtCraftEquipment->setText(ss2.str());
 	}
 	else
