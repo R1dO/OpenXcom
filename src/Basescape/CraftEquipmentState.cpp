@@ -217,6 +217,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 		}
 	}
 	updateSubtitleLine();
+	updateSpreadsheetHeader();
 
 	_timerLeft = new Timer(250);
 	_timerLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeft);
@@ -420,6 +421,7 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setCellText(_sel, 2, ss2.str());
 
 	updateSubtitleLine();
+	updateSpreadsheetHeader();
 }
 
 /**
@@ -634,16 +636,9 @@ void CraftEquipmentState::updateSubtitleLine()
 
 	if (_alternateScreen)
 	{
-		std::ostringstream ss1, ss2;
+		std::ostringstream ss1;
 		ss1 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumVehicles() << ":" << craft->getRules()->getVehicles();
 		_txtVehicleUsage->setText(ss1.str());
-		// Update the one entry in the spreadsheet header row.
-		ss2 << tr("STR_CRAFT") << ">" << Unicode::TOK_COLOR_FLIP << _totalItems;
-		if (craft->getRules()->getMaxItems() > 0)
-		{
-			ss2 << ":" << craft->getRules()->getMaxItems();
-		}
-		_txtCraftEquipment->setText(ss2.str());
 	}
 	else
 	{
@@ -653,6 +648,24 @@ void CraftEquipmentState::updateSubtitleLine()
 	std::ostringstream ss;
 	ss << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumSoldiers();
 	_txtCrew->setText(ss.str());
+}
+
+/**
+ * Updates variable cells in the spreadsheet header row.
+ */
+void CraftEquipmentState::updateSpreadsheetHeader()
+{
+	if (_alternateScreen)
+	{
+		Craft *craft = _base->getCrafts()->at(_craft);
+		std::ostringstream ss;
+		ss << tr("STR_CRAFT") << ">" << Unicode::TOK_COLOR_FLIP << _totalItems;
+		if (craft->getRules()->getMaxItems() > 0)
+		{
+			ss << ":" << craft->getRules()->getMaxItems();
+		}
+		_txtCraftEquipment->setText(ss.str());
+	}
 }
 
 /**
