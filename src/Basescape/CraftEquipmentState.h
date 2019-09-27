@@ -46,6 +46,7 @@ private:
 	size_t _sel, _craft;
 	Base *_base;
 	std::vector<std::string> _items;
+	std::map<std::string, int> *_reservedItems;
 	int _totalItems;
 	Uint8 _ammoColor;
 	/// Do we use the alternate base screen option?
