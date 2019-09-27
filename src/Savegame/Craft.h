@@ -101,6 +101,8 @@ public:
 	std::vector<CraftWeapon*> *getWeapons();
 	/// Gets the craft's items.
 	ItemContainer *getItems();
+	/// Gets the items claimed by soldiers on the craft.
+	ItemContainer *getItemsClaimedBySoldiers() const;
 	/// Gets the craft's vehicles.
 	std::vector<Vehicle*> *getVehicles();
 	/// Gets the craft's amount of fuel.

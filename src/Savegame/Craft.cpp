@@ -36,6 +36,7 @@
 #include "../Mod/RuleItem.h"
 #include "../Mod/AlienDeployment.h"
 #include "../Engine/Logger.h"
+#include "EquipmentLayoutItem.h"
 
 namespace OpenXcom
 {
@@ -940,6 +941,32 @@ int Craft::getVehicleCount(const std::string &vehicle) const
 		}
 	}
 	return total;
+}
+
+/**
+ * Returns the items claimed by soldiers on the craft.
+ *
+ * @return Pointer to mapping of claimed items and the respective amount for all soldiers on the craft.
+ */
+ItemContainer *Craft::getItemsClaimedBySoldiers() const
+{
+	ItemContainer *claimedItems = new ItemContainer;
+	for (std::vector<Soldier*>::iterator i = _base->getSoldiers()->begin(); i != _base->getSoldiers()->end(); ++i)
+	{
+		if ((*i)->getCraft() == this)
+		{
+			std::vector<EquipmentLayoutItem*> *soldierEquipment = (*i)->getEquipmentLayout();
+			for (std::vector<EquipmentLayoutItem*>::const_iterator j = soldierEquipment->begin(); j != soldierEquipment->end(); ++j)
+			{
+				claimedItems->addItem((*j)->getItemType());
+				if ((*j)->getAmmoItem() != "NONE")
+				{
+					claimedItems->addItem((*j)->getAmmoItem());
+				}
+			}
+		}
+	}
+	return claimedItems;
 }
 
 /**
