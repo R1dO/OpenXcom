@@ -383,10 +383,12 @@ void CraftEquipmentState::updateQuantity()
 	if (item->isFixed())
 	{
 		cQty = c->getVehicleCount(_items[_sel]);
+		updateSubtitleLine();
 	}
 	else
 	{
 		cQty = c->getItems()->getItem(_items[_sel]);
+		updateSpreadsheetHeader();
 	}
 	std::ostringstream ss, ss2;
 	if (_game->getSavedGame()->getMonthsPassed() > -1)
@@ -419,9 +421,6 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setRowColor(_sel, color);
 	_lstEquipment->setCellText(_sel, 1, ss.str());
 	_lstEquipment->setCellText(_sel, 2, ss2.str());
-
-	updateSubtitleLine();
-	updateSpreadsheetHeader();
 }
 
 /**
