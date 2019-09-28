@@ -170,7 +170,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			(_base->getStorageItems()->getItem(*i) > 0 || cQty > 0))
 		{
 			_items.push_back(*i);
-			std::ostringstream ss, ss2, ss3;
+			std::ostringstream ss, ss2;
 			if (_game->getSavedGame()->getMonthsPassed() > -1)
 			{
 				ss << _base->getStorageItems()->getItem(*i);
@@ -180,16 +180,23 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 				ss << "-";
 			}
 			ss2 << cQty;
-			ss3  << "[999]";
 
 			std::string s = tr(*i);
 			if (rule->getBattleType() == BT_AMMO)
 			{
 				s.insert(0, "  ");
 			}
+
 			if (_alternateScreen)
 			{
-				_lstEquipment->addRow(4, s.c_str(), ss.str().c_str(), ss2.str().c_str(), ss3.str().c_str());
+				std::string ssClaimed;
+				std::map<std::string, int>::const_iterator search = _reservedItems->find(*i);
+				if (search != _reservedItems->end())
+				{
+					int rQty = search->second;
+					ssClaimed = createAssignedToSoldiersString(cQty, rQty);
+				}
+				_lstEquipment->addRow(4, s.c_str(), ss.str().c_str(), ss2.str().c_str(), ssClaimed.c_str());
 			}
 			else
 			{
@@ -425,6 +432,18 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setRowColor(_sel, color);
 	_lstEquipment->setCellText(_sel, 1, ss.str());
 	_lstEquipment->setCellText(_sel, 2, ss2.str());
+
+	if (_alternateScreen)
+	{
+		std::string ssClaimed;
+		std::map<std::string, int>::const_iterator search = _reservedItems->find(_items[_sel]);
+		if (search != _reservedItems->end())
+		{
+			int rQty = search->second;
+			ssClaimed = createAssignedToSoldiersString(cQty, rQty);
+		}
+		_lstEquipment->setCellText(_sel, 3, ssClaimed);
+	}
 }
 
 /**
@@ -669,6 +688,35 @@ void CraftEquipmentState::updateSpreadsheetHeader()
 		}
 		_txtCraftEquipment->setText(ss.str());
 	}
+}
+
+/**
+ * Create the "claimed items" string.
+ *
+ * The amount of this item assigned to all soldiers on the craft.
+ * @param cQty Amount of the item assigned to the craft.
+ * @param rQty Amount of the item claimed by soldiers on the craft.
+ * @return Text to insert in the cell.
+ */
+
+std::string CraftEquipmentState::createAssignedToSoldiersString(const int cQty, const int rQty) const
+{
+	std::ostringstream  itemsClaimedBySoldiers;
+
+	if (cQty > rQty)
+	{
+		itemsClaimedBySoldiers << "> " << rQty; // or STR_LARGER
+	}
+	else if (cQty < rQty)
+	{
+		itemsClaimedBySoldiers << "< " << rQty; // or STR_SMALLER
+	}
+	else
+	{
+		itemsClaimedBySoldiers << "= " << rQty; // or STR_EQUAL
+	}
+
+	return itemsClaimedBySoldiers.str();
 }
 
 /**
