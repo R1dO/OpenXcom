@@ -256,6 +256,7 @@ void CraftEquipmentState::init()
 
 	// Inventory visit might have changed item claims.
 	_reservedItems = c->getItemsClaimedBySoldiers()->getContents();
+	updateEquipmentList();
 }
 
 /**
@@ -687,6 +688,17 @@ void CraftEquipmentState::updateSpreadsheetHeader()
 			ss << ":" << craft->getRules()->getMaxItems();
 		}
 		_txtCraftEquipment->setText(ss.str());
+	}
+}
+
+/**
+ * Updates all rows in the equipment list.
+ */
+void CraftEquipmentState::updateEquipmentList()
+{
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	{
+		updateQuantity();
 	}
 }
 

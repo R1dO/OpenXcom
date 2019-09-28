@@ -57,6 +57,8 @@ private:
 	void updateSubtitleLine();
 	/// Updates variable cells in the spreadsheet header row.
 	void updateSpreadsheetHeader();
+	/// Updates all rows in the equipment list.
+	void updateEquipmentList();
 	/// Create the "claimed items" string.
 	std::string createAssignedToSoldiersString(const int craftQty, const int reservedQty) const;
 public:
