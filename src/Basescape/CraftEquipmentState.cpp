@@ -725,7 +725,7 @@ std::string CraftEquipmentState::createAssignedToSoldiersString(const int cQty, 
 	}
 	else
 	{
-		itemsClaimedBySoldiers << "= " << rQty; // or STR_EQUAL
+		itemsClaimedBySoldiers << "  " << rQty; // or STR_EQUAL
 	}
 
 	return itemsClaimedBySoldiers.str();
