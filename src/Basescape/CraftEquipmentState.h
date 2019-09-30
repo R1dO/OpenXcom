@@ -45,6 +45,7 @@ private:
 	Timer *_timerLeft, *_timerRight;
 	size_t _sel, _craft;
 	Base *_base;
+	Craft *_currentCraft;
 	std::vector<std::string> _items;
 	std::map<std::string, int> *_reservedItems;
 	int _totalItems;

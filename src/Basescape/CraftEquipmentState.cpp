@@ -56,11 +56,11 @@ namespace OpenXcom
  */
 CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _craft(craft), _base(base), _totalItems(0), _ammoColor(0), _alternateScreen(false)
 {
-	Craft *c = _base->getCrafts()->at(_craft);
-	bool craftHasACrew = c->getNumSoldiers() > 0;
+	_currentCraft = _base->getCrafts()->at(_craft);
+	bool craftHasACrew = _currentCraft->getNumSoldiers() > 0;
 	bool isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
 	_alternateScreen = Options::alternateBaseScreens;
-	_reservedItems = c->getItemsClaimedBySoldiers()->getContents();
+	_reservedItems = _currentCraft->getItemsClaimedBySoldiers()->getContents();
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -124,7 +124,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_btnInventory->setVisible(craftHasACrew && !isNewBattle);
 
 	_txtTitle->setBig();
-	_txtTitle->setText(tr("STR_EQUIPMENT_FOR_CRAFT").arg(c->getName(_game->getLanguage())));
+	_txtTitle->setText(tr("STR_EQUIPMENT_FOR_CRAFT").arg(_currentCraft->getName(_game->getLanguage())));
 
 	_txtItem->setText(tr("STR_ITEM"));
 
@@ -158,11 +158,11 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 		int cQty = 0;
 		if (rule->isFixed())
 		{
-			cQty = c->getVehicleCount(*i);
+			cQty = _currentCraft->getVehicleCount(*i);
 		}
 		else
 		{
-			cQty = c->getItems()->getItem(*i);
+			cQty = _currentCraft->getItems()->getItem(*i);
 			_totalItems += cQty;
 		}
 		if (rule->getBigSprite() > -1 && rule->getBattleType() != BT_NONE && rule->getBattleType() != BT_CORPSE &&
@@ -251,11 +251,10 @@ void CraftEquipmentState::init()
 
 	_game->getSavedGame()->setBattleGame(0);
 
-	Craft *c = _base->getCrafts()->at(_craft);
-	c->setInBattlescape(false);
+	_currentCraft->setInBattlescape(false);
 
 	// Inventory visit might have changed item claims.
-	_reservedItems = c->getItemsClaimedBySoldiers()->getContents();
+	_reservedItems = _currentCraft->getItemsClaimedBySoldiers()->getContents();
 	updateEquipmentList();
 }
 
@@ -389,17 +388,16 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
  */
 void CraftEquipmentState::updateQuantity()
 {
-	Craft *c = _base->getCrafts()->at(_craft);
 	RuleItem *item = _game->getMod()->getItem(_items[_sel], true);
 	int cQty = 0;
 	if (item->isFixed())
 	{
-		cQty = c->getVehicleCount(_items[_sel]);
+		cQty = _currentCraft->getVehicleCount(_items[_sel]);
 		updateSubtitleLine();
 	}
 	else
 	{
-		cQty = c->getItems()->getItem(_items[_sel]);
+		cQty = _currentCraft->getItems()->getItem(_items[_sel]);
 		updateSpreadsheetHeader();
 	}
 	std::ostringstream ss, ss2;
@@ -463,11 +461,10 @@ void CraftEquipmentState::moveLeft()
  */
 void CraftEquipmentState::moveLeftByValue(int change)
 {
-	Craft *c = _base->getCrafts()->at(_craft);
 	RuleItem *item = _game->getMod()->getItem(_items[_sel], true);
 	int cQty = 0;
-	if (item->isFixed()) cQty = c->getVehicleCount(_items[_sel]);
-	else cQty = c->getItems()->getItem(_items[_sel]);
+	if (item->isFixed()) cQty = _currentCraft->getVehicleCount(_items[_sel]);
+	else cQty = _currentCraft->getItems()->getItem(_items[_sel]);
 	if (change <= 0 || cQty <= 0) return;
 	change = std::min(cQty, change);
 	// Convert vehicle to item
@@ -493,12 +490,12 @@ void CraftEquipmentState::moveLeftByValue(int change)
 				_base->getStorageItems()->addItem(ammo->getType(), ammoPerVehicle * change);
 			}
 			// now delete the vehicles from the craft.
-			for (std::vector<Vehicle*>::iterator i = c->getVehicles()->begin(); i != c->getVehicles()->end() && change > 0; )
+			for (std::vector<Vehicle*>::iterator i = _currentCraft->getVehicles()->begin(); i != _currentCraft->getVehicles()->end() && change > 0; )
 			{
 				if ((*i)->getRules() == item)
 				{
 					delete (*i);
-					i = c->getVehicles()->erase(i);
+					i = _currentCraft->getVehicles()->erase(i);
 					--change;
 				}
 				else ++i;
@@ -510,12 +507,12 @@ void CraftEquipmentState::moveLeftByValue(int change)
 			{
 				_base->getStorageItems()->addItem(_items[_sel], change);
 			}
-			for (std::vector<Vehicle*>::iterator i = c->getVehicles()->begin(); i != c->getVehicles()->end() && change > 0; )
+			for (std::vector<Vehicle*>::iterator i = _currentCraft->getVehicles()->begin(); i != _currentCraft->getVehicles()->end() && change > 0; )
 			{
 				if ((*i)->getRules() == item)
 				{
 					delete (*i);
-					i = c->getVehicles()->erase(i);
+					i = _currentCraft->getVehicles()->erase(i);
 					--change;
 				}
 				else ++i;
@@ -524,7 +521,7 @@ void CraftEquipmentState::moveLeftByValue(int change)
 	}
 	else
 	{
-		c->getItems()->removeItem(_items[_sel], change);
+		_currentCraft->getItems()->removeItem(_items[_sel], change);
 		_totalItems -= change;
 		if (_game->getSavedGame()->getMonthsPassed() > -1)
 		{
@@ -550,7 +547,6 @@ void CraftEquipmentState::moveRight()
  */
 void CraftEquipmentState::moveRightByValue(int change)
 {
-	Craft *c = _base->getCrafts()->at(_craft);
 	RuleItem *item = _game->getMod()->getItem(_items[_sel], true);
 	int bqty = _base->getStorageItems()->getItem(_items[_sel]);
 	if (_game->getSavedGame()->getMonthsPassed() == -1)
@@ -573,7 +569,7 @@ void CraftEquipmentState::moveRightByValue(int change)
 			size *= size;
 		}
 		// Check if there's enough room
-		int room = std::min(c->getRules()->getVehicles() - c->getNumVehicles(), c->getSpaceAvailable() / size);
+		int room = std::min(_currentCraft->getRules()->getVehicles() - _currentCraft->getNumVehicles(), _currentCraft->getSpaceAvailable() / size);
 		if (room > 0)
 		{
 			change = std::min(room, change);
@@ -606,7 +602,7 @@ void CraftEquipmentState::moveRightByValue(int change)
 							_base->getStorageItems()->removeItem(ammo->getType(), ammoPerVehicle);
 							_base->getStorageItems()->removeItem(_items[_sel]);
 						}
-						c->getVehicles()->push_back(new Vehicle(item, clipSize, size));
+						_currentCraft->getVehicles()->push_back(new Vehicle(item, clipSize, size));
 					}
 				}
 				else
@@ -620,7 +616,7 @@ void CraftEquipmentState::moveRightByValue(int change)
 			else
 				for (int i = 0; i < change; ++i)
 				{
-					c->getVehicles()->push_back(new Vehicle(item, item->getClipSize(), size));
+					_currentCraft->getVehicles()->push_back(new Vehicle(item, item->getClipSize(), size));
 					if (_game->getSavedGame()->getMonthsPassed() != -1)
 					{
 						_base->getStorageItems()->removeItem(_items[_sel]);
@@ -630,14 +626,14 @@ void CraftEquipmentState::moveRightByValue(int change)
 	}
 	else
 	{
-		if (c->getRules()->getMaxItems() > 0 && _totalItems + change > c->getRules()->getMaxItems())
+		if (_currentCraft->getRules()->getMaxItems() > 0 && _totalItems + change > _currentCraft->getRules()->getMaxItems())
 		{
 			_timerRight->stop();
-			LocalizedText msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getRules()->getMaxItems()));
+			LocalizedText msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED", _currentCraft->getRules()->getMaxItems()));
 			_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
-			change = c->getRules()->getMaxItems() - _totalItems;
+			change = _currentCraft->getRules()->getMaxItems() - _totalItems;
 		}
-		c->getItems()->addItem(_items[_sel],change);
+		_currentCraft->getItems()->addItem(_items[_sel],change);
 		_totalItems += change;
 		if (_game->getSavedGame()->getMonthsPassed() > -1)
 		{
@@ -654,22 +650,21 @@ void CraftEquipmentState::moveRightByValue(int change)
  */
 void CraftEquipmentState::updateSubtitleLine()
 {
-	Craft *craft = _base->getCrafts()->at(_craft);
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(craft->getSpaceAvailable()));
+	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(_currentCraft->getSpaceAvailable()));
 
 	if (_alternateScreen)
 	{
 		std::ostringstream ss1;
-		ss1 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumVehicles() << ":" << craft->getRules()->getVehicles();
+		ss1 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << _currentCraft->getNumVehicles() << ":" << _currentCraft->getRules()->getVehicles();
 		_txtVehicleUsage->setText(ss1.str());
 	}
 	else
 	{
-		_txtUsed->setText(tr("STR_SPACE_USED").arg(craft->getSpaceUsed()));
+		_txtUsed->setText(tr("STR_SPACE_USED").arg(_currentCraft->getSpaceUsed()));
 	}
 
 	std::ostringstream ss;
-	ss << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumSoldiers();
+	ss << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << _currentCraft->getNumSoldiers();
 	_txtCrew->setText(ss.str());
 }
 
@@ -680,12 +675,11 @@ void CraftEquipmentState::updateSpreadsheetHeader()
 {
 	if (_alternateScreen)
 	{
-		Craft *craft = _base->getCrafts()->at(_craft);
 		std::ostringstream ss;
 		ss << tr("STR_CRAFT") << ">" << Unicode::TOK_COLOR_FLIP << _totalItems;
-		if (craft->getRules()->getMaxItems() > 0)
+		if (_currentCraft->getRules()->getMaxItems() > 0)
 		{
-			ss << ":" << craft->getRules()->getMaxItems();
+			ss << ":" << _currentCraft->getRules()->getMaxItems();
 		}
 		_txtCraftEquipment->setText(ss.str());
 	}
@@ -749,14 +743,13 @@ void CraftEquipmentState::btnClearClick(Action *)
  */
 void CraftEquipmentState::btnInventoryClick(Action *)
 {
-	Craft *craft = _base->getCrafts()->at(_craft);
-	if (craft->getNumSoldiers() != 0)
+	if (_currentCraft->getNumSoldiers() != 0)
 	{
 		SavedBattleGame *bgame = new SavedBattleGame();
 		_game->getSavedGame()->setBattleGame(bgame);
 
 		BattlescapeGenerator bgen = BattlescapeGenerator(_game);
-		bgen.runInventory(craft);
+		bgen.runInventory(_currentCraft);
 
 		_game->getScreen()->clear();
 		_game->pushState(new InventoryState(false, 0));
