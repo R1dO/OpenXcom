@@ -493,6 +493,14 @@ void CraftEquipmentState::moveLeftByValue(int change)
 		{
 			_base->getStorageItems()->addItem(_items[_sel], change);
 		}
+
+		if(_alternateScreen && _btnOk->getVisible() == false)
+		{
+			if (_currentCraft->getRules()->getMaxItems() > 0 && _totalItems <= _currentCraft->getRules()->getMaxItems())
+			{
+				_btnOk->setVisible(true);
+			}
+		}
 	}
 	updateQuantity();
 }
@@ -594,10 +602,17 @@ void CraftEquipmentState::moveRightByValue(int change)
 	{
 		if (_currentCraft->getRules()->getMaxItems() > 0 && _totalItems + change > _currentCraft->getRules()->getMaxItems())
 		{
-			_timerRight->stop();
-			LocalizedText msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED", _currentCraft->getRules()->getMaxItems()));
-			_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
-			change = _currentCraft->getRules()->getMaxItems() - _totalItems;
+			if (_alternateScreen)
+			{
+				_btnOk->setVisible(false);
+			}
+			else
+			{
+				_timerRight->stop();
+				LocalizedText msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED", _currentCraft->getRules()->getMaxItems()));
+				_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
+				change = _currentCraft->getRules()->getMaxItems() - _totalItems;
+			}
 		}
 		_currentCraft->getItems()->addItem(_items[_sel],change);
 		_totalItems += change;
