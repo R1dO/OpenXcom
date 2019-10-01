@@ -93,17 +93,12 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	add(_txtUsed, "text", "craftEquipment");
 	add(_txtCrew, "text", "craftEquipment");
 	add(_lstEquipment, "list", "craftEquipment");
-	add(_txtVehicleUsage, "text", "craftEquipment");
-	add(_txtCraftEquipment, "text", "craftEquipment");
-
 	if (_alternateScreen)
 	{
+		add(_txtVehicleUsage, "text", "craftEquipment");
+		add(_txtCraftEquipment, "text", "craftEquipment");
+
 		_txtUsed->setVisible(false);
-	}
-	else
-	{
-		_txtVehicleUsage->setVisible(false);
-		_txtCraftEquipment->setVisible(false);
 	}
 
 	centerAllSurfaces();
