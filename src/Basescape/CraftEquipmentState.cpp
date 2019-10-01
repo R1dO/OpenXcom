@@ -170,16 +170,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 			(_base->getStorageItems()->getItem(*i) > 0 || cQty > 0))
 		{
 			_items.push_back(*i);
-			std::ostringstream ss, ss2;
-			if (_game->getSavedGame()->getMonthsPassed() > -1)
-			{
-				ss << _base->getStorageItems()->getItem(*i);
-			}
-			else
-			{
-				ss << "-";
-			}
-			ss2 << cQty;
 
 			std::string s = tr(*i);
 			if (rule->getBattleType() == BT_AMMO)
@@ -189,43 +179,19 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 
 			if (_alternateScreen)
 			{
-				std::string ssClaimed;
-				std::map<std::string, int>::const_iterator search = _reservedItems->find(*i);
-				if (search != _reservedItems->end())
-				{
-					int rQty = search->second;
-					ssClaimed = createAssignedToSoldiersString(cQty, rQty);
-				}
-				_lstEquipment->addRow(4, s.c_str(), ss.str().c_str(), ss2.str().c_str(), ssClaimed.c_str());
+				_lstEquipment->addRow(4, s.c_str(), "in base", "in craft", "claimed");
 			}
 			else
 			{
-				_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
+				_lstEquipment->addRow(3, s.c_str(), "in base", "in craft");
 			}
-
-			Uint8 color;
-			if (cQty == 0)
-			{
-				if (rule->getBattleType() == BT_AMMO)
-				{
-					color = _ammoColor;
-				}
-				else
-				{
-					color = _lstEquipment->getColor();
-				}
-			}
-			else
-			{
-					color = _lstEquipment->getSecondaryColor();
-			}
-			_lstEquipment->setRowColor(row, color);
 
 			++row;
 		}
 	}
 	updateSubtitleLine();
 	updateSpreadsheetHeader();
+	updateEquipmentList();
 
 	_timerLeft = new Timer(250);
 	_timerLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeft);
