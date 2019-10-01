@@ -44,6 +44,7 @@
 #include "../Battlescape/BattlescapeGenerator.h"
 #include "../Savegame/SavedBattleGame.h"
 #include "../Mod/RuleInterface.h"
+#include "../Interface/ArrowButton.h"
 
 namespace OpenXcom
 {
@@ -75,7 +76,9 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_txtCrew = new Text(71, 9, 244, 24);
 	_lstEquipment = new TextList(288, 128, 8, 42);
 	_txtVehicleUsage = new Text(110, 9, 130, 24);
-	_txtCraftEquipment = new Text(85, 9, 235, 34);
+	_txtCraftEquipment = new Text(75, 9, 239, 34);
+	_arrowLeft = new ArrowButton(ARROW_SMALL_LEFT, 13, 9, 209, 33);
+	_arrowRight = new ArrowButton(ARROW_SMALL_RIGHT, 13, 9, 223, 33);
 
 	// Set palette
 	setInterface("craftEquipment");
@@ -97,6 +100,8 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	{
 		add(_txtVehicleUsage, "text", "craftEquipment");
 		add(_txtCraftEquipment, "text", "craftEquipment");
+		add(_arrowLeft, "text", "craftEquipment");
+		add(_arrowRight, "text", "craftEquipment");
 
 		_txtUsed->setVisible(false);
 	}

@@ -30,6 +30,7 @@ class Text;
 class TextList;
 class Timer;
 class Base;
+class ArrowButton;
 
 /**
  * Equipment screen that lets the player
@@ -62,6 +63,8 @@ private:
 	void updateEquipmentList();
 	/// Create the "claimed items" string.
 	std::string createAssignedToSoldiersString(const int craftQty, const int reservedQty) const;
+	/// Buttons to act on the whole list
+	ArrowButton *_arrowLeft, *_arrowRight;
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);
