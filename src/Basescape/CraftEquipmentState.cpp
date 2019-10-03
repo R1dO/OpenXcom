@@ -75,10 +75,13 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	_txtUsed = new Text(110, 9, 130, 24);
 	_txtCrew = new Text(71, 9, 244, 24);
 	_lstEquipment = new TextList(288, 128, 8, 42);
-	_txtVehicleUsage = new Text(110, 9, 130, 24);
-	_txtCraftEquipment = new Text(75, 9, 239, 34);
-	_arrowLeft = new ArrowButton(ARROW_SMALL_LEFT, 13, 9, 209, 33);
-	_arrowRight = new ArrowButton(ARROW_SMALL_RIGHT, 13, 9, 223, 33);
+	if (_alternateScreen)
+	{
+		_txtVehicleUsage = new Text(110, 9, 130, 24);
+		_txtCraftEquipment = new Text(75, 9, 239, 34);
+		_arrowAllItemsLeft = new ArrowButton(ARROW_SMALL_LEFT, 13, 9, 209, 33);
+		_arrowAllItemsRight = new ArrowButton(ARROW_SMALL_RIGHT, 13, 9, 223, 33);
+	}
 
 	// Set palette
 	setInterface("craftEquipment");
@@ -100,8 +103,8 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	{
 		add(_txtVehicleUsage, "text", "craftEquipment");
 		add(_txtCraftEquipment, "text", "craftEquipment");
-		add(_arrowLeft, "text", "craftEquipment");
-		add(_arrowRight, "text", "craftEquipment");
+		add(_arrowAllItemsLeft, "text", "craftEquipment");
+		add(_arrowAllItemsRight, "text", "craftEquipment");
 
 		_txtUsed->setVisible(false);
 	}
@@ -134,6 +137,13 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	if (_alternateScreen)
 	{
 		_lstEquipment->setColumns(4, 156, 25+48, 25, 26);
+
+		_arrowAllItemsLeft->onMousePress((ActionHandler)&CraftEquipmentState::allItemsLeftArrowPress);
+		_arrowAllItemsLeft->onMouseRelease((ActionHandler)&CraftEquipmentState::allItemsLeftArrowRelease);
+		_arrowAllItemsLeft->onMouseClick((ActionHandler)&CraftEquipmentState::allItemsLeftArrowClick, 0);
+		_arrowAllItemsRight->onMousePress((ActionHandler)&CraftEquipmentState::allItemsRightArrowPress);
+		_arrowAllItemsRight->onMouseRelease((ActionHandler)&CraftEquipmentState::allItemsRightArrowRelease);
+		_arrowAllItemsRight->onMouseClick((ActionHandler)&CraftEquipmentState::allItemsRightArrowClick, 0);
 	}
 	else
 	{
@@ -193,6 +203,14 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	updateSpreadsheetHeader();
 	updateEquipmentList();
 
+	if (_alternateScreen)
+	{
+		_timerAllItemsLeft = new Timer(250);
+		_timerAllItemsLeft->onTimer((StateHandler)&CraftEquipmentState::moveAllItemsLeft);
+		_timerAllItemsRight = new Timer(250);
+		_timerAllItemsRight->onTimer((StateHandler)&CraftEquipmentState::moveAllItemsRight);
+	}
+
 	_timerLeft = new Timer(250);
 	_timerLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeft);
 	_timerRight = new Timer(250);
@@ -206,6 +224,12 @@ CraftEquipmentState::~CraftEquipmentState()
 {
 	delete _timerLeft;
 	delete _timerRight;
+
+	if (_alternateScreen)
+	{
+		delete _timerAllItemsLeft;
+		delete _timerAllItemsRight;
+	}
 }
 
 /**
@@ -233,6 +257,12 @@ void CraftEquipmentState::think()
 
 	_timerLeft->think(this, 0);
 	_timerRight->think(this, 0);
+
+	if (_alternateScreen)
+	{
+		_timerAllItemsLeft->think(this, 0);
+		_timerAllItemsRight->think(this, 0);
+	}
 }
 
 
@@ -349,6 +379,136 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
 }
 
 /**
+ * Starts moving all items to the base.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsLeftArrowPress(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT && !_timerAllItemsLeft->isRunning()) _timerAllItemsLeft->start();
+
+	if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
+	{
+		_timerAllItemsRight->stop();
+		_timerAllItemsLeft->stop();
+		for (_sel = 0; _sel != _items.size(); ++_sel)
+		{
+			moveRightByValue(Options::changeValueByMouseWheel);
+		}
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
+	{
+		_timerAllItemsRight->stop();
+		_timerAllItemsLeft->stop();
+		for (_sel = 0; _sel != _items.size(); ++_sel)
+		{
+			moveLeftByValue(Options::changeValueByMouseWheel);
+		}
+	}
+}
+
+/**
+ * Stops moving all items to the base.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsLeftArrowRelease(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		_timerAllItemsLeft->stop();
+	}
+}
+
+/**
+ * Moves all items to the base on right-click.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsLeftArrowClick(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		for (_sel = 0; _sel != _items.size(); ++_sel)
+		{
+			moveLeftByValue(INT_MAX);
+		}
+	}
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		for (_sel = 0; _sel != _items.size(); ++_sel)
+		{
+			moveLeftByValue(1);
+		}
+		_timerAllItemsRight->setInterval(250);
+		_timerAllItemsLeft->setInterval(250);
+	}
+}
+
+/**
+ * Starts moving all items to the craft.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsRightArrowPress(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT && !_timerAllItemsRight->isRunning()) _timerAllItemsRight->start();
+
+	if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
+	{
+		_timerAllItemsRight->stop();
+		_timerAllItemsLeft->stop();
+		for (_sel = 0; _sel != _items.size(); ++_sel)
+		{
+			moveRightByValue(Options::changeValueByMouseWheel);
+		}
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
+	{
+		_timerAllItemsRight->stop();
+		_timerAllItemsLeft->stop();
+		for (_sel = 0; _sel != _items.size(); ++_sel)
+		{
+			moveLeftByValue(Options::changeValueByMouseWheel);
+		}
+	}
+}
+
+/**
+ * Stops moving all items to the craft.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsRightArrowRelease(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		_timerAllItemsRight->stop();
+	}
+}
+
+/**
+ * Moves all items to the craft on right-click.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsRightArrowClick(Action *action)
+{
+
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		for (_sel = 0; _sel != _items.size(); ++_sel)
+		{
+			moveRightByValue(INT_MAX);
+		}
+	}
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		for (_sel = 0; _sel != _items.size(); ++_sel)
+		{
+			moveRightByValue(1);
+		}
+		_timerAllItemsRight->setInterval(250);
+		_timerAllItemsLeft->setInterval(250);
+	}
+}
+
+
+/**
  * Updates the displayed quantities of the
  * selected item on the list.
  */
@@ -419,6 +579,19 @@ void CraftEquipmentState::moveLeft()
 	_timerLeft->setInterval(50);
 	_timerRight->setInterval(50);
 	moveLeftByValue(1);
+}
+
+/**
+ * Moves all item types to the base.
+ */
+void CraftEquipmentState::moveAllItemsLeft()
+{
+	_timerAllItemsLeft->setInterval(50);
+	_timerAllItemsRight->setInterval(50);
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	{
+		moveLeftByValue(1);
+	}
 }
 
 /**
@@ -513,6 +686,19 @@ void CraftEquipmentState::moveRight()
 	_timerLeft->setInterval(50);
 	_timerRight->setInterval(50);
 	moveRightByValue(1);
+}
+
+/**
+ * Moves all item types to the craft.
+ */
+void CraftEquipmentState::moveAllItemsRight()
+{
+	_timerAllItemsLeft->setInterval(50);
+	_timerAllItemsRight->setInterval(50);
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	{
+		moveRightByValue(1);
+	}
 }
 
 /**
