@@ -28,12 +28,12 @@ parse_steam_libraryfolders_file ()
 		return 1
 	fi
 
-	VDF_FILE="${STEAM_LIBRARY_PATHS}/libraryfolders.vdf"
+	vdf_file="${STEAM_LIBRARY_PATHS}/libraryfolders.vdf"
 
-	if [ -f "${VDF_FILE}" ]; then
+	if [ -f "${vdf_file}" ]; then
 		: # Continue
 	else
-		printf "Line $BASH_LINENO: Could not find '${VDF_FILE}'.\n"
+		printf "Line $BASH_LINENO: Could not find '${vdf_file}'.\n"
 		return 1
 	fi
 
@@ -42,7 +42,7 @@ parse_steam_libraryfolders_file ()
 	#
 	# Supports up to 9 extra locations (to keep the regexp simple).
 	# Steam stores all relevant data under the sub-folder 'steamapps'.
-	STEAM_LIBRARY_PATHS+=($(cat ${VDF_FILE} | awk -F '\t' '{if($2 ~ /^"[1-9]"$/) {gsub(/"/,"",$4) ; print $4 "/steamapps"}}'))
+	STEAM_LIBRARY_PATHS+=($(cat ${vdf_file} | awk -F '\t' '{if($2 ~ /^"[1-9]"$/) {gsub(/"/,"",$4) ; print $4 "/steamapps"}}'))
 
 	# Reporting:
 	printf '\n%s\n' "Found the following ${#STEAM_LIBRARY_PATHS[@]} steam library paths:"
