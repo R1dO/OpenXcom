@@ -14,6 +14,8 @@ DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 # ---------------
 STEAM_DATA_PATH="${DATA_HOME}/Steam"
 STEAM_LIBRARY_PATHS="${STEAM_DATA_PATH}/steamapps"
+STEAM_ID_UFO="7760"
+STEAM_ID_TFTD="7650"
 
 # Functions
 # =========
@@ -49,6 +51,28 @@ parse_steam_libraryfolders_file ()
 	for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
 		printf '  %s\n' "$ind"
 	done
+}
+
+# Get the steam manifest file for selected game.
+#
+# $1 Game steam ID.
+#
+# Sets the global variables: $GAME_MANIFEST and $GAME_LIBRARY_PATH
+get_manifest_location ()
+{
+	GAME_MANIFEST=""
+	GAME_LIBRARY_PATH=""
+
+	for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
+		if [ -f "${ind}/appmanifest_${1}.acf" ]; then
+			GAME_MANIFEST="${ind}/appmanifest_${1}.acf"
+			GAME_LIBRARY_PATH="${ind}"
+			return 0
+		fi
+	done
+
+	printf "Line $BASH_LINENO: Could not find 'appmanifest_${1}.acf'.\n"
+	return 1
 }
 
 # Main
