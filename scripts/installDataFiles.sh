@@ -42,7 +42,7 @@ parse_steam_libraryfolders_file ()
 	#
 	# Supports up to 9 extra locations (to keep the regexp simple).
 	# Steam stores all relevant data under the sub-folder 'steamapps'.
-	STEAM_LIBRARY_PATHS+=($(cat ${VDF_FILE} | awk '{if($1 ~ /^"[1-9]"$/) {gsub(/"/,"",$2) ; print $2 "/steamapps"}}'))
+	STEAM_LIBRARY_PATHS+=($(cat ${VDF_FILE} | awk -F '\t' '{if($2 ~ /^"[1-9]"$/) {gsub(/"/,"",$4) ; print $4 "/steamapps"}}'))
 
 	# Reporting:
 	printf '\n%s\n' "Found the following ${#STEAM_LIBRARY_PATHS[@]} steam library paths:"
