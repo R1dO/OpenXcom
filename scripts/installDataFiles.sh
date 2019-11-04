@@ -61,21 +61,27 @@ parse_steam_libraryfolders_file ()
 #
 # $1 Game steam ID.
 #
-# Sets the global variables: $GAME_MANIFEST and $GAME_LIBRARY_PATH
+# Sets the global variable: $GAME_MANIFEST
 get_manifest_location ()
 {
-	GAME_MANIFEST=""
-	GAME_LIBRARY_PATH=""
+	unset GAME_MANIFEST
 
+	parse_steam_libraryfolders_file
+	# Assume only one instance of a game can be installed.
 	for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
 		if [ -f "${ind}/appmanifest_${1}.acf" ]; then
 			GAME_MANIFEST="${ind}/appmanifest_${1}.acf"
-			GAME_LIBRARY_PATH="${ind}"
+
+			if [ ${VERBOSE} = "true" ]; then
+				printf '\n%s\n' "Manifest found at: $GAME_MANIFEST"
+			fi
 			return 0
 		fi
 	done
 
-	printf "Line $BASH_LINENO: Could not find 'appmanifest_${1}.acf'.\n"
+	if [ ${VERBOSE} = "true" ]; then
+		printf '\n%s\n' "Manifest not found."
+	fi
 	return 1
 }
 
