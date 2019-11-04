@@ -85,6 +85,28 @@ get_manifest_location ()
 	return 1
 }
 
+# Return the installation state of the game
+#
+# $1 Game steam ID.
+#
+# Updates the global variable: $GAME_INSTALL_STATE
+get_game_install_status ()
+{
+	unset GAME_INSTALL_STATE
+
+	get_manifest_location ${1}
+	if [ $? -eq 0 ]; then
+		GAME_INSTALL_STATE=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"StateFlags"$/) {gsub(/"/,"",$4) ; print $4}}')
+
+		if [ ${VERBOSE} = "true" ]; then
+			printf '%s\n' "Install state: $GAME_INSTALL_STATE"
+		fi
+		return 0
+	else
+		return 1
+	fi
+}
+
 # Main
 # ====
 parse_steam_libraryfolders_file
