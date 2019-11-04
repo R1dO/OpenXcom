@@ -20,6 +20,11 @@ STEAM_LIBRARY_PATHS_DEFAULT="${STEAM_DATA_PATH}/steamapps"
 STEAM_ID_UFO="7760"
 STEAM_ID_TFTD="7650"
 
+# Game dependent variables
+# ------------------------
+GAME_MANIFEST=""
+GAME_INSTALL_STATE=""
+
 # Functions
 # =========
 
@@ -109,4 +114,12 @@ get_game_install_status ()
 
 # Main
 # ====
-parse_steam_libraryfolders_file
+# TEMPORAL reporting
+# ==================
+printf "\nUFO:\n====\n"
+get_game_install_status "$STEAM_ID_UFO"
+echo $?
+
+printf "\nTFTD:\n=====\n"
+get_game_install_status "$STEAM_ID_TFTD"
+echo $?
