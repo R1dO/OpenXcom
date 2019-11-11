@@ -19,11 +19,14 @@ STEAM_LIBRARY_PATHS="" #Set by 'parse_steam_libraryfolders_file()'.
 STEAM_LIBRARY_PATHS_DEFAULT="${STEAM_DATA_PATH}/steamapps"
 STEAM_ID_UFO="7760"
 STEAM_ID_TFTD="7650"
+STEAM_UFO_DATA_PATH="XCOM"
+STEAM_TFTD_DATA_PATH="TFD"
 
 # Game dependent variables
 # ------------------------
 GAME_MANIFEST=""
 GAME_INSTALL_STATE=""
+GAME_DATA_PATH=""
 
 # Functions
 # =========
@@ -112,14 +115,52 @@ get_game_install_status ()
 	fi
 }
 
+# Return the location of the data files.
+#
+# $1 Game steam ID.
+#
+# Updates the global variable: $GAME_DATA_PATH
+get_game_data_path ()
+{
+	unset GAME_DATA_PATH
+	installPath=""
+
+	get_manifest_location ${1}
+	if [ $? -eq 0 ]; then
+		installPath=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"installdir"$/) {gsub(/"/,"",$4) ; print $4}}')
+
+		# Installed game is stored under the library's subdirectory "common".
+		GAME_DATA_PATH="$(dirname ${GAME_MANIFEST})/common/${installPath}"
+		case ${1} in
+			${STEAM_ID_UFO})
+				GAME_DATA_PATH="${GAME_DATA_PATH}/${STEAM_UFO_DATA_PATH}"
+				;;
+			${STEAM_ID_TFTD})
+				GAME_DATA_PATH="${GAME_DATA_PATH}/${STEAM_TFTD_DATA_PATH}"
+				;;
+			*)
+				printf '\n%s\n' "Unknown game"
+				return 1
+				;;
+		esac
+
+		if [ ${VERBOSE} = "true" ]; then
+			printf '%s\n' "Game data files: $GAME_DATA_PATH"
+		fi
+		return 0
+	else
+		return 1
+	fi
+}
+
 # Main
 # ====
 # TEMPORAL reporting
 # ==================
 printf "\nUFO:\n====\n"
-get_game_install_status "$STEAM_ID_UFO"
+get_game_data_path  "$STEAM_ID_UFO"
 echo $?
 
 printf "\nTFTD:\n=====\n"
-get_game_install_status "$STEAM_ID_TFTD"
+get_game_data_path "$STEAM_ID_TFTD"
 echo $?
