@@ -160,14 +160,41 @@ get_game_data_path ()
 	fi
 }
 
+# Report the progress of the current download.
+#
+# $1 Game steam ID.
+#
+# Prints the current download percentage.
+print_download_progress ()
+{
+	downloadSize=""
+	downloadedBytes=""
+
+	get_manifest_location ${1}
+	if [ $? -eq 0 ]; then
+		downloadSize=$(cat "${GAME_MANIFEST}"| awk -F '\t' '{if($2 ~ /^"BytesToDownload"$/) {gsub(/"/,"",$4) ; print $4}}')
+		downloadedBytes=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"BytesDownloaded"$/) {gsub(/"/,"",$4) ; print $4}}')
+		if [ -z "$downloadSize" ] || [ "$downloadSize" -eq "0" ]; then
+			printf '%s\n' "Cannot determine download status."
+			# Well unless '$GAME_DATA_PATH=4' (100% downloaded), but then this function is not supposed to run.
+		elif [ "$downloadSize" -gt "0" ]; then
+			# If we have a '$downloadSize' we should also have '$downloadedBytes'.
+			printf '%s\n' "$(date +%T) Downloaded: $((100*$downloadedBytes/$downloadSize))%"
+		fi
+	fi
+}
+
+
 # Main
 # ====
 # TEMPORAL reporting
 # ==================
 printf "\nUFO:\n====\n"
 get_game_data_path  "$STEAM_ID_UFO"
+print_download_progress  "$STEAM_ID_UFO"
 echo $?
 
 printf "\nTFTD:\n=====\n"
 get_game_data_path "$STEAM_ID_TFTD"
+print_download_progress "$STEAM_ID_TFTD"
 echo $?
