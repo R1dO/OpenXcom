@@ -98,6 +98,13 @@ get_manifest_location ()
 # $1 Game steam ID.
 #
 # Updates the global variable: $GAME_INSTALL_STATE
+#
+# Note:
+#   If it reports "4" the game is fully downloaded.
+#   For simplicity we will assume that anything bigger constitutes to a download
+#   in progress, either due to new installation or validation.
+#   For an overview of known states see:
+#    https://github.com/lutris/lutris/blob/master/docs/steam.rst
 get_game_install_status ()
 {
 	unset GAME_INSTALL_STATE
