@@ -81,7 +81,7 @@ get_manifest_location ()
 			GAME_MANIFEST="${ind}/appmanifest_${1}.acf"
 
 			if [ ${VERBOSE} = "true" ]; then
-				printf '\n%s\n' "Manifest found at: $GAME_MANIFEST"
+				printf '\n%s\n' "Game manifest: $GAME_MANIFEST"
 			fi
 			return 0
 		fi
