@@ -184,9 +184,37 @@ print_download_progress ()
 	fi
 }
 
+# If steam is not already running start it.
+#
+# Note:
+#   I cannot reliable determine when steam has started completely, make sure
+#   there is some sort of delay before attempting further actions.
+# Note:
+#   Function is unreliable if user quits steam just moments before a call to
+#   this function (due to leftover steam process till it is fully terminated).
+start_steam ()
+{
+	pgrep -x steam >/dev/null
+	if [ $? -eq 0 ]; then
+		if [ ${VERBOSE} = "true" ]; then
+			printf '%s\n' "Steam is already running."
+		fi
+	else
+		if [ ${VERBOSE} = "true" ]; then
+			printf '%s\n' "Starting steam in the background."
+		fi
+		# Need to start steam in the background, otherwise it blocks rest of script
+		# until steam is terminated by the user.
+		# Steam is kinda verbose when starting so redirect all output to /dev/null.
+		steam >/dev/null 2>&1 &
+	fi
+}
 
 # Main
 # ====
+# Start steam as early as possible so it has time to fully initialize.
+start_steam
+
 # TEMPORAL reporting
 # ==================
 printf "\nUFO:\n====\n"
