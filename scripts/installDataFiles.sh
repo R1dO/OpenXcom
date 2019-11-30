@@ -62,6 +62,7 @@ parse_steam_libraryfolders_file ()
 		for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
 			printf ' %s\n' "$ind"
 		done
+		printf '\n'
 	fi
 }
 
@@ -70,18 +71,17 @@ parse_steam_libraryfolders_file ()
 # $1 Game steam ID.
 #
 # Sets the global variable: $GAME_MANIFEST
-get_manifest_location ()
+get_game_manifest ()
 {
 	unset GAME_MANIFEST
 
-	parse_steam_libraryfolders_file
 	# Assume only one instance of a game can be installed.
 	for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
 		if [ -f "${ind}/appmanifest_${1}.acf" ]; then
 			GAME_MANIFEST="${ind}/appmanifest_${1}.acf"
 
 			if [ ${VERBOSE} = "true" ]; then
-				printf '\n%s\n' "Game manifest: $GAME_MANIFEST"
+				printf '%s\n' "Game manifest: $GAME_MANIFEST"
 			fi
 			return 0
 		fi
@@ -109,7 +109,7 @@ get_game_install_status ()
 {
 	unset GAME_INSTALL_STATE
 
-	get_manifest_location ${1}
+	get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
 		GAME_INSTALL_STATE=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"StateFlags"$/) {gsub(/"/,"",$4) ; print $4}}')
 
@@ -132,7 +132,7 @@ get_game_data_path ()
 	unset GAME_DATA_PATH
 	installPath=""
 
-	get_manifest_location ${1}
+	get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
 		installPath=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"installdir"$/) {gsub(/"/,"",$4) ; print $4}}')
 
@@ -170,7 +170,7 @@ print_download_progress ()
 	downloadSize=""
 	downloadedBytes=""
 
-	get_manifest_location ${1}
+	get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
 		downloadSize=$(cat "${GAME_MANIFEST}"| awk -F '\t' '{if($2 ~ /^"BytesToDownload"$/) {gsub(/"/,"",$4) ; print $4}}')
 		downloadedBytes=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"BytesDownloaded"$/) {gsub(/"/,"",$4) ; print $4}}')
