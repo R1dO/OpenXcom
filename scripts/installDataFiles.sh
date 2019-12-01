@@ -57,7 +57,7 @@ parse_steam_libraryfolders_file ()
 	# Steam stores all relevant data under the sub-folder 'steamapps'.
 	STEAM_LIBRARY_PATHS+=($(cat ${vdf_file} | awk -F '\t' '{if($2 ~ /^"[1-9]"$/) {gsub(/"/,"",$4) ; print $4 "/steamapps"}}'))
 
-	if [ ${VERBOSE} = "true" ]; then
+	if [ "${VERBOSE}" = "true" ]; then
 		printf '\n%s\n' "Found the following ${#STEAM_LIBRARY_PATHS[@]} steam library paths:"
 		for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
 			printf ' %s\n' "$ind"
@@ -80,14 +80,14 @@ get_game_manifest ()
 		if [ -f "${ind}/appmanifest_${1}.acf" ]; then
 			GAME_MANIFEST="${ind}/appmanifest_${1}.acf"
 
-			if [ ${VERBOSE} = "true" ]; then
+			if [ "${VERBOSE}" = "true" ]; then
 				printf '%s\n' "Game manifest: $GAME_MANIFEST"
 			fi
 			return 0
 		fi
 	done
 
-	if [ ${VERBOSE} = "true" ]; then
+	if [ "${VERBOSE}" = "true" ]; then
 		printf '\n%s\n' "Manifest not found."
 	fi
 	return 1
@@ -113,7 +113,7 @@ get_game_install_status ()
 	if [ $? -eq 0 ]; then
 		GAME_INSTALL_STATE=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"StateFlags"$/) {gsub(/"/,"",$4) ; print $4}}')
 
-		if [ ${VERBOSE} = "true" ]; then
+		if [ "${VERBOSE}" = "true" ]; then
 			printf '%s\n' "Install state: $GAME_INSTALL_STATE"
 		fi
 		return 0
@@ -151,7 +151,7 @@ get_game_data_path ()
 				;;
 		esac
 
-		if [ ${VERBOSE} = "true" ]; then
+		if [ "${VERBOSE}" = "true" ]; then
 			printf '%s\n' "Game data files: $GAME_DATA_PATH"
 		fi
 		return 0
@@ -196,11 +196,11 @@ start_steam ()
 {
 	pgrep -x steam >/dev/null
 	if [ $? -eq 0 ]; then
-		if [ ${VERBOSE} = "true" ]; then
+		if [ "${VERBOSE}" = "true" ]; then
 			printf '%s\n' "Steam is already running."
 		fi
 	else
-		if [ ${VERBOSE} = "true" ]; then
+		if [ "${VERBOSE}" = "true" ]; then
 			printf '%s\n' "Starting steam in the background."
 		fi
 		# Need to start steam in the background, otherwise it blocks rest of script
