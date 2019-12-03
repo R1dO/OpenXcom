@@ -290,3 +290,25 @@ printf "\nTFTD:\n=====\n"
 get_game_data_path "$STEAM_ID_TFTD"
 validate_game "$STEAM_ID_TFTD"
 echo $?
+
+# Steam library
+# -------------
+# Default:
+#  ~/.local/share/Steam/steamapps/
+# Additional library folders defined in:
+#  ~/.local/share/Steam/steamapps/libraryfolders.vdf
+# Games are stored under a library subfolder ``common``.
+
+# Steam browser protocol
+# ----------------------
+# This is what we use to control steam
+# see: https://developer.valvesoftware.com/wiki/Steam_browser_protocol
+# Note:
+#  Could not get the ExitSteam functionality to work, that is why it's not implemented
+
+# Known status indicators
+# -----------------------
+# Numbers encountered when testing the script
+# * 4:    Game is fully installed
+# * 1062: Need to download some files due to validation. Does not matter if proton is enabled/disabled.
+# * 1026: Downloading files, game not installed before.
