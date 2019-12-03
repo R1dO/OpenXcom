@@ -213,6 +213,64 @@ start_steam ()
 		printf '\n'
 	fi
 }
+
+# Validate game files
+#
+# $1 Game steam ID.
+#
+# This function ensures that the data files have not been altered.
+# Validation does NOT touch existing saves (thank you steam)!
+#
+# Note:
+#   Cannot be used in the following cases:
+#   * Checking if user owns a game.
+#     If not owned the validation dialog stalls instead of going to the shop.
+#   * Installing the game
+#     If no installation is present on the system the validation dialog stalls.
+# Note:
+#   Will undo any user alterations to the steam managed data files.
+validate_game ()
+{
+	# Assume user changed settings just before entering this part of the code.
+	parse_steam_libraryfolders_file
+
+	get_game_manifest ${1}
+	if [ $? -eq 0 ]; then
+		# Not starting in the background in order to block script till steam decides
+		# it is time to start validating.
+		# Redirecting output saves 3 lines of CLI noise.
+		steam steam://validate/${1} >/dev/null 2>&1
+		printf '\n%s\n' "Validating files."
+
+		# Steam validation process is not instant, give it some extra time.
+		sleep 2 # Seconds (system dependent)
+
+		timer=0
+		interval=1 # Seconds
+		# Query state, allow for an (arbitrary) 1 minute time-out.
+		while [ $timer -lt 60 ]; do
+		{
+			printf '%s\t' "$(date +%T)"
+			get_game_install_status ${1}
+
+			if [ "${GAME_INSTALL_STATE}" = 4 ]; then
+				printf '%s\n' "All files validated."
+				return 0
+			elif [ "${GAME_INSTALL_STATE}" = 1062 ]; then
+				# Downloading since files are not pristine.
+				printf '%s' "Validation download: "
+				print_download_progress ${1}
+				sleep $interval
+			else
+				printf '%s' "Validating ... "
+				timer=$(($timer + $interval))
+				sleep $interval
+			fi
+		}
+		done
+	else # Game not installed
+		printf '\n%s\n' "${FUNCNAME[0]}(): Game not installed"
+		return 1
 	fi
 }
 
@@ -224,11 +282,11 @@ start_steam
 # TEMPORAL reporting
 # ==================
 printf "\nUFO:\n====\n"
-get_game_data_path  "$STEAM_ID_UFO"
-print_download_progress  "$STEAM_ID_UFO"
+#get_game_data_path  "$STEAM_ID_UFO"
+validate_game  "$STEAM_ID_UFO"
 echo $?
 
 printf "\nTFTD:\n=====\n"
 get_game_data_path "$STEAM_ID_TFTD"
-print_download_progress "$STEAM_ID_TFTD"
+validate_game "$STEAM_ID_TFTD"
 echo $?
