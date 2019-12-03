@@ -183,7 +183,7 @@ print_download_progress ()
 			# Well unless '$GAME_DATA_PATH=4' (100% downloaded), but then this function is not supposed to run.
 		elif [ "$downloadSize" -gt "0" ]; then
 			# If we have a '$downloadSize' we should also have '$downloadedBytes'.
-			printf '%s\n' "Downloaded: $((100*$downloadedBytes/$downloadSize))%"
+			printf '%s\n' "$((100*$downloadedBytes/$downloadSize))%"
 		fi
 	fi
 }
