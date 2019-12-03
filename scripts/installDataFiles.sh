@@ -165,6 +165,10 @@ get_game_data_path ()
 # $1 Game steam ID.
 #
 # Prints the current download percentage.
+#
+# Note:
+#   Steam updates the manifest upon state changes and after some unknown (to me)
+#   time delta. Hence expect this function to return a lower value.
 print_download_progress ()
 {
 	downloadSize=""
@@ -179,7 +183,7 @@ print_download_progress ()
 			# Well unless '$GAME_DATA_PATH=4' (100% downloaded), but then this function is not supposed to run.
 		elif [ "$downloadSize" -gt "0" ]; then
 			# If we have a '$downloadSize' we should also have '$downloadedBytes'.
-			printf '%s\n' "$(date +%T) Downloaded: $((100*$downloadedBytes/$downloadSize))%"
+			printf '%s\n' "Downloaded: $((100*$downloadedBytes/$downloadSize))%"
 		fi
 	fi
 }
