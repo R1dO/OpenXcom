@@ -194,23 +194,25 @@ print_download_progress ()
 #   I cannot reliable determine when steam has started completely, make sure
 #   there is some sort of delay before attempting further actions.
 # Note:
-#   Function is unreliable if user quits steam just moments before a call to
-#   this function (due to leftover steam process till it is fully terminated).
+#   Unreliable if user quits steam just moments before a call to this function
+#   (due to leftover steam process till it is fully terminated).
 start_steam ()
 {
 	pgrep -x steam >/dev/null
 	if [ $? -eq 0 ]; then
-		if [ "${VERBOSE}" = "true" ]; then
-			printf '%s\n' "Steam is already running."
-		fi
+		printf '%s\n' "Detected a running steam instance, script will continue."
 	else
-		if [ "${VERBOSE}" = "true" ]; then
-			printf '%s\n' "Starting steam in the background."
-		fi
-		# Need to start steam in the background, otherwise it blocks rest of script
-		# until steam is terminated by the user.
+		printf '%s\n' "Starting steam in the background."
+		# If not started in a separate process it blocks rest of script until steam
+		# is terminated by the user.
 		# Steam is kinda verbose when starting so redirect all output to /dev/null.
 		steam >/dev/null 2>&1 &
+
+		# Artificial wait (to prevent double start-up from install/validate).
+		read -s -p "Once the GUI becomes visible press [enter] to continue."
+		printf '\n'
+	fi
+}
 	fi
 }
 
