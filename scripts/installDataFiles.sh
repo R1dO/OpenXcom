@@ -88,7 +88,7 @@ get_game_manifest ()
 	done
 
 	if [ "${VERBOSE}" = "true" ]; then
-		printf '\n%s\n' "Manifest not found."
+		printf '\n%s\n' "${FUNCNAME[0]}(): Manifest not found."
 	fi
 	return 1
 }
