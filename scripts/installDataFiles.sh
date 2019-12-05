@@ -58,11 +58,13 @@ parse_steam_libraryfolders_file ()
 	STEAM_LIBRARY_PATHS+=($(cat ${vdf_file} | awk -F '\t' '{if($2 ~ /^"[1-9]"$/) {gsub(/"/,"",$4) ; print $4 "/steamapps"}}'))
 
 	if [ "${VERBOSE}" = "true" ]; then
+	{
 		printf '\n%s\n' "Found the following ${#STEAM_LIBRARY_PATHS[@]} steam library paths:"
 		for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
 			printf ' %s\n' "$ind"
 		done
 		printf '\n'
+	}
 	fi
 }
 
@@ -77,14 +79,18 @@ get_game_manifest ()
 
 	# Assume only one instance of a game can be installed.
 	for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
+	{
 		if [ -f "${ind}/appmanifest_${1}.acf" ]; then
+		{
 			GAME_MANIFEST="${ind}/appmanifest_${1}.acf"
 
 			if [ "${VERBOSE}" = "true" ]; then
 				printf '%s\n' "Game manifest: $GAME_MANIFEST"
 			fi
 			return 0
+		}
 		fi
+	}
 	done
 
 	if [ "${VERBOSE}" = "true" ]; then
@@ -111,12 +117,14 @@ get_game_install_status ()
 
 	get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
+	{
 		GAME_INSTALL_STATE=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"StateFlags"$/) {gsub(/"/,"",$4) ; print $4}}')
 
 		if [ "${VERBOSE}" = "true" ]; then
 			printf '%s\n' "Install state: $GAME_INSTALL_STATE"
 		fi
 		return 0
+	}
 	else
 		return 1
 	fi
@@ -134,6 +142,7 @@ get_game_data_path ()
 
 	get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
+	{
 		installPath=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"installdir"$/) {gsub(/"/,"",$4) ; print $4}}')
 
 		# Installed game is stored under the library's subdirectory "common".
@@ -155,6 +164,7 @@ get_game_data_path ()
 			printf '%s\n' "Game data files: $GAME_DATA_PATH"
 		fi
 		return 0
+	}
 	else
 		return 1
 	fi
@@ -176,15 +186,21 @@ print_download_progress ()
 
 	get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
+	{
 		downloadSize=$(cat "${GAME_MANIFEST}"| awk -F '\t' '{if($2 ~ /^"BytesToDownload"$/) {gsub(/"/,"",$4) ; print $4}}')
 		downloadedBytes=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"BytesDownloaded"$/) {gsub(/"/,"",$4) ; print $4}}')
 		if [ -z "$downloadSize" ] || [ "$downloadSize" -eq "0" ]; then
+		{
 			printf '%s\n' "Cannot determine download status."
 			# Well unless '$GAME_DATA_PATH=4' (100% downloaded), but then this function is not supposed to run.
+		}
 		elif [ "$downloadSize" -gt "0" ]; then
+		{
 			# If we have a '$downloadSize' we should also have '$downloadedBytes'.
 			printf '%s\n' "$((100*$downloadedBytes/$downloadSize))%"
+		}
 		fi
+	}
 	fi
 }
 
@@ -200,8 +216,11 @@ start_steam ()
 {
 	pgrep -x steam >/dev/null
 	if [ $? -eq 0 ]; then
+	{
 		printf '%s\n' "Detected a running steam instance, script will continue."
+	}
 	else
+	{
 		printf '%s\n' "Starting steam in the background."
 		# If not started in a separate process it blocks rest of script until steam
 		# is terminated by the user.
@@ -211,6 +230,7 @@ start_steam ()
 		# Artificial wait (to prevent double start-up from install/validate).
 		read -s -p "Once the GUI becomes visible press [enter] to continue."
 		printf '\n'
+	}
 	fi
 }
 
@@ -236,6 +256,7 @@ validate_game ()
 
 	get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
+	{
 		# Not starting in the background in order to block script till steam decides
 		# it is time to start validating.
 		# Redirecting output saves 3 lines of CLI noise.
@@ -268,9 +289,12 @@ validate_game ()
 			fi
 		}
 		done
-	else # Game not installed
+	}
+	else
+	{
 		printf '\n%s\n' "${FUNCNAME[0]}(): Game not installed"
 		return 1
+	}
 	fi
 }
 
