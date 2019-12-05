@@ -274,19 +274,22 @@ validate_game ()
 			printf '%s\t' "$(date +%T)"
 			get_game_install_status ${1}
 
-			if [ "${GAME_INSTALL_STATE}" = 4 ]; then
+			case ${GAME_INSTALL_STATE} in
+			4)
 				printf '%s\n' "All files validated."
 				return 0
-			elif [ "${GAME_INSTALL_STATE}" = 1062 ]; then
-				# Downloading since files are not pristine.
+				;;
+			1062)
+				# Not all files are in pristine condition.
 				printf '%s' "Validation download: "
 				print_download_progress ${1}
-				sleep $interval
-			else
+				;;
+			*)
 				printf '%s' "Validating ... "
 				timer=$(($timer + $interval))
-				sleep $interval
-			fi
+				;;
+			esac
+			sleep $interval
 		}
 		done
 	}
