@@ -274,20 +274,97 @@ validate_game ()
 	fi
 }
 
+# Download game files
+#
+# $1 Game steam ID.
+#
+# This function installs the steam version of the game.
+#
+# Note:
+#   As a byproduct some proton version will be installed on the system.
+#   This is required by steam to allow downloading the game files.
+download_game ()
+{
+	printf '%s\n' ""\
+	"About to install the game..."\
+	"Make sure proton is enabled for this game:"\
+	" * Steam Library -> select game -> select 'Properties...'"\
+	"   Under Manage, or via RMB on title."\
+	" * Enable the option:  'Force the use of a specific Steam Play compatibility tool'"\
+	"   Any version (including the default 'Steam Linux Runtime') will do."
+	read -s -p "Once proton is enabled press [enter] to continue."
+	printf '\n'
+
+	# Not starting in the background in order to block script till steam decides
+	# it is time to start downloading (thereby creating a necessary file).
+	# Redirecting output saves 3 lines of CLI noise.
+	steam steam://install/${1} >/dev/null 2>&1
+
+	# User might have decided to define another library.
+	parse_steam_libraryfolders_file
+
+	timer=0
+	interval=1 # Seconds
+	# Timer should only update when download has not started yet.
+	while [ $timer -lt 60 ]; do
+	{
+		printf '%s\t' "$(date +%T)"
+		get_game_manifest ${1}
+		if [ $? -eq 0 ]; then
+		{
+			get_game_install_status ${1}
+
+			case ${GAME_INSTALL_STATE} in
+			2)
+				printf '%s\n' "Download will start shortly."
+				;;
+			4)
+				printf '%s\n' "Download finished."
+				return 0
+				;;
+			1026)
+				printf '%s' "Downloading; "
+				print_download_progress ${1}
+				;;
+			*)
+				printf '%s\n' "Error, unknown status: ${GAME_INSTALL_STATE}"
+				return 1
+				;;
+			esac
+		}
+		else
+		{
+			printf '%s\n' "Waiting for download to start"
+			timer=$(($timer + $interval))
+		}
+		fi
+		sleep $interval
+	}
+	done
+
+	printf '%s\n' ""\
+	"Timeout while trying to install the game."\
+	"Possible causes:"\
+	" * You haven't purchased the game yet."\
+	" * You forgot to force the steam compatibility tool for this game."\
+	"   In this case you should have gotten a message dialog stating:"\
+	"    \"The game is not available on your current platform\""
+	return 1
+}
+
 # Main
 # ====
 # Start steam as early as possible so it has time to fully initialize.
 start_steam
 
+
 # TEMPORAL reporting
 # ==================
 printf "\nUFO:\n====\n"
-#get_game_data_path  "$STEAM_ID_UFO"
-validate_game  "$STEAM_ID_UFO"
+download_game  "$STEAM_ID_UFO"
 echo $?
 
 printf "\nTFTD:\n=====\n"
-get_game_data_path "$STEAM_ID_TFTD"
 validate_game "$STEAM_ID_TFTD"
 echo $?
 
@@ -309,6 +386,7 @@ echo $?
 # Known status indicators
 # -----------------------
 # Numbers encountered when testing the script
+# * 2:    Update required, e.g. about to start download
 # * 4:    Game is fully installed
 # * 1062: Need to download some files due to validation. Does not matter if proton is enabled/disabled.
 # * 1026: Downloading files, game not installed before.
