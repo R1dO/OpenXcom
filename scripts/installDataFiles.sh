@@ -376,6 +376,7 @@ download_game ()
 			1538)
 				printf '%s' "Download paused at: "
 				print_download_progress ${1}
+				timer=$(($timer + $interval))
 				;;
 			*)
 				printf '%s\n' "Error, unknown status: ${GAME_INSTALL_STATE}"
