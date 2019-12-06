@@ -29,6 +29,7 @@ STEAM_LIBRARY_PATHS="" #Set by 'parse_steam_libraryfolders_file()'.
 STEAM_LIBRARY_PATHS_DEFAULT="${STEAM_DATA_PATH}/steamapps"
 STEAM_ID_UFO="7760"
 STEAM_ID_TFTD="7650"
+#STEAM_ID_APOC="7660" # Used to test some download/pause behavior for 'big' games.
 STEAM_UFO_DATA_PATH="XCOM"
 STEAM_TFTD_DATA_PATH="TFD"
 
@@ -187,8 +188,8 @@ get_game_data_path ()
 # Prints the current download percentage.
 #
 # Note:
-#   Steam updates the manifest upon state changes and after some unknown (to me)
-#   time delta. Hence expect this function to return a lower value.
+#   Steam only updates the manifest upon state changes (including pausing a
+#   download). Hence this function is not really that useful.
 print_download_progress ()
 {
 	downloadSize=""
