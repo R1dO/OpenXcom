@@ -6,6 +6,16 @@
 #
 #  Script assumes a default steam installation (see $STEAM_DATA_PATH).
 
+# Guardian
+# ========
+# This script is not meant to run with superuser credentials. Steam will refuse
+# to work in that scenario.
+if [ "$(id -u)" == "0" ]; then
+	printf '%s\n' "Steam does not allow running as root, this script wont work ... exiting."
+	exit 1
+fi
+
+
 # Global variables
 # ================
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
