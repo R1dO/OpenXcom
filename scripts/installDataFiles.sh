@@ -295,11 +295,12 @@ validate_game ()
 				;;
 			1062)
 				# Not all files are in pristine condition.
-				printf '%s' "Validation download: "
-				print_download_progress ${1}
+				printf '%s\n' "Validation download in progress... "
 				;;
 			1574)
-				printf '%s\n' "Download paused"
+				printf '%s' "Validation download paused at: "
+				print_download_progress ${1}
+				timer=$(($timer + $interval))
 				;;
 			*)
 				printf '%s' "Validating ... "
@@ -370,11 +371,11 @@ download_game ()
 				return 0
 				;;
 			1026)
-				printf '%s' "Downloading; "
-				print_download_progress ${1}
+				printf '%s\n' "Downloading..."
 				;;
 			1538)
-				printf '%s\n' "Download paused."
+				printf '%s' "Download paused at: "
+				print_download_progress ${1}
 				;;
 			*)
 				printf '%s\n' "Error, unknown status: ${GAME_INSTALL_STATE}"
