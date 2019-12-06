@@ -289,10 +289,16 @@ validate_game ()
 				printf '%s\n' "All files validated."
 				return 0
 				;;
+			38)
+				printf '%s\n' "Need to download files due to validation."
+				;;
 			1062)
 				# Not all files are in pristine condition.
 				printf '%s' "Validation download: "
 				print_download_progress ${1}
+				;;
+			1574)
+				printf '%s\n' "Download paused"
 				;;
 			*)
 				printf '%s' "Validating ... "
@@ -302,6 +308,9 @@ validate_game ()
 			sleep $interval
 		}
 		done
+
+		printf '%s\n' "Timeout while trying to validate the game."
+		return 1
 	}
 	else
 	{
@@ -362,6 +371,9 @@ download_game ()
 			1026)
 				printf '%s' "Downloading; "
 				print_download_progress ${1}
+				;;
+			1538)
+				printf '%s\n' "Download paused."
 				;;
 			*)
 				printf '%s\n' "Error, unknown status: ${GAME_INSTALL_STATE}"
@@ -425,5 +437,9 @@ echo $?
 # Numbers encountered when testing the script
 # * 2:    Update required, e.g. about to start download
 # * 4:    Game is fully installed
-# * 1062: Need to download some files due to validation. Does not matter if proton is enabled/disabled.
+# * 38:   Validation result.
+#         Weird thing, number equals: FullyInstalled + UpdateRequired + FilesMissing
+# * 1062: Download some files due to validation. Does not matter if proton is enabled/disabled.
 # * 1026: Downloading files, game not installed before.
+# * 1538: Install, download paused
+# * 1574: Validation. download paused
