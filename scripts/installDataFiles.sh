@@ -188,8 +188,8 @@ get_game_data_path ()
 # Prints the current download percentage.
 #
 # Note:
-#   Steam only updates the manifest upon state changes (including pausing a
-#   download). Hence this function is not really that useful.
+#   Steam only updates the manifest upon state changes (this includes pausing a
+#   download), hence this function is of limited use.
 print_download_progress ()
 {
 	downloadSize=""
@@ -279,8 +279,9 @@ validate_game ()
 
 		timer=0
 		interval=1 # Seconds
+		timeout=60 # seconds
 		# Query state, allow for an (arbitrary) 1 minute time-out.
-		while [ $timer -lt 60 ]; do
+		while [ $timer -lt $timeout ]; do
 		{
 			printf '%s\t' "$(date +%T)"
 			get_game_install_status ${1}
@@ -292,6 +293,7 @@ validate_game ()
 				;;
 			38)
 				printf '%s\n' "Need to download files due to validation."
+				timer=0;
 				;;
 			1062)
 				# Not all files are in pristine condition.
@@ -311,7 +313,7 @@ validate_game ()
 		}
 		done
 
-		printf '%s\n' "Timeout while trying to validate the game."
+		printf '%s\n' "Timeout (${timeout} seconds) reached while trying to validate the game."
 		return 1
 	}
 	else
@@ -341,7 +343,7 @@ download_game ()
 	" * Enable the option:  'Force the use of a specific Steam Play compatibility tool'"\
 	"   Any version (including the default 'Steam Linux Runtime') will do."
 	read -s -p "Once proton is enabled press [enter] to continue."
-	printf '\n'
+	printf '\n\n'
 
 	# Not starting in the background in order to block script till steam decides
 	# it is time to start downloading (thereby creating a necessary file).
@@ -353,8 +355,9 @@ download_game ()
 
 	timer=0
 	interval=1 # Seconds
+	timeout=60 # seconds
 	# Timer should only update when download has not started yet.
-	while [ $timer -lt 60 ]; do
+	while [ $timer -lt $timeout ]; do
 	{
 		printf '%s\t' "$(date +%T)"
 		get_game_manifest ${1}
@@ -365,6 +368,7 @@ download_game ()
 			case ${GAME_INSTALL_STATE} in
 			2)
 				printf '%s\n' "Download will start shortly."
+				timer=0;
 				;;
 			4)
 				printf '%s\n' "Download finished."
@@ -395,12 +399,14 @@ download_game ()
 	done
 
 	printf '%s\n' ""\
-	"Timeout while trying to install the game."\
+	"Timeout (${timeout} seconds) reached while trying to install the game."\
 	"Possible causes:"\
 	" * You haven't purchased the game yet."\
 	" * You forgot to force the steam compatibility tool for this game."\
 	"   In this case you should have gotten a message dialog stating:"\
-	"    \"The game is not available on your current platform\""
+	"    \"The game is not available on your current platform\""\
+	" * The download was paused for too long."\
+	" * Waiting too long with clicking through steam's confirmation dialogs."
 	return 1
 }
 
