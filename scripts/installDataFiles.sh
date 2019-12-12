@@ -30,8 +30,6 @@ STEAM_LIBRARY_PATHS_DEFAULT="${STEAM_DATA_PATH}/steamapps"
 STEAM_ID_UFO="7760"
 STEAM_ID_TFTD="7650"
 #STEAM_ID_APOC="7660" # Used to test some download/pause behavior for 'big' games.
-STEAM_UFO_DATA_PATH="XCOM"
-STEAM_TFTD_DATA_PATH="TFD"
 
 # Game dependent variables
 # ------------------------
@@ -160,10 +158,10 @@ get_game_data_path ()
 		GAME_DATA_PATH="$(dirname ${GAME_MANIFEST})/common/${installPath}"
 		case ${1} in
 			${STEAM_ID_UFO})
-				GAME_DATA_PATH="${GAME_DATA_PATH}/${STEAM_UFO_DATA_PATH}"
+				GAME_DATA_PATH="${GAME_DATA_PATH}/XCOM"
 				;;
 			${STEAM_ID_TFTD})
-				GAME_DATA_PATH="${GAME_DATA_PATH}/${STEAM_TFTD_DATA_PATH}"
+				GAME_DATA_PATH="${GAME_DATA_PATH}/TFD"
 				;;
 			*)
 				printf '\n%s\n' "Unknown game"
