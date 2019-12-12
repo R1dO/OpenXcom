@@ -229,18 +229,26 @@ start_steam ()
 	if [ $? -eq 0 ]; then
 	{
 		printf '%s\n' "Detected a running steam instance, script will continue."
+		return 0
 	}
-	else
+	fi
+
+	if [ "$(command -v steam)" ]; then
 	{
 		printf '%s\n' "Starting steam in the background."
-		# If not started in a separate process it blocks rest of script until steam
-		# is terminated by the user.
 		# Steam is kinda verbose when starting so redirect all output to /dev/null.
+		# Start in a separate process to prevent blocking rest of script until steam
+		# is terminated by the user.
 		steam >/dev/null 2>&1 &
 
 		# Artificial wait (to prevent double start-up from install/validate).
 		read -s -p "Once the GUI becomes visible press [enter] to continue."
 		printf '\n'
+	}
+	else
+	{
+		printf '%s\n' "Steam runtime not found ... exiting"
+		exit 1
 	}
 	fi
 }
