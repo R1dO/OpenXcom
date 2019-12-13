@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # Note:
-#  Do not use: ``sh ./installDataFiles.sh``. It will probably kill your dog, at
-#  the very least it will complain and fail.
+#  Do not use: ``sh ./installDataFiles.sh``.
+#  It will probably kill your dog, most likely it will complain and fail.
 #
 #  Script assumes a default steam installation (see $STEAM_DATA_PATH).
 
@@ -29,13 +29,14 @@ STEAM_LIBRARY_PATHS="" #Set by 'parse_steam_libraryfolders_file()'.
 STEAM_LIBRARY_PATHS_DEFAULT="${STEAM_DATA_PATH}/steamapps"
 STEAM_ID_UFO="7760"
 STEAM_ID_TFTD="7650"
-#STEAM_ID_APOC="7660" # Used to test some download/pause behavior for 'big' games.
+STEAM_ID_APOC="7660" # Used to test download/pause behavior for 'big' games.
 
 # Game dependent variables
 # ------------------------
 GAME_MANIFEST=""
 GAME_INSTALL_STATE=""
 GAME_DATA_PATH=""
+
 
 # Functions
 # =========
@@ -50,7 +51,7 @@ parse_steam_libraryfolders_file ()
 	STEAM_LIBRARY_PATHS=${STEAM_LIBRARY_PATHS_DEFAULT}
 
 	# User defined folders are stored in this file.
-	vdf_file="${STEAM_LIBRARY_PATHS}/libraryfolders.vdf"
+	local vdf_file="${STEAM_LIBRARY_PATHS}/libraryfolders.vdf"
 
 	if [ -f ${vdf_file} ]; then
 		: # Continue
@@ -147,7 +148,7 @@ get_game_install_status ()
 get_game_data_path ()
 {
 	unset GAME_DATA_PATH
-	installPath=""
+	local installPath
 
 	get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
@@ -190,8 +191,8 @@ get_game_data_path ()
 #   download), hence this function is of limited use.
 print_download_progress ()
 {
-	downloadSize=""
-	downloadedBytes=""
+	local downloadSize
+	local downloadedBytes
 
 	get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
@@ -283,9 +284,9 @@ validate_game ()
 		# Steam validation process is not instant, give it some extra time.
 		sleep 2 # Seconds (system dependent)
 
-		timer=0
-		interval=1 # Seconds
-		timeout=60 # seconds
+		local timer=0
+		local interval=1 # Seconds
+		local timeout=60 # seconds
 		# Query state, allow for an (arbitrary) 1 minute time-out.
 		while [ $timer -lt $timeout ]; do
 		{
@@ -359,9 +360,9 @@ download_game ()
 	# User might have decided to define another library.
 	parse_steam_libraryfolders_file
 
-	timer=0
-	interval=1 # Seconds
-	timeout=60 # seconds
+	local timer=0
+	local interval=1 # Seconds
+	local timeout=60 # seconds
 	while [ $timer -lt $timeout ]; do
 	{
 		printf '%s\t' "$(date +%T)"
