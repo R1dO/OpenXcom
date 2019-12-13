@@ -416,6 +416,27 @@ download_game ()
 	return 1
 }
 
+# Let user decide yes/no on a question (default to yes).
+#
+# Return 0 if user presses [Enter] or anything beginning with 'y' or 'Y'.
+# Return 1 if user chooses otherwise.
+get_user_confirmation ()
+{
+	local userinput
+
+	read -p " [Yes]/no: " userinput
+	userinput="${userinput:-yes}" # [Enter] = yes
+
+	case ${userinput:0:1} in
+		y|Y)
+			return 0
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 # Main
 # ====
 # Start steam as early as possible so it has time to fully initialize.
