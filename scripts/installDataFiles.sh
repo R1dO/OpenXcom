@@ -362,7 +362,6 @@ download_game ()
 	timer=0
 	interval=1 # Seconds
 	timeout=60 # seconds
-	# Timer should only update when download has not started yet.
 	while [ $timer -lt $timeout ]; do
 	{
 		printf '%s\t' "$(date +%T)"
@@ -407,12 +406,12 @@ download_game ()
 	printf '%s\n' ""\
 	"Timeout (${timeout} seconds) reached while trying to install the game."\
 	"Possible causes:"\
-	" * You haven't purchased the game yet."\
-	" * You forgot to force the steam compatibility tool for this game."\
-	"   In this case you should have gotten a message dialog stating:"\
+	" * Game has not been purchased yet."\
+	" * Steam compatibility tool is not activated for this game."\
+	"   In this case a message dialog should have popped up stating:"\
 	"    \"The game is not available on your current platform\""\
 	" * The download was paused for too long."\
-	" * Waiting too long with clicking through steam's confirmation dialogs."
+	" * Too much time has passed while clicking through steam's confirmation dialogs."
 	return 1
 }
 
