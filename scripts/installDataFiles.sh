@@ -283,6 +283,9 @@ validate_game ()
 
 		# Steam validation process is not instant, give it some extra time.
 		sleep 2 # Seconds (system dependent)
+		# Apparently starting a validation does not always update the manifest :-(.
+		read -s -p "Once validation dialog states 100% complete press [enter] to continue."
+		printf '\n'
 
 		local timer=0
 		local interval=1 # Seconds
