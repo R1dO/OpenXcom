@@ -424,7 +424,7 @@ download_game ()
 #
 # Return 0 if user presses [Enter] or anything beginning with 'y' or 'Y'.
 # Return 1 if user chooses otherwise.
-get_user_confirmation ()
+ask_for_user_confirmation ()
 {
 	local userinput
 
