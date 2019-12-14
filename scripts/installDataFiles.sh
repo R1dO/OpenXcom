@@ -24,8 +24,11 @@ VERBOSE=true
 # OpenXcom
 # --------
 OXC_DATA_ROOT="${DATA_HOME}/openxcom"
+OXC_UFO_PATCH_URL="https://openxcom.org/download/extras/universal-patch-ufo.zip"
+OXC_TFTD_PATCH_URL="https://openxcom.org/download/extras/universal-patch-tftd.zip"
 OXC_GAME_DATA_PATH=""   # Set by 'get_game_data_paths()'.
 GAME_SUBDIRS=""         # Set by 'get_game_data_paths()'.
+GAME_PATCH_URL=""       # Set by 'get_game_data_paths()'.
 
 # Steam
 # -----
@@ -172,6 +175,7 @@ get_game_data_paths ()
 					"UFOINTRO" # Optional
 					"UNITS"
 				)
+				GAME_PATCH_URL=${OXC_UFO_PATCH_URL}
 				;;
 			${STEAM_ID_TFTD})
 				STEAM_GAME_DATA_PATH="${STEAM_GAME_DATA_PATH}/TFD"
@@ -188,6 +192,7 @@ get_game_data_paths ()
 					"UFOGRAPH"
 					"UNITS"
 				)
+				GAME_PATCH_URL=${OXC_TFTD_PATCH_URL}
 				;;
 			*)
 				printf '\n%s\n' "Unknown game"
@@ -485,21 +490,32 @@ copy_data_files ()
 	done
 }
 
+# Install OXC data patches.
+#
+# Depends on global variables
+#
+# Will download (to '/tmp/') and apply the data patches.
+apply_OXC_patches ()
+{
+	printf '%s\n' "Downloading patch ..."
+	curl -q -L ${GAME_PATCH_URL} > "/tmp/$(basename ${GAME_PATCH_URL})"
+
+	if [ $? -eq 0 ]; then
+		printf '\n%s\n' "Applying the patch"
+		unzip -o "/tmp/$(basename ${GAME_PATCH_URL})" -d "${OXC_GAME_DATA_PATH}"
+	else
+		printf '\n%s\n' "Something went wrong downloading the patch."
+		return 1
+	fi
+}
+
 # Main
 # ====
 # Start steam as early as possible so it has time to fully initialize.
 start_steam
 
 
-# TEMPORAL reporting
-# ==================
-printf "\nUFO:\n====\n"
-download_game  "$STEAM_ID_UFO"
-echo $?
 
-printf "\nTFTD:\n=====\n"
-validate_game "$STEAM_ID_TFTD"
-echo $?
 
 # Steam library
 # -------------
