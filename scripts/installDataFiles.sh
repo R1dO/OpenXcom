@@ -117,7 +117,7 @@ get_game_manifest ()
 #
 # Note:
 #   If it reports "4" the game is fully downloaded.
-get_game_install_status ()
+get_game_install_state ()
 {
 	unset GAME_INSTALL_STATE
 
@@ -290,7 +290,7 @@ validate_game ()
 		while [ $timer -lt $timeout ]; do
 		{
 			printf '%s\t' "$(date +%T)"
-			get_game_install_status ${1}
+			get_game_install_state ${1}
 
 			case ${GAME_INSTALL_STATE} in
 			4)
@@ -368,7 +368,7 @@ download_game ()
 		get_game_manifest ${1}
 		if [ $? -eq 0 ]; then
 		{
-			get_game_install_status ${1}
+			get_game_install_state ${1}
 
 			case ${GAME_INSTALL_STATE} in
 			2)
