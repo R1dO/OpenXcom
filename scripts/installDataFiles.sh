@@ -1,5 +1,7 @@
 #!/bin/bash
 #
+# Install UFO and TFTD data files (and patches) to the default location.
+#
 # Note:
 #  Do not use: ``sh ./installDataFiles.sh``.
 #  It will probably kill your dog, most likely it will complain and fail.
@@ -19,7 +21,7 @@ fi
 # ================
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 # Clutter the CLI with noise?
-VERBOSE=true
+#VERBOSE=true
 
 # OpenXcom
 # --------
@@ -509,14 +511,86 @@ apply_OXC_patches ()
 	fi
 }
 
+# Install the data files from the steam version
+#
+# $1 Game steam ID.
+#
+# This copies the steam data files to the expected OXC folder.
+# It will also apply the data patches from the openxcom.com site.
+install_data_files ()
+{
+	case ${1} in
+		${STEAM_ID_UFO})
+			printf "\nUFO:\n===="
+			printf '\n%s' "Install datafiles for 'X-COM: UFO Defense'?"
+			ask_for_user_confirmation
+			if [ $? -eq 1 ]; then
+				return 1
+			fi
+			;;
+		${STEAM_ID_TFTD})
+			printf "\nTFTD:\n===="
+			printf '\n%s' "Install datafiles for 'X-COM: Terror from the Deep'?"
+			ask_for_user_confirmation
+			if [ $? -eq 1 ]; then
+				return 1
+			fi
+			;;
+		${STEAM_ID_APOC})
+			printf "\nAPOC:\n===="
+			printf '\n%s\n' "This script needs more love to support 'X-COM: Apocalypse'."
+			return 1
+			;;
+		*)
+			printf '\n%s\n' "Unknown game."
+			return 1
+			;;
+	esac
+
+	parse_steam_libraryfolders_file
+	get_game_install_state ${1}
+
+	case ${GAME_INSTALL_STATE} in
+		"")
+			download_game ${1}
+			;;
+		"4")
+			validate_game ${1}
+			;;
+		*)
+			printf '\n%s\n' "Got an unexpected state ... install manually and try this script again."
+			return 1
+			;;
+	esac
+
+	# Only continue if call inside previous case block was successful.
+	if [ $? -eq 0 ]; then
+		get_game_data_paths ${1}
+		copy_data_files
+	else
+		printf '\n%s\n' "Something went wrong installing/validating the steam version."
+		return 1
+	fi
+
+	apply_OXC_patches
+}
+
 # Main
 # ====
 # Start steam as early as possible so it has time to fully initialize.
 start_steam
 
+install_data_files "$STEAM_ID_UFO"
+install_data_files "$STEAM_ID_TFTD"
+install_data_files "$STEAM_ID_APOC"
 
+# Do not terminate script without confirmation.
+printf '\n'
+read -n 1 -s -p "Finished ... press any key to terminate script"
+printf '\n'
 
-
+# Extra Info
+# ==========
 # Steam library
 # -------------
 # Default:
