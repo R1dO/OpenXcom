@@ -8,8 +8,7 @@
 
 # Guardian
 # ========
-# This script is not meant to run with superuser credentials. Steam will refuse
-# to work in that scenario.
+# This script is not meant to run with superuser credentials.
 if [ "$(id -u)" == "0" ]; then
 	printf '%s\n' "Steam does not allow running as root, this script wont work ... exiting."
 	exit 1
@@ -25,17 +24,14 @@ VERBOSE=true
 # Steam
 # -----
 STEAM_DATA_PATH="${DATA_HOME}/Steam"
-STEAM_LIBRARY_PATHS="" #Set by 'parse_steam_libraryfolders_file()'.
 STEAM_LIBRARY_PATHS_DEFAULT="${STEAM_DATA_PATH}/steamapps"
 STEAM_ID_UFO="7760"
 STEAM_ID_TFTD="7650"
-STEAM_ID_APOC="7660" # Used to test download/pause behavior for 'big' games.
-
-# Game dependent variables
-# ------------------------
-GAME_MANIFEST=""
-GAME_INSTALL_STATE=""
-GAME_DATA_PATH=""
+STEAM_ID_APOC="7660"    # Used to test download/pause behavior for 'big' games.
+STEAM_LIBRARY_PATHS=""  # Set by 'parse_steam_libraryfolders_file()'.
+STEAM_GAME_DATA_PATH="" # Set by 'get_game_data_path()'.
+GAME_MANIFEST=""        # Set by 'get_game_manifest()'.
+GAME_INSTALL_STATE=""   # Set by 'get_game_install_state()'.
 
 
 # Functions
@@ -140,10 +136,10 @@ get_game_install_state ()
 #
 # $1 Game steam ID.
 #
-# Updates the global variable: $GAME_DATA_PATH
+# Updates the global variable: $STEAM_GAME_DATA_PATH
 get_game_data_path ()
 {
-	unset GAME_DATA_PATH
+	unset STEAM_GAME_DATA_PATH
 	local installPath
 
 	get_game_manifest ${1}
@@ -152,13 +148,13 @@ get_game_data_path ()
 		installPath=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"installdir"$/) {gsub(/"/,"",$4) ; print $4}}')
 
 		# Installed game is stored under the library's subdirectory "common".
-		GAME_DATA_PATH="$(dirname ${GAME_MANIFEST})/common/${installPath}"
+		STEAM_GAME_DATA_PATH="$(dirname ${GAME_MANIFEST})/common/${installPath}"
 		case ${1} in
 			${STEAM_ID_UFO})
-				GAME_DATA_PATH="${GAME_DATA_PATH}/XCOM"
+				STEAM_GAME_DATA_PATH="${STEAM_GAME_DATA_PATH}/XCOM"
 				;;
 			${STEAM_ID_TFTD})
-				GAME_DATA_PATH="${GAME_DATA_PATH}/TFD"
+				STEAM_GAME_DATA_PATH="${STEAM_GAME_DATA_PATH}/TFD"
 				;;
 			*)
 				printf '\n%s\n' "Unknown game"
@@ -167,7 +163,7 @@ get_game_data_path ()
 		esac
 
 		if [ "${VERBOSE}" = "true" ]; then
-			printf '%s\n' "Game data files: $GAME_DATA_PATH"
+			printf '%s\n' "Game data files: $STEAM_GAME_DATA_PATH"
 		fi
 		return 0
 	}
@@ -198,7 +194,7 @@ print_download_progress ()
 		if [ -z "$downloadSize" ] || [ "$downloadSize" -eq "0" ]; then
 		{
 			printf '%s\n' "Cannot determine download status."
-			# Well unless '$GAME_DATA_PATH=4' (100% downloaded), but then this function is not supposed to run.
+			# Well unless '$GAME_INSTALL_STATE=4' (100% downloaded), but then this function is not supposed to run.
 		}
 		elif [ "$downloadSize" -gt "0" ]; then
 		{
