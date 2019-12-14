@@ -466,6 +466,25 @@ ask_for_user_confirmation ()
 	esac
 }
 
+# Copy data files from steam to OXC installation.
+#
+# Depends on global variables
+#
+# Will create a backup of existing 'UFO' and 'TFTD' folders.
+copy_data_files ()
+{
+	if [ -d ${OXC_GAME_DATA_PATH} ]; then
+		printf '\n%s\n' "Looks like there is already a data folder ... will create a backup."
+		mv ${OXC_GAME_DATA_PATH} "${OXC_GAME_DATA_PATH}.backup.$(date +%F_%T)"
+	fi
+
+	printf '\n%s\n' "Copying data files ..."
+	mkdir ${OXC_GAME_DATA_PATH}
+	for ind in "${GAME_SUBDIRS[@]}"; do
+		cp -r "${STEAM_GAME_DATA_PATH}/${ind}" ${OXC_GAME_DATA_PATH}
+	done
+}
+
 # Main
 # ====
 # Start steam as early as possible so it has time to fully initialize.
