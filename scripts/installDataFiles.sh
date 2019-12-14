@@ -25,6 +25,7 @@ VERBOSE=true
 # --------
 OXC_DATA_ROOT="${DATA_HOME}/openxcom"
 OXC_GAME_DATA_PATH=""   # Set by 'get_game_data_paths()'.
+GAME_SUBDIRS=""         # Set by 'get_game_data_paths()'.
 
 # Steam
 # -----
@@ -146,6 +147,7 @@ get_game_data_paths ()
 {
 	unset STEAM_GAME_DATA_PATH
 	unset OXC_GAME_DATA_PATH
+	unset GAME_SUBDIRS
 	local installPath
 
 	get_game_manifest ${1}
@@ -159,10 +161,33 @@ get_game_data_paths ()
 			${STEAM_ID_UFO})
 				STEAM_GAME_DATA_PATH="${STEAM_GAME_DATA_PATH}/XCOM"
 				OXC_GAME_DATA_PATH="${OXC_DATA_ROOT}/UFO"
+				GAME_SUBDIRS=(
+					"GEODATA"
+					"GEOGRAPH"
+					"MAPS"
+					"ROUTES"
+					"SOUND"
+					"TERRAIN"
+					"UFOGRAPH"
+					"UFOINTRO" # Optional
+					"UNITS"
+				)
 				;;
 			${STEAM_ID_TFTD})
 				STEAM_GAME_DATA_PATH="${STEAM_GAME_DATA_PATH}/TFD"
 				OXC_GAME_DATA_PATH="${OXC_DATA_ROOT}/TFTD"
+				GAME_SUBDIRS=(
+					"ANIMS"    # Optional
+					"FLOP_INT" # Optional
+					"GEODATA"
+					"GEOGRAPH"
+					"MAPS"
+					"ROUTES"
+					"SOUND"
+					"TERRAIN"
+					"UFOGRAPH"
+					"UNITS"
+				)
 				;;
 			*)
 				printf '\n%s\n' "Unknown game"
