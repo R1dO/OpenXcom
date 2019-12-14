@@ -117,10 +117,6 @@ get_game_manifest ()
 #
 # Note:
 #   If it reports "4" the game is fully downloaded.
-#   For simplicity we will assume that anything bigger constitutes to a download
-#   in progress, either due to new installation or validation.
-#   For an overview of known states see:
-#    https://github.com/lutris/lutris/blob/master/docs/steam.rst
 get_game_install_status ()
 {
 	unset GAME_INSTALL_STATE
@@ -471,14 +467,18 @@ echo $?
 # Note:
 #  Could not get the ExitSteam functionality to work, that is why it's not implemented
 
-# Known status indicators
+# Steam status indicators
 # -----------------------
 # Numbers encountered when testing the script
 # * 2:    Update required, e.g. about to start download
 # * 4:    Game is fully installed
 # * 38:   Validation result.
 #         Weird thing, number equals: FullyInstalled + UpdateRequired + FilesMissing
-# * 1062: Download some files due to validation. Does not matter if proton is enabled/disabled.
+# * 1062: Downloading files due to validation.
+#         Does not matter if proton is enabled/disabled.
 # * 1026: Downloading files, game not installed before.
 # * 1538: Install, download paused
 # * 1574: Validation. download paused
+#
+# For an overview of known states see:
+#  https://github.com/lutris/lutris/blob/master/docs/steam.rst
