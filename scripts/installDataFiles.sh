@@ -21,6 +21,11 @@ DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 # Clutter the CLI with noise?
 VERBOSE=true
 
+# OpenXcom
+# --------
+OXC_DATA_ROOT="${DATA_HOME}/openxcom"
+OXC_GAME_DATA_PATH=""   # Set by 'get_game_data_paths()'.
+
 # Steam
 # -----
 STEAM_DATA_PATH="${DATA_HOME}/Steam"
@@ -29,7 +34,7 @@ STEAM_ID_UFO="7760"
 STEAM_ID_TFTD="7650"
 STEAM_ID_APOC="7660"    # Used to test download/pause behavior for 'big' games.
 STEAM_LIBRARY_PATHS=""  # Set by 'parse_steam_libraryfolders_file()'.
-STEAM_GAME_DATA_PATH="" # Set by 'get_game_data_path()'.
+STEAM_GAME_DATA_PATH="" # Set by 'get_game_data_paths()'.
 GAME_MANIFEST=""        # Set by 'get_game_manifest()'.
 GAME_INSTALL_STATE=""   # Set by 'get_game_install_state()'.
 
@@ -136,10 +141,11 @@ get_game_install_state ()
 #
 # $1 Game steam ID.
 #
-# Updates the global variable: $STEAM_GAME_DATA_PATH
-get_game_data_path ()
+# Updates the global variable: $STEAM_GAME_DATA_PATH and $OXC_GAME_DATA_PATH
+get_game_data_paths ()
 {
 	unset STEAM_GAME_DATA_PATH
+	unset OXC_GAME_DATA_PATH
 	local installPath
 
 	get_game_manifest ${1}
@@ -152,9 +158,11 @@ get_game_data_path ()
 		case ${1} in
 			${STEAM_ID_UFO})
 				STEAM_GAME_DATA_PATH="${STEAM_GAME_DATA_PATH}/XCOM"
+				OXC_GAME_DATA_PATH="${OXC_DATA_ROOT}/UFO"
 				;;
 			${STEAM_ID_TFTD})
 				STEAM_GAME_DATA_PATH="${STEAM_GAME_DATA_PATH}/TFD"
+				OXC_GAME_DATA_PATH="${OXC_DATA_ROOT}/TFTD"
 				;;
 			*)
 				printf '\n%s\n' "Unknown game"
@@ -163,7 +171,8 @@ get_game_data_path ()
 		esac
 
 		if [ "${VERBOSE}" = "true" ]; then
-			printf '%s\n' "Game data files: $STEAM_GAME_DATA_PATH"
+			printf '%s\n' "Steam game data files: $STEAM_GAME_DATA_PATH"
+			printf '%s\n' "OXC game data files: $OXC_GAME_DATA_PATH"
 		fi
 		return 0
 	}
