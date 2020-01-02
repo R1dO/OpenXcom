@@ -48,6 +48,39 @@ GAME_INSTALL_STATE=""   # Set by 'get_game_install_state()'.
 # Functions
 # =========
 
+# Display help text.
+show_help ()
+{
+	printf '%s\n' ""\
+	"Install the game data files into the default location."\
+	"Will apply the universal data patches (when possible)."\
+	""\
+	"Usage: installDataFiles [SOURCE]"\
+	"or: installDataFiles SOURCE [DESTINATION]"\
+	""\
+	"SOURCE can be:"\
+	"* steam"\
+	"  Use the 'steam' installations of UFO and TFTD."\
+	"* /path/to/original/data"\
+	"  Use the known data folders below this path."\
+	"  Based on folder contents the game (UFO/TFTD) is guessed."\
+	""\
+	"DESTINATION will override the default openxcom data path."\
+	"* Data files are put in the appropriate game specific sub-folder."\
+	"* When using this argument SOURCE is required!"\
+	""\
+	"When no arguments are given this script defaults to:"\
+	"  installDataFiles steam ${OXC_DATA_ROOT}"
+}
+
+# Error message on input
+input_error ()
+{
+	printf '%s\n' "Unknown option."\
+	"Try 'installDataFiles --help' for more information."
+	exit 1
+}
+
 # Get the (user defined) library folders.
 #
 # Sets the global array: $STEAM_LIBRARY_PATHS
@@ -577,12 +610,12 @@ install_data_files ()
 
 # Main
 # ====
-# Start steam as early as possible so it has time to fully initialize.
-start_steam
+show_help
+input_error
 
-install_data_files "$STEAM_ID_UFO"
-install_data_files "$STEAM_ID_TFTD"
-install_data_files "$STEAM_ID_APOC"
+#install_data_files "$STEAM_ID_UFO"
+#install_data_files "$STEAM_ID_TFTD"
+#install_data_files "$STEAM_ID_APOC"
 
 # Do not terminate script without confirmation.
 printf '\n'
