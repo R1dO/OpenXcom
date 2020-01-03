@@ -3,7 +3,7 @@
 # Install UFO and TFTD data files (and patches) to the default location.
 #
 # Note:
-#  Do not use: ``sh ./installDataFiles.sh``.
+#  Do not use: 'sh ./installDataFiles.sh'.
 #  It will probably kill your dog, most likely it will complain and fail.
 #
 #  Script assumes a default steam installation (see $STEAM_DATA_PATH).
