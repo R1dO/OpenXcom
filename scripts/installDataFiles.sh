@@ -52,15 +52,17 @@ GAME_INSTALL_STATE=""   # Set by 'get_game_install_state()'.
 show_help ()
 {
 	printf '%s\n' ""\
-	"Install the game data files into the default location."\
+	"Install openxcom required data files."\
 	"Will apply the universal data patches (when possible)."\
 	""\
-	"Usage: installDataFiles [SOURCE]"\
-	"or: installDataFiles SOURCE [DESTINATION]"\
+	"Usage: installDataFiles"\
+	"or: installDataFiles SOURCE"\
+	"or: installDataFiles SOURCE DESTINATION"\
 	""\
 	"SOURCE can be:"\
 	"* steam"\
-	"  Use the 'steam' installations of UFO and TFTD."\
+	"  Use 'steam' installations of UFO and TFTD present on the system."\
+	"  The *only* option that can install both games at once."\
 	"* /path/to/original/data"\
 	"  Use the known data folders below this path."\
 	"  Based on folder contents the game (UFO/TFTD) is guessed."\
@@ -73,7 +75,42 @@ show_help ()
 	"  installDataFiles steam ${OXC_DATA_ROOT}"
 }
 
+# Parse script arguments
+#
+# $@ All script parameters.
+parse_script_arguments ()
 {
+	while :; do
+		case ${1} in
+			-h|-\?|--help)
+				show_help
+				exit 0
+				;;
+			-?*)
+				printf '%s\n' "ERROR: Unknown option: ${1}"
+				printf '%s\n' "Try '${0} --help' for more information."
+				exit 1
+				;;
+			steam|STEAM)
+				printf '%s\n' "Will query steam libraries for both UFO and TFTD."
+				SOURCE_OVERRIDE="steam"
+				;;
+			/*) # All paths start with this (bash expands '~' before passing it on).
+				if [ -v SOURCE_OVERRIDE ]; then
+					printf '%s\n' "Requested destination override: ${1}"
+					DESTINATION_OVERRIDE="${1}"
+					break # Only 1 destination makes sense.
+				else
+					printf '%s\n' "Requested source override: ${1}"
+					SOURCE_OVERRIDE="${1}"
+				fi
+				;;
+			*) # End of (known) arguments reached.
+				break
+		esac
+
+		shift
+	done
 }
 
 # Get the (user defined) library folders.
@@ -605,8 +642,7 @@ install_data_files ()
 
 # Main
 # ====
-show_help
-input_error
+parse_script_arguments "$@"
 
 #install_data_files "$STEAM_ID_UFO"
 #install_data_files "$STEAM_ID_TFTD"
