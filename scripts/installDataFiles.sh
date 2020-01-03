@@ -73,12 +73,7 @@ show_help ()
 	"  installDataFiles steam ${OXC_DATA_ROOT}"
 }
 
-# Error message on input
-input_error ()
 {
-	printf '%s\n' "Unknown option."\
-	"Try 'installDataFiles --help' for more information."
-	exit 1
 }
 
 # Get the (user defined) library folders.
