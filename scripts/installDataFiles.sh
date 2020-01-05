@@ -278,44 +278,6 @@ get_game_data_paths ()
 	fi
 }
 
-# If steam is not already running start it.
-#
-# Note:
-#   I cannot reliable determine when steam has started completely, make sure
-#   there is some sort of delay before attempting further actions.
-# Note:
-#   Unreliable if user quits steam just moments before a call to this function
-#   (due to leftover steam process till it is fully terminated).
-start_steam ()
-{
-	pgrep -x steam >/dev/null
-	if [ $? -eq 0 ]; then
-	{
-		printf '%s\n' "Detected a running steam instance, script will continue."
-		return 0
-	}
-	fi
-
-	if [ "$(command -v steam)" ]; then
-	{
-		printf '%s\n' "Starting steam in the background."
-		# Steam is kinda verbose when starting so redirect all output to /dev/null.
-		# Start in a separate process to prevent blocking rest of script until steam
-		# is terminated by the user.
-		steam >/dev/null 2>&1 &
-
-		# Artificial wait (to prevent double start-up from install/validate).
-		read -s -p "Once the GUI becomes visible press [enter] to continue."
-		printf '\n'
-	}
-	else
-	{
-		printf '%s\n' "Steam runtime not found ... exiting"
-		exit 1
-	}
-	fi
-}
-
 # Let user decide yes/no on a question (default to yes).
 #
 # Return 0 if user presses [Enter] or anything beginning with 'y' or 'Y'.
