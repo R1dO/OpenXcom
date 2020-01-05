@@ -8,15 +8,6 @@
 #
 #  Script assumes a default steam installation (see $STEAM_DATA_PATH).
 
-# Guardian
-# ========
-# This script is not meant to run with superuser credentials.
-if [ "$(id -u)" == "0" ]; then
-	printf '%s\n' "Steam does not allow running as root, this script wont work ... exiting."
-	exit 1
-fi
-
-
 # Global variables
 # ================
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -421,26 +412,3 @@ printf '\n'
 # Additional library folders defined in:
 #  ~/.local/share/Steam/steamapps/libraryfolders.vdf
 # Games are stored under a library subfolder ``common``.
-
-# Steam browser protocol
-# ----------------------
-# This is what we use to control steam
-# see: https://developer.valvesoftware.com/wiki/Steam_browser_protocol
-# Note:
-#  Could not get the ExitSteam functionality to work, that is why it's not implemented
-
-# Steam status indicators
-# -----------------------
-# Numbers encountered when testing the script
-# * 2:    Update required, e.g. about to start download
-# * 4:    Game is fully installed
-# * 38:   Validation result.
-#         Weird thing, number equals: FullyInstalled + UpdateRequired + FilesMissing
-# * 1062: Downloading files due to validation.
-#         Does not matter if proton is enabled/disabled.
-# * 1026: Downloading files, game not installed before.
-# * 1538: Install, download paused
-# * 1574: Validation. download paused
-#
-# For an overview of known states see:
-#  https://github.com/lutris/lutris/blob/master/docs/steam.rst
