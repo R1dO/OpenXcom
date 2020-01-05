@@ -278,40 +278,6 @@ get_game_data_paths ()
 	fi
 }
 
-# Report the progress of the current download.
-#
-# $1 Game steam ID.
-#
-# Prints the current download percentage.
-#
-# Note:
-#   Steam only updates the manifest upon state changes (this includes pausing a
-#   download), hence this function is of limited use.
-print_download_progress ()
-{
-	local downloadSize
-	local downloadedBytes
-
-	get_game_manifest ${1}
-	if [ $? -eq 0 ]; then
-	{
-		downloadSize=$(cat "${GAME_MANIFEST}"| awk -F '\t' '{if($2 ~ /^"BytesToDownload"$/) {gsub(/"/,"",$4) ; print $4}}')
-		downloadedBytes=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"BytesDownloaded"$/) {gsub(/"/,"",$4) ; print $4}}')
-		if [ -z "$downloadSize" ] || [ "$downloadSize" -eq "0" ]; then
-		{
-			printf '%s\n' "Cannot determine download status."
-			# Well unless '$GAME_INSTALL_STATE=4' (100% downloaded), but then this function is not supposed to run.
-		}
-		elif [ "$downloadSize" -gt "0" ]; then
-		{
-			# If we have a '$downloadSize' we should also have '$downloadedBytes'.
-			printf '%s\n' "$((100*$downloadedBytes/$downloadSize))%"
-		}
-		fi
-	}
-	fi
-}
-
 # If steam is not already running start it.
 #
 # Note:
@@ -409,7 +375,7 @@ validate_game ()
 				;;
 			1574)
 				printf '%s' "Validation download paused at: "
-				print_download_progress ${1}
+				#print_download_progress ${1}
 				timer=$(($timer + $interval))
 				;;
 			*)
@@ -486,7 +452,7 @@ download_game ()
 				;;
 			1538)
 				printf '%s' "Download paused at: "
-				print_download_progress ${1}
+				#print_download_progress ${1}
 				timer=$(($timer + $interval))
 				;;
 			*)
