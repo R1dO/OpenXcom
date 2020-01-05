@@ -316,88 +316,6 @@ start_steam ()
 	fi
 }
 
-# Validate game files
-#
-# $1 Game steam ID.
-#
-# This function ensures that the data files have not been altered.
-# Validation does NOT touch existing saves (thank you steam)!
-#
-# Note:
-#   Cannot be used in the following cases:
-#   * Checking if user owns a game.
-#     If not owned the validation dialog stalls instead of going to the shop.
-#   * Installing the game
-#     If no installation is present on the system the validation dialog stalls.
-# Note:
-#   Will undo any user alterations to the steam managed data files.
-validate_game ()
-{
-	# Assume user changed settings just before entering this part of the code.
-	parse_steam_libraryfolders_file
-
-	get_game_manifest ${1}
-	if [ $? -eq 0 ]; then
-	{
-		# Not starting in the background in order to block script till steam decides
-		# it is time to start validating.
-		# Redirecting output saves 3 lines of CLI noise.
-		steam steam://validate/${1} >/dev/null 2>&1
-		printf '\n%s\n' "Validating files."
-
-		# Steam validation process is not instant, give it some extra time.
-		sleep 2 # Seconds (system dependent)
-		# Apparently starting a validation does not always update the manifest :-(.
-		#read -s -p "Once validation dialog states 100% complete press [enter] to continue."
-		#printf '\n'
-
-		local timer=0
-		local interval=1 # Seconds
-		local timeout=60 # seconds
-		# Query state, allow for an (arbitrary) 1 minute time-out.
-		while [ $timer -lt $timeout ]; do
-		{
-			printf '%s\t' "$(date +%T)"
-			get_game_install_state ${1}
-
-			case ${GAME_INSTALL_STATE} in
-			4)
-				printf '%s\n' "All files validated."
-				return 0
-				;;
-			38)
-				printf '%s\n' "Need to download files due to validation."
-				timer=0;
-				;;
-			1062)
-				# Not all files are in pristine condition.
-				printf '%s\n' "Validation download in progress... "
-				;;
-			1574)
-				printf '%s' "Validation download paused at: "
-				#print_download_progress ${1}
-				timer=$(($timer + $interval))
-				;;
-			*)
-				printf '%s' "Validating ... "
-				timer=$(($timer + $interval))
-				;;
-			esac
-			sleep $interval
-		}
-		done
-
-		printf '%s\n' "Timeout (${timeout} seconds) reached while trying to validate the game."
-		return 1
-	}
-	else
-	{
-		printf '\n%s\n' "${FUNCNAME[0]}(): Game not installed"
-		return 1
-	}
-	fi
-}
-
 # Download game files
 #
 # $1 Game steam ID.
@@ -586,7 +504,6 @@ install_data_files ()
 			download_game ${1}
 			;;
 		"4")
-			validate_game ${1}
 			;;
 		*)
 			printf '\n%s\n' "Got an unexpected state ... install manually and try this script again."
