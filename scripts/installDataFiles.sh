@@ -316,91 +316,6 @@ start_steam ()
 	fi
 }
 
-# Download game files
-#
-# $1 Game steam ID.
-#
-# This function installs the steam version of the game.
-#
-# Note:
-#   As a byproduct some proton version will be installed on the system.
-#   This is required by steam to allow downloading the game files.
-download_game ()
-{
-	printf '%s\n' ""\
-	"About to install the game..."\
-	"Make sure proton is enabled for this game:"\
-	" * Steam Library -> select game -> select 'Properties...'"\
-	"   Under Manage, or via RMB on title."\
-	" * Enable the option:  'Force the use of a specific Steam Play compatibility tool'"\
-	"   Any version (including the default 'Steam Linux Runtime') will do."
-	read -s -p "Once proton is enabled press [enter] to continue."
-	printf '\n\n'
-
-	# Not starting in the background in order to block script till steam decides
-	# it is time to start downloading (thereby creating a necessary file).
-	# Redirecting output saves 3 lines of CLI noise.
-	steam steam://install/${1} >/dev/null 2>&1
-
-	# User might have decided to define another library.
-	parse_steam_libraryfolders_file
-
-	local timer=0
-	local interval=1 # Seconds
-	local timeout=60 # seconds
-	while [ $timer -lt $timeout ]; do
-	{
-		printf '%s\t' "$(date +%T)"
-		get_game_manifest ${1}
-		if [ $? -eq 0 ]; then
-		{
-			get_game_install_state ${1}
-
-			case ${GAME_INSTALL_STATE} in
-			2)
-				printf '%s\n' "Download will start shortly."
-				timer=0;
-				;;
-			4)
-				printf '%s\n' "Download finished."
-				return 0
-				;;
-			1026)
-				printf '%s\n' "Downloading..."
-				;;
-			1538)
-				printf '%s' "Download paused at: "
-				#print_download_progress ${1}
-				timer=$(($timer + $interval))
-				;;
-			*)
-				printf '%s\n' "Error, unknown status: ${GAME_INSTALL_STATE}"
-				return 1
-				;;
-			esac
-		}
-		else
-		{
-			printf '%s\n' "Waiting for download to start"
-			timer=$(($timer + $interval))
-		}
-		fi
-		sleep $interval
-	}
-	done
-
-	printf '%s\n' ""\
-	"Timeout (${timeout} seconds) reached while trying to install the game."\
-	"Possible causes:"\
-	" * Game has not been purchased yet."\
-	" * Steam compatibility tool is not activated for this game."\
-	"   In this case a message dialog should have popped up stating:"\
-	"    \"The game is not available on your current platform\""\
-	" * The download was paused for too long."\
-	" * Too much time has passed while clicking through steam's confirmation dialogs."
-	return 1
-}
-
 # Let user decide yes/no on a question (default to yes).
 #
 # Return 0 if user presses [Enter] or anything beginning with 'y' or 'Y'.
@@ -501,7 +416,6 @@ install_data_files ()
 
 	case ${GAME_INSTALL_STATE} in
 		"")
-			download_game ${1}
 			;;
 		"4")
 			;;
