@@ -86,20 +86,30 @@ parse_script_arguments ()
 				printf '%s\n' "Will query steam libraries for both UFO and TFTD."
 				SOURCE_OVERRIDE="steam"
 				;;
-			/*) # All paths start with this (bash expands '~' before passing it on).
-				if [ -v SOURCE_OVERRIDE ]; then
-					printf '%s\n' "Requested destination override: ${1}"
-					DESTINATION_OVERRIDE="${1}"
-					break # Only 1 destination makes sense.
-				else
-					printf '%s\n' "Requested source override: ${1}"
-					SOURCE_OVERRIDE="${1}"
-				fi
+			/*) # Absolute path (bash expands '~' before passing it on).
+				specified_path=${1}
+				;;
+			./*|../*) # Relative path w.r.t. working folder. Target must exist.
+				pushd "${1}" > /dev/null || exit 1
+				specified_path=$(pwd -P)
+				popd > /dev/null
 				;;
 			*) # End of (known) arguments reached.
 				break
 		esac
 
+		if [ -v specified_path ]; then
+			if [ -v SOURCE_OVERRIDE ]; then
+				printf '%s\n' "Requested destination override: ${specified_path}"
+				DESTINATION_OVERRIDE="${specified_path}"
+				break # Only 1 destination makes sense.
+			else
+				printf '%s\n' "Requested source override: ${specified_path}"
+				SOURCE_OVERRIDE="${specified_path}"
+			fi
+		fi
+
+		unset specified_path
 		shift
 	done
 }
