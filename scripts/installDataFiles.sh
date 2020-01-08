@@ -11,8 +11,6 @@
 # Global variables
 # ================
 DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
-# Clutter the CLI with noise?
-#VERBOSE=true
 
 # OpenXcom
 # --------
@@ -29,7 +27,7 @@ STEAM_DATA_PATH="${DATA_HOME}/Steam"
 STEAM_LIBRARY_PATHS_DEFAULT="${STEAM_DATA_PATH}/steamapps"
 STEAM_ID_UFO="7760"
 STEAM_ID_TFTD="7650"
-STEAM_ID_APOC="7660"    # Used to test download/pause behavior for 'big' games.
+STEAM_ID_APOC="7660"
 STEAM_LIBRARY_PATHS=""  # Set by 'parse_steam_libraryfolders_file()'.
 STEAM_GAME_DATA_PATH="" # Set by 'get_game_data_paths()'.
 GAME_MANIFEST=""        # Set by 'get_game_manifest()'.
@@ -140,15 +138,11 @@ parse_steam_libraryfolders_file ()
 	# Steam stores all relevant data under the sub-folder 'steamapps'.
 	STEAM_LIBRARY_PATHS+=($(cat ${vdf_file} | awk -F '\t' '{if($2 ~ /^"[1-9]"$/) {gsub(/"/,"",$4) ; print $4 "/steamapps"}}'))
 
-	if [ "${VERBOSE}" = "true" ]; then
-	{
-		printf '\n%s\n' "Found the following ${#STEAM_LIBRARY_PATHS[@]} steam library paths:"
-		for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
-			printf ' %s\n' "$ind"
-		done
-		printf '\n'
-	}
-	fi
+	printf '\n%s\n' "Found the following ${#STEAM_LIBRARY_PATHS[@]} steam library paths:"
+	for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
+		printf ' %s\n' "$ind"
+	done
+	printf '\n'
 }
 
 # Get the steam manifest file for selected game.
@@ -167,18 +161,14 @@ get_game_manifest ()
 		{
 			GAME_MANIFEST="${ind}/appmanifest_${1}.acf"
 
-			if [ "${VERBOSE}" = "true" ]; then
-				printf '%s\n' "Game manifest: $GAME_MANIFEST"
-			fi
+			printf '%s\n' "Game manifest: $GAME_MANIFEST"
 			return 0
 		}
 		fi
 	}
 	done
 
-	if [ "${VERBOSE}" = "true" ]; then
-		printf '\n%s\n' "${FUNCNAME[0]}(): Manifest not found."
-	fi
+	printf '\n%s\n' "${FUNCNAME[0]}(): Manifest not found."
 	return 1
 }
 
@@ -199,9 +189,7 @@ get_game_install_state ()
 	{
 		GAME_INSTALL_STATE=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"StateFlags"$/) {gsub(/"/,"",$4) ; print $4}}')
 
-		if [ "${VERBOSE}" = "true" ]; then
-			printf '%s\n' "Install state: $GAME_INSTALL_STATE"
-		fi
+		printf '%s\n' "Install state: $GAME_INSTALL_STATE"
 		return 0
 	}
 	else
@@ -268,10 +256,8 @@ get_game_data_paths ()
 				;;
 		esac
 
-		if [ "${VERBOSE}" = "true" ]; then
-			printf '%s\n' "Steam game data files: $STEAM_GAME_DATA_PATH"
-			printf '%s\n' "OXC game data files: $OXC_GAME_DATA_PATH"
-		fi
+		printf '%s\n' "Steam game data files: $STEAM_GAME_DATA_PATH"
+		printf '%s\n' "OXC game data files: $OXC_GAME_DATA_PATH"
 		return 0
 	}
 	else
