@@ -90,7 +90,7 @@ parse_script_arguments ()
 				specified_path=${1}
 				;;
 			./*|../*) # Relative path w.r.t. working folder. Target must exist.
-				pushd "${1}" > /dev/null || exit 1
+				pushd "${1}" > /dev/null || exit 1 # Safe for paths with spaces.
 				specified_path=$(pwd -P)
 				popd > /dev/null
 				;;
