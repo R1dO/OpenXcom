@@ -17,9 +17,9 @@ DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 OXC_DATA_ROOT="${DATA_HOME}/openxcom"
 OXC_UFO_PATCH_URL="https://openxcom.org/download/extras/universal-patch-ufo.zip"
 OXC_TFTD_PATCH_URL="https://openxcom.org/download/extras/universal-patch-tftd.zip"
-OXC_GAME_DATA_PATH=""   # Set by 'get_game_data_paths()'.
-GAME_SUBDIRS=""         # Set by 'get_game_data_paths()'.
-GAME_PATCH_URL=""       # Set by 'get_game_data_paths()'.
+OXC_GAME_DATA_PATH=""   # Set by 'steam_get_game_data_paths()'.
+GAME_SUBDIRS=""         # Set by 'steam_get_game_data_paths()'.
+GAME_PATCH_URL=""       # Set by 'steam_get_game_data_paths()'.
 
 # Steam
 # -----
@@ -28,10 +28,10 @@ STEAM_LIBRARY_PATHS_DEFAULT="${STEAM_DATA_PATH}/steamapps"
 STEAM_ID_UFO="7760"
 STEAM_ID_TFTD="7650"
 STEAM_ID_APOC="7660"
-STEAM_LIBRARY_PATHS=""  # Set by 'parse_steam_libraryfolders_file()'.
-STEAM_GAME_DATA_PATH="" # Set by 'get_game_data_paths()'.
-GAME_MANIFEST=""        # Set by 'get_game_manifest()'.
-GAME_INSTALL_STATE=""   # Set by 'get_game_install_state()'.
+STEAM_LIBRARY_PATHS=""  # Set by 'steam_parse_libraryfolders_file()'.
+STEAM_GAME_DATA_PATH="" # Set by 'steam_get_game_data_paths()'.
+GAME_MANIFEST=""        # Set by 'steam_get_game_manifest()'.
+GAME_INSTALL_STATE=""   # Set by 'steam_get_game_install_state()'.
 
 
 # Functions
@@ -116,7 +116,7 @@ parse_script_arguments ()
 # Get the (user defined) library folders.
 #
 # Sets the global array: $STEAM_LIBRARY_PATHS
-parse_steam_libraryfolders_file ()
+steam_parse_libraryfolders_file ()
 {
 	# Reset array to default value (in case we ran before).
 	unset STEAM_LIBRARY_PATHS
@@ -151,7 +151,7 @@ parse_steam_libraryfolders_file ()
 # $1 Game steam ID.
 #
 # Sets the global variable: $GAME_MANIFEST
-get_game_manifest ()
+steam_get_game_manifest ()
 {
 	unset GAME_MANIFEST
 
@@ -181,11 +181,11 @@ get_game_manifest ()
 #
 # Note:
 #   If it reports "4" the game is fully downloaded.
-get_game_install_state ()
+steam_get_game_install_state ()
 {
 	unset GAME_INSTALL_STATE
 
-	get_game_manifest ${1}
+	steam_get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
 	{
 		GAME_INSTALL_STATE=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"StateFlags"$/) {gsub(/"/,"",$4) ; print $4}}')
@@ -203,14 +203,14 @@ get_game_install_state ()
 # $1 Game steam ID.
 #
 # Updates the global variable: $STEAM_GAME_DATA_PATH and $OXC_GAME_DATA_PATH
-get_game_data_paths ()
+steam_get_game_data_paths ()
 {
 	unset STEAM_GAME_DATA_PATH
 	unset OXC_GAME_DATA_PATH
 	unset GAME_SUBDIRS
 	local installPath
 
-	get_game_manifest ${1}
+	steam_get_game_manifest ${1}
 	if [ $? -eq 0 ]; then
 	{
 		installPath=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"installdir"$/) {gsub(/"/,"",$4) ; print $4}}')
@@ -361,8 +361,8 @@ install_data_files ()
 			;;
 	esac
 
-	parse_steam_libraryfolders_file
-	get_game_install_state ${1}
+	steam_parse_libraryfolders_file
+	steam_get_game_install_state ${1}
 
 	case ${GAME_INSTALL_STATE} in
 		"")
@@ -377,8 +377,8 @@ install_data_files ()
 
 	# Only continue if call inside previous case block was successful.
 	if [ $? -eq 0 ]; then
-		get_game_data_paths ${1}
 		copy_data_files
+		steam_get_game_data_paths ${1}
 	else
 		printf '\n%s\n' "Something went wrong installing/validating the steam version."
 		return 1
