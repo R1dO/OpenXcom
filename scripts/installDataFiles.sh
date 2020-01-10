@@ -69,6 +69,7 @@ show_help ()
 # $@ All script parameters.
 parse_script_arguments ()
 {
+	local specified_path
 	while :; do
 		case ${1} in
 			-h|-\?|--help)
