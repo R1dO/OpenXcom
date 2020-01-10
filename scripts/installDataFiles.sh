@@ -99,7 +99,6 @@ parse_script_arguments ()
 
 		if [ -v specified_path ]; then
 			if [ -v SOURCE_OVERRIDE ]; then
-				printf '%s\n' "Requested destination override: ${specified_path}"
 				DESTINATION_OVERRIDE="${specified_path}"
 				break # Only 1 destination makes sense.
 			else
@@ -111,6 +110,20 @@ parse_script_arguments ()
 		unset specified_path
 		shift
 	done
+}
+
+# Set installation root folder.
+#
+# Sets the global variable $DESTINATION
+set_destination ()
+{
+	if [ -v DESTINATION_OVERRIDE ]; then
+		DESTINATION=${DESTINATION_OVERRIDE}
+	else
+		DESTINATION=${OXC_DATA_ROOT}
+	fi
+
+	printf '\n%s\n' "Will install data files under: $DESTINATION"
 }
 
 # Get the (user defined) library folders.
