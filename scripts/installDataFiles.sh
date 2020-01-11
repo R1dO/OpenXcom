@@ -54,7 +54,6 @@ show_help ()
 	"SOURCE can be:"\
 	"* steam"\
 	"  Use 'steam' installations of UFO and TFTD present on the system."\
-	"  The *only* option that can install both games at once."\
 	"* /path/to/original/data"\
 	"  Use the known data folders below this path."\
 	"  Based on folder contents the game (UFO/TFTD) is guessed."\
