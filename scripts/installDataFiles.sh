@@ -20,6 +20,9 @@ OXC_TFTD_PATCH_URL="https://openxcom.org/download/extras/universal-patch-tftd.zi
 OXC_GAME_DATA_PATH=""   # Set by 'steam_get_game_data_paths()'.
 GAME_SUBDIRS=""         # Set by 'steam_get_game_data_paths()'.
 GAME_PATCH_URL=""       # Set by 'steam_get_game_data_paths()'.
+DATA_FOLDERS_COMMON=("GEODATA" "GEOGRAPH" "MAPS" "ROUTES" "SOUND" "TERRAIN" "UFOGRAPH" "UNITS")
+DATA_FOLDERS_OPTIONAL_UFO=("UFOINTRO")
+DATA_FOLDERS_OPTIONAL_TFTD=("ANIMS" "FLOP_INT")
 
 # Steam
 # -----
