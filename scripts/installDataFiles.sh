@@ -104,7 +104,6 @@ parse_script_arguments ()
 				DESTINATION_OVERRIDE="${specified_path}"
 				break # Only 1 destination makes sense.
 			else
-				printf '%s\n' "Requested source override: ${specified_path}"
 				SOURCE_OVERRIDE="${specified_path}"
 			fi
 		fi
@@ -152,7 +151,11 @@ set_sources ()
 			fi
 			;;
 		*)
-			SOURCES=${SOURCE_OVERRIDE}
+			if [ -d "${SOURCE_OVERRIDE}/${DATA_FOLDERS_COMMON[0]}" ]; then
+				SOURCES=${SOURCE_OVERRIDE}
+			else # Lets see if there is something below (max 3 levels)
+				guess_override_game_data_paths
+			fi
 	esac
 
 	if [ -v SOURCES ]; then
@@ -318,6 +321,25 @@ steam_get_game_data_path ()
 	fi
 }
 
+# Return the location of the data files based on incomplete SOURCE_OVERRIDE
+#
+# Separate function as to localize IFS override.
+#
+# Updates the global variable: $SOURCES
+guess_override_game_data_paths ()
+{
+	local IFS=$'\n'
+	local game_path
+	game_path=($(find "${SOURCE_OVERRIDE}" -maxdepth 3 -path *${DATA_FOLDERS_COMMON[0]}))
+	if [ -v game_path ]; then
+	{
+		for index in "${game_path[@]}"; do
+			SOURCES+=($(dirname $index))
+		done
+	}
+	fi
+}
+
 # Let user decide yes/no on a question (default to yes).
 #
 # Return 0 if user presses [Enter] or anything beginning with 'y' or 'Y'.
@@ -445,8 +467,6 @@ parse_script_arguments "$@"
 set_sources
 set_destination
 
-echo "====="
-echo "SOURCE = $SOURCE_OVERRIDE"
 #install_data_files "$STEAM_ID_UFO"
 #install_data_files "$STEAM_ID_TFTD"
 #install_data_files "$STEAM_ID_APOC"
