@@ -123,7 +123,8 @@ set_destination ()
 		DESTINATION=${OXC_DATA_ROOT}
 	fi
 
-	printf '\n%s\n' "Will install data files under: $DESTINATION"
+	printf '%s\n' "Will install data files under:"
+	printf '%s\n' " $DESTINATION"
 }
 
 # Get the (user defined) library folders.
@@ -141,7 +142,7 @@ steam_parse_libraryfolders_file ()
 	if [ -f ${vdf_file} ]; then
 		: # Continue
 	else
-		printf "Line $BASH_LINENO: Could not find '${vdf_file}'.\n"
+		#printf "Line $BASH_LINENO: Could not find '${vdf_file}'.\n"
 		return 1
 	fi
 
@@ -152,11 +153,12 @@ steam_parse_libraryfolders_file ()
 	# Steam stores all relevant data under the sub-folder 'steamapps'.
 	STEAM_LIBRARY_PATHS+=($(cat ${vdf_file} | awk -F '\t' '{if($2 ~ /^"[1-9]"$/) {gsub(/"/,"",$4) ; print $4 "/steamapps"}}'))
 
-	printf '\n%s\n' "Found the following ${#STEAM_LIBRARY_PATHS[@]} steam library paths:"
-	for ind in "${STEAM_LIBRARY_PATHS[@]}"; do
-		printf ' %s\n' "$ind"
-	done
-	printf '\n'
+	#printf '\n%s\n' "Found the following ${#STEAM_LIBRARY_PATHS[@]} steam library path(s):"
+	#for index in "${STEAM_LIBRARY_PATHS[@]}"; do
+		#printf ' %s\n' "$index"
+	#done
+	#printf '\n'
+	return 0
 }
 
 # Get the steam manifest file for selected game.
@@ -175,14 +177,14 @@ steam_get_game_manifest ()
 		{
 			GAME_MANIFEST="${ind}/appmanifest_${1}.acf"
 
-			printf '%s\n' "Game manifest: $GAME_MANIFEST"
+			#printf '%s\n' "Game manifest: $GAME_MANIFEST"
 			return 0
 		}
 		fi
 	}
 	done
 
-	printf '\n%s\n' "${FUNCNAME[0]}(): Manifest not found."
+	#printf '\n%s\n' "${FUNCNAME[0]}(): Manifest not found."
 	return 1
 }
 
@@ -203,7 +205,7 @@ steam_get_game_install_state ()
 	{
 		GAME_INSTALL_STATE=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"StateFlags"$/) {gsub(/"/,"",$4) ; print $4}}')
 
-		printf '%s\n' "Install state: $GAME_INSTALL_STATE"
+		#printf '%s\n' "Install state: $GAME_INSTALL_STATE"
 		return 0
 	}
 	else
