@@ -196,12 +196,12 @@ steam_get_game_manifest ()
 #
 # Note:
 #   If it reports "4" the game is fully downloaded.
+#   Anything else will be considered an error.
 steam_get_game_install_state ()
 {
 	unset GAME_INSTALL_STATE
 
-	steam_get_game_manifest ${1}
-	if [ $? -eq 0 ]; then
+	if [ -v GAME_MANIFEST ]; then
 	{
 		GAME_INSTALL_STATE=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"StateFlags"$/) {gsub(/"/,"",$4) ; print $4}}')
 
@@ -217,17 +217,32 @@ steam_get_game_install_state ()
 #
 # $1 Game steam ID.
 #
-# Updates the global variable: $STEAM_GAME_DATA_PATH and $OXC_GAME_DATA_PATH
-steam_get_game_data_paths ()
+# Updates the global variable: $STEAM_GAME_DATA_PATH
+steam_get_game_data_path ()
 {
 	unset STEAM_GAME_DATA_PATH
-	unset OXC_GAME_DATA_PATH
-	unset GAME_SUBDIRS
-	local installPath
 
 	steam_get_game_manifest ${1}
-	if [ $? -eq 0 ]; then
+	if [ $? -ne 0 ]; then
 	{
+		case ${1} in
+			${STEAM_ID_UFO})
+				printf '%s\n' "Could not find steam installation of UFO"
+				;;
+			${STEAM_ID_TFTD})
+				printf '%s\n' "Could not find steam installation of TFTD"
+				;;
+			*)
+				printf '%s\n' "Could not find steam installation of unsupported game"
+		esac
+		return 1
+	}
+	fi
+
+	steam_get_game_install_state ${1}
+	if [ -v GAME_INSTALL_STATE ] && [ $GAME_INSTALL_STATE -eq 4 ]; then
+	{
+		local installPath
 		installPath=$(cat "${GAME_MANIFEST}" | awk -F '\t' '{if($2 ~ /^"installdir"$/) {gsub(/"/,"",$4) ; print $4}}')
 
 		# Installed game is stored under the library's subdirectory "common".
@@ -235,49 +250,30 @@ steam_get_game_data_paths ()
 		case ${1} in
 			${STEAM_ID_UFO})
 				STEAM_GAME_DATA_PATH="${STEAM_GAME_DATA_PATH}/XCOM"
-				OXC_GAME_DATA_PATH="${OXC_DATA_ROOT}/UFO"
-				GAME_SUBDIRS=(
-					"GEODATA"
-					"GEOGRAPH"
-					"MAPS"
-					"ROUTES"
-					"SOUND"
-					"TERRAIN"
-					"UFOGRAPH"
-					"UFOINTRO" # Optional
-					"UNITS"
-				)
-				GAME_PATCH_URL=${OXC_UFO_PATCH_URL}
 				;;
 			${STEAM_ID_TFTD})
 				STEAM_GAME_DATA_PATH="${STEAM_GAME_DATA_PATH}/TFD"
-				OXC_GAME_DATA_PATH="${OXC_DATA_ROOT}/TFTD"
-				GAME_SUBDIRS=(
-					"ANIMS"    # Optional
-					"FLOP_INT" # Optional
-					"GEODATA"
-					"GEOGRAPH"
-					"MAPS"
-					"ROUTES"
-					"SOUND"
-					"TERRAIN"
-					"UFOGRAPH"
-					"UNITS"
-				)
-				GAME_PATCH_URL=${OXC_TFTD_PATCH_URL}
 				;;
 			*)
-				printf '\n%s\n' "Unknown game"
+				printf '\n%s\n' "Unknown game ID ${1}"
 				return 1
-				;;
 		esac
-
-		printf '%s\n' "Steam game data files: $STEAM_GAME_DATA_PATH"
-		printf '%s\n' "OXC game data files: $OXC_GAME_DATA_PATH"
 		return 0
 	}
 	else
+	{
+		case ${1} in
+			${STEAM_ID_UFO})
+				printf '%s\n' "UFO has not been fully downloaded (or validated)"
+				;;
+			${STEAM_ID_TFTD})
+				printf '%s\n' "TFTD has not been fully downloaded (or validated)"
+				;;
+			*)
+				printf '\n%s\n' "Unknown game ID ${1} has not been fully downloaded (or validated)"
+		esac
 		return 1
+	}
 	fi
 }
 
@@ -392,20 +388,24 @@ install_data_files ()
 
 	# Only continue if call inside previous case block was successful.
 	if [ $? -eq 0 ]; then
-		copy_data_files
-		steam_get_game_data_paths ${1}
+		steam_get_game_data_path ${1}
+		#copy_data_files
 	else
 		printf '\n%s\n' "Something went wrong installing/validating the steam version."
 		return 1
 	fi
 
-	apply_OXC_patches
+	#apply_OXC_patches
 }
 
 # Main
 # ====
 parse_script_arguments "$@"
+set_sources
+set_destination
 
+echo "====="
+echo "SOURCE = $SOURCE_OVERRIDE"
 #install_data_files "$STEAM_ID_UFO"
 #install_data_files "$STEAM_ID_TFTD"
 #install_data_files "$STEAM_ID_APOC"
