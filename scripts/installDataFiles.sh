@@ -82,7 +82,6 @@ parse_script_arguments ()
 				exit 1
 				;;
 			steam|STEAM)
-				printf '%s\n' "Will query steam libraries for both UFO and TFTD."
 				SOURCE_OVERRIDE="steam"
 				;;
 			/*) # Absolute path (bash expands '~' before passing it on).
@@ -125,6 +124,45 @@ set_destination ()
 
 	printf '%s\n' "Will install data files under:"
 	printf '%s\n' " $DESTINATION"
+}
+
+set_sources ()
+{
+	case ${SOURCE_OVERRIDE} in
+		""|steam)
+			SOURCES=()
+			printf '%s\n' "Querying steam libraries for both UFO and TFTD."
+
+			steam_parse_libraryfolders_file
+			if [ $? -ne 0 ]; then
+				printf '%s\n' "Requested installation from steam, but could not determine library location(s) ... exiting"
+				exit 1
+			fi
+
+			steam_get_game_data_path ${STEAM_ID_UFO}
+			if [ $? -eq 0 ]; then
+				SOURCES+=("${STEAM_GAME_DATA_PATH}")
+			fi
+			steam_get_game_data_path ${STEAM_ID_TFTD}
+			if [ $? -eq 0 ]; then
+				SOURCES+=("${STEAM_GAME_DATA_PATH}")
+			fi
+			;;
+		*)
+			SOURCES=${SOURCE_OVERRIDE}
+	esac
+
+	if [ -v SOURCES ]; then
+		{
+			printf '%s\n' "Will copy data files from:"
+			for index in "${SOURCES[@]}"; do
+				printf ' %s\n' "$index"
+			done
+		}
+	else
+		printf '%s\n' "Could not find valid datafiles ... exiting"
+		exit 1
+	fi
 }
 
 # Get the (user defined) library folders.
