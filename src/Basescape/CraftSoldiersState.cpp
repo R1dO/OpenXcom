@@ -131,17 +131,13 @@ CraftSoldiersState::CraftSoldiersState(Base *base, size_t craft)
 	add(_txtUsed, "text", "craftSoldiers");
 	add(_lstSoldiers, "list", "craftSoldiers");
 	add(_cbxSortBy, "button", "craftSoldiers");
-	add(_txtSoldiers, "text", "craftSoldiers");
-	add(_txtVehicleUsage, "text", "craftSoldiers");
 
 	if (_alternateScreen)
 	{
+		add(_txtSoldiers, "text", "craftSoldiers");
+		add(_txtVehicleUsage, "text", "craftSoldiers");
+
 		_txtUsed->setVisible(false);
-	}
-	else
-	{
-		_txtSoldiers->setVisible(false);
-		_txtVehicleUsage->setVisible(false);
 	}
 
 	_otherCraftColor = _game->getMod()->getInterface("craftSoldiers")->getElement("otherCraft")->color;
