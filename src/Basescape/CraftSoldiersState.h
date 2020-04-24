@@ -53,6 +53,8 @@ private:
 
 	/// initializes the display list based on the craft soldier's list
 	void initList();
+	/// Updates entities below screen title.
+	void updateSubtitleLine();
 public:
 	/// Creates the Craft Soldiers state.
 	CraftSoldiersState(Base *base, size_t craft);

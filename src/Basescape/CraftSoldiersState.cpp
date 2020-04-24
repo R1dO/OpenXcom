@@ -303,8 +303,7 @@ void CraftSoldiersState::initList()
 	_lstSoldiers->draw();
 	_lstSoldiers->scrollTo(originalScrollPos);
 
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+	updateSubtitleLine();
 }
 
 /**
@@ -455,8 +454,7 @@ void CraftSoldiersState::lstSoldiersClick(Action *action)
 		}
 		_lstSoldiers->setRowColor(row, color);
 
-		_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-		_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+		updateSubtitleLine();
 	}
 	else if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
 	{
@@ -492,6 +490,18 @@ void CraftSoldiersState::lstSoldiersMousePress(Action *action)
 			moveSoldierDown(action, row);
 		}
 	}
+}
+
+/**
++ * Updates entities below screen title.
++ *
++ * The (derived) values between title and list.
++ */
+void CraftSoldiersState::updateSubtitleLine()
+{
+	Craft *craft = _base->getCrafts()->at(_craft);
+	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(craft->getSpaceAvailable()));
+	_txtUsed->setText(tr("STR_SPACE_USED").arg(craft->getSpaceUsed()));
 }
 
 }
