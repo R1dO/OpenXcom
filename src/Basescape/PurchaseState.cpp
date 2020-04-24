@@ -129,13 +129,7 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	_txtTitle->setText(tr("STR_PURCHASE_HIRE_PERSONNEL"));
 
 	_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
-
-	_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
-
 	_txtSpaceUsed->setVisible(Options::storageLimitsEnforced);
-	std::ostringstream ss;
-	ss << _base->getUsedStores() << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
 
 	_txtCost->setText(tr("STR_COST_PER_UNIT_UC"));
 
@@ -300,26 +294,13 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	updateList();
 
 	_autoBuyDone = true;
-	if (!_missingItemsMap.empty())
-	{
-		_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
-		std::ostringstream ss5;
-		ss5 << _base->getUsedStores();
-		if (std::abs(_iQty) > 0.05)
-		{
-			ss5 << "(";
-			if (_iQty > 0.05)
-				ss5 << "+";
-			ss5 << std::fixed << std::setprecision(1) << _iQty << ")";
-		}
-		ss5 << ":" << _base->getAvailableStores();
-		_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss5.str()));
-	}
 
 	_timerInc = new Timer(250);
 	_timerInc->onTimer((StateHandler)&PurchaseState::increase);
 	_timerDec = new Timer(250);
 	_timerDec->onTimer((StateHandler)&PurchaseState::decrease);
+
+	updateSubtitleLine();
 }
 
 /**
@@ -1172,7 +1153,6 @@ void PurchaseState::decreaseByValue(int change)
  */
 void PurchaseState::updateItemStrings()
 {
-	_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
 	std::ostringstream ss, ss5;
 	ss << getRow().amount;
 	_lstItems->setCellText(_sel, 3, ss.str());
@@ -1192,16 +1172,7 @@ void PurchaseState::updateItemStrings()
 			}
 		}
 	}
-	ss5 << _base->getUsedStores();
-	if (std::abs(_iQty) > 0.05)
-	{
-		ss5 << "(";
-		if (_iQty > 0.05)
-			ss5 << "+";
-		ss5 << std::fixed << std::setprecision(1) << _iQty << ")";
-	}
-	ss5 << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss5.str()));
+	updateSubtitleLine();
 }
 
 /**
@@ -1210,6 +1181,27 @@ void PurchaseState::updateItemStrings()
 void PurchaseState::cbxCategoryChange(Action *)
 {
 	updateList();
+}
+
+/**
+ * Updates variable texts between screen title and spreadsheet.
+ */
+void PurchaseState::updateSubtitleLine()
+{
+	//_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
+	_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
+
+	std::ostringstream ss;
+	ss << _base->getUsedStores();
+	if (std::abs(_iQty) > 0.05)
+	{
+		ss << "(";
+		if (_iQty > 0.05)
+			ss << "+";
+		ss << std::fixed << std::setprecision(1) << _iQty << ")";
+	}
+	ss << ":" << _base->getAvailableStores();
+	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
 }
 
 }

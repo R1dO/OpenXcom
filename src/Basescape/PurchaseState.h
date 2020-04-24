@@ -75,6 +75,8 @@ private:
 	int getMissingQty(int sel) const;
 	/// Gets the row of the current selection.
 	TransferRow &getRow() { return _items[_rows[_sel]]; }
+
+	void updateSubtitleLine();
 public:
 	/// Creates the Purchase state.
 	PurchaseState(Base *base, CannotReequipState *parent = nullptr);
