@@ -102,6 +102,7 @@ CraftSoldiersState::CraftSoldiersState(Base *base, size_t craft)
 		:  _base(base), _craft(craft), _otherCraftColor(0), _origSoldierOrder(*_base->getSoldiers())
 {
 	_alternateScreen = Options::alternateBaseScreens;
+	_currentCraft = _base->getCrafts()->at(_craft);
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -155,8 +156,7 @@ CraftSoldiersState::CraftSoldiersState(Base *base, size_t craft)
 	_btnOk->onKeyboardPress((ActionHandler)&CraftSoldiersState::btnOkClick, Options::keyCancel);
 
 	_txtTitle->setBig();
-	Craft *c = _base->getCrafts()->at(_craft);
-	_txtTitle->setText(tr("STR_SELECT_SQUAD_FOR_CRAFT").arg(c->getName(_game->getLanguage())));
+	_txtTitle->setText(tr("STR_SELECT_SQUAD_FOR_CRAFT").arg(_currentCraft->getName(_game->getLanguage())));
 
 	_txtName->setText(tr("STR_NAME_UC"));
 
@@ -295,13 +295,12 @@ void CraftSoldiersState::initList()
 	size_t originalScrollPos = _lstSoldiers->getScroll();
 	int row = 0;
 	_lstSoldiers->clearList();
-	Craft *c = _base->getCrafts()->at(_craft);
 	for (std::vector<Soldier*>::iterator i = _base->getSoldiers()->begin(); i != _base->getSoldiers()->end(); ++i)
 	{
 		_lstSoldiers->addRow(3, (*i)->getName(true, 19).c_str(), tr((*i)->getRankString()).c_str(), (*i)->getCraftString(_game->getLanguage()).c_str());
 
 		Uint8 color;
-		if ((*i)->getCraft() == c)
+		if ((*i)->getCraft() == _currentCraft)
 		{
 			color = _lstSoldiers->getSecondaryColor();
 		}
@@ -451,10 +450,9 @@ void CraftSoldiersState::lstSoldiersClick(Action *action)
 	int row = _lstSoldiers->getSelectedRow();
 	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
 	{
-		Craft *c = _base->getCrafts()->at(_craft);
 		Soldier *s = _base->getSoldiers()->at(_lstSoldiers->getSelectedRow());
 		Uint8 color = _lstSoldiers->getColor();
-		if (s->getCraft() == c)
+		if (s->getCraft() == _currentCraft)
 		{
 			s->setCraft(0);
 			_lstSoldiers->setCellText(row, 2, tr("STR_NONE_UC"));
@@ -463,10 +461,10 @@ void CraftSoldiersState::lstSoldiersClick(Action *action)
 		{
 			color = _otherCraftColor;
 		}
-		else if (c->getSpaceAvailable() > 0 && s->getWoundRecovery() == 0)
+		else if (_currentCraft->getSpaceAvailable() > 0 && s->getWoundRecovery() == 0)
 		{
-			s->setCraft(c);
-			_lstSoldiers->setCellText(row, 2, c->getName(_game->getLanguage()));
+			s->setCraft(_currentCraft);
+			_lstSoldiers->setCellText(row, 2, _currentCraft->getName(_game->getLanguage()));
 			color = _lstSoldiers->getSecondaryColor();
 		}
 		_lstSoldiers->setRowColor(row, color);
@@ -516,20 +514,19 @@ void CraftSoldiersState::lstSoldiersMousePress(Action *action)
 + */
 void CraftSoldiersState::updateSubtitleLine()
 {
-	Craft *craft = _base->getCrafts()->at(_craft);
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(craft->getSpaceAvailable()));
+	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(_currentCraft->getSpaceAvailable()));
 
 	if (_alternateScreen)
 	{
 		std::ostringstream ss, ss1, ss2;
-		ss << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumSoldiers();
-		ss1 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumVehicles() << ":" << craft->getRules()->getVehicles();
+		ss << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << _currentCraft->getNumSoldiers();
+		ss1 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << _currentCraft->getNumVehicles() << ":" << _currentCraft->getRules()->getVehicles();
 		_txtSoldiers->setText(ss.str());
 		_txtVehicleUsage->setText(ss1.str());
 	}
 	else
 	{
-		_txtUsed->setText(tr("STR_SPACE_USED").arg(craft->getSpaceUsed()));
+		_txtUsed->setText(tr("STR_SPACE_USED").arg(_currentCraft->getSpaceUsed()));
 	}
 }
 
