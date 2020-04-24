@@ -35,6 +35,7 @@
 #include "../Savegame/SavedGame.h"
 #include "SoldierInfoState.h"
 #include "../Mod/RuleInterface.h"
+#include "../Mod/RuleCraft.h"
 
 namespace OpenXcom
 {
@@ -100,6 +101,8 @@ GET_SOLDIER_STAT_FN(woundRecovery, WoundRecovery)
 CraftSoldiersState::CraftSoldiersState(Base *base, size_t craft)
 		:  _base(base), _craft(craft), _otherCraftColor(0), _origSoldierOrder(*_base->getSoldiers())
 {
+	_alternateScreen = Options::alternateBaseScreens;
+
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
 	_btnOk = new TextButton(148, 16, 164, 176);
@@ -111,6 +114,8 @@ CraftSoldiersState::CraftSoldiersState(Base *base, size_t craft)
 	_txtUsed = new Text(110, 9, 122, 24);
 	_cbxSortBy = new ComboBox(this, 148, 16, 8, 176, true);
 	_lstSoldiers = new TextList(288, 128, 8, 40);
+	_txtSoldiers = new Text(102, 9, 122, 24);
+	_txtVehicleUsage = new Text(84, 9, 224, 24);
 
 	// Set palette
 	setInterface("craftSoldiers");
@@ -125,6 +130,18 @@ CraftSoldiersState::CraftSoldiersState(Base *base, size_t craft)
 	add(_txtUsed, "text", "craftSoldiers");
 	add(_lstSoldiers, "list", "craftSoldiers");
 	add(_cbxSortBy, "button", "craftSoldiers");
+	add(_txtSoldiers, "text", "craftSoldiers");
+	add(_txtVehicleUsage, "text", "craftSoldiers");
+
+	if (_alternateScreen)
+	{
+		_txtUsed->setVisible(false);
+	}
+	else
+	{
+		_txtSoldiers->setVisible(false);
+		_txtVehicleUsage->setVisible(false);
+	}
 
 	_otherCraftColor = _game->getMod()->getInterface("craftSoldiers")->getElement("otherCraft")->color;
 
@@ -501,7 +518,19 @@ void CraftSoldiersState::updateSubtitleLine()
 {
 	Craft *craft = _base->getCrafts()->at(_craft);
 	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(craft->getSpaceAvailable()));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(craft->getSpaceUsed()));
+
+	if (_alternateScreen)
+	{
+		std::ostringstream ss, ss1, ss2;
+		ss << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumSoldiers();
+		ss1 << tr("STR_HWPS") << ">" << Unicode::TOK_COLOR_FLIP << craft->getNumVehicles() << ":" << craft->getRules()->getVehicles();
+		_txtSoldiers->setText(ss.str());
+		_txtVehicleUsage->setText(ss1.str());
+	}
+	else
+	{
+		_txtUsed->setText(tr("STR_SPACE_USED").arg(craft->getSpaceUsed()));
+	}
 }
 
 }
