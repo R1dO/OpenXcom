@@ -56,6 +56,8 @@ namespace OpenXcom
  */
 PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQty(0), _cQty(0), _iQty(0.0), _ammoColor(0)
 {
+	_alternateScreen = Options::alternateBaseScreens;
+
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
 	_btnOk = new TextButton(148, 16, 8, 176);
@@ -109,8 +111,20 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 
 	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
 
-	_lstItems->setArrowColumn(227, ARROW_VERTICAL);
-	_lstItems->setColumns(4, 150, 55, 50, 28);
+	if (_alternateScreen)
+	{
+		_lstItems->setArrowColumn(245, ARROW_VERTICAL);
+		// Use an empty column to reserve space (25) for the arrows. To allow for arbitrary cell text alignment.
+		_lstItems->setColumns(6, 139, 55, 24, 24, 25, 18);
+		_lstItems->setAlign(ALIGN_RIGHT, 2);
+		_lstItems->setAlign(ALIGN_RIGHT, 3);
+		_lstItems->setAlign(ALIGN_RIGHT, 5);
+	}
+	else
+	{
+		_lstItems->setArrowColumn(227, ARROW_VERTICAL);
+		_lstItems->setColumns(4, 150, 55, 50, 28);
+	}
 	_lstItems->setSelectable(true);
 	_lstItems->setBackground(_window);
 	_lstItems->setMargin(2);
@@ -303,8 +317,16 @@ void PurchaseState::updateList()
 		std::ostringstream ssQty, ssAmount;
 		ssQty << _items[i].qtySrc;
 		ssAmount << _items[i].amount;
-		_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
+		if (_alternateScreen)
+		{
+			_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), "(999)", "", ssAmount.str().c_str());
+		}
+		else
+		{
+			_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
+		}
 		_rows.push_back(i);
+
 		if (_items[i].amount > 0)
 		{
 			_lstItems->setRowColor(_rows.size() - 1, _lstItems->getSecondaryColor());
@@ -640,7 +662,15 @@ void PurchaseState::updateItemStrings()
 {
 	std::ostringstream ss, ss5;
 	ss << getRow().amount;
-	_lstItems->setCellText(_sel, 3, ss.str());
+	if (_alternateScreen)
+	{
+		_lstItems->setCellText(_sel, 5, ss.str());
+	}
+	else
+	{
+		_lstItems->setCellText(_sel, 3, ss.str());
+	}
+
 	if (getRow().amount > 0)
 	{
 		_lstItems->setRowColor(_sel, _lstItems->getSecondaryColor());
