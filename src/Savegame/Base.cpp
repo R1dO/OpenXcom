@@ -1213,6 +1213,26 @@ std::pair<int, int> Base::getSoldierCountAndSalary(const std::string &soldier) c
 	return std::make_pair(total, totalSalary);
 }
 
+ /**
+ * Gets the amount of a certain soldier type not available for assignment.
+ *
+ * Assigned to a craft or in sickbay (even if able to defend the base).
+ * @param soldier Soldier type.
+ * @return Total amount of the soldier type assigned elsewhere.
+ */
+int Base::getSoldierAllocatedCount(const std::string &soldier) const
+{
+	int qtyReserved = 0;
+	for (std::vector<Soldier*>::const_iterator i = _soldiers.begin(); i != _soldiers.end(); ++i)
+	{
+		if ((*i)->getRules()->getType() == soldier && ((*i)->getCraft() != 0 || (*i)->isWounded()))
+		{
+			qtyReserved++;
+		}
+	}
+	return qtyReserved;
+}
+
 /**
  * Returns the total amount of monthly costs
  * for maintaining the personnel in the base.

@@ -309,6 +309,8 @@ public:
 	BaseSumDailyRecovery getSumRecoveryPerDay() const;
 	/// Removes a craft from the base.
 	std::vector<Craft*>::iterator removeCraft(Craft *craft, bool unload);
+
+	int getSoldierAllocatedCount(const std::string &soldier) const;
 };
 
 }
