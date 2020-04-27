@@ -145,6 +145,8 @@ public:
 	int getAllocatedScientists() const;
 
 	int getAllocatedEngineers() const;
+	/// Gets the amount of a certain soldier type not available for assignment.
+	int getAllocatedSoldiers(const std::string &soldier) const;
 	/// Gets the base's defense value.
 	int getDefenseValue() const;
 	/// Gets the base's short range detection.

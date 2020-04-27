@@ -1028,6 +1028,26 @@ int Base::getCraftMaintenance() const
 	return total;
 }
 
+ /**
+ * Gets the amount of a certain soldier type not available for assignment.
+ *
+ * Either in sickbay or assigned to a craft.
+ * @param soldier Soldier type.
+ * @return Total amount of the soldier type already assigned elsewhere.
+ */
+int Base::getAllocatedSoldiers(const std::string &soldier) const
+{
+	int qtyReserved = 0;
+	for (std::vector<Soldier*>::const_iterator i = _soldiers.begin(); i != _soldiers.end(); ++i)
+	{
+		if ((*i)->getRules()->getType() == soldier && ((*i)->getCraft() != 0 || (*i)->getWoundRecovery() != 0 ))
+		{
+			qtyReserved++;
+		}
+	}
+	return qtyReserved;
+}
+
 /**
  * Returns the total amount of soldiers of
  * a certain type stored in the base.
