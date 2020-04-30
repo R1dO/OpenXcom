@@ -169,6 +169,10 @@ public:
 	int getSpaceUsed() const;
 	/// Gets the craft's vehicles of a certain type.
 	int getVehicleCount(const std::string &vehicle) const;
+	/// Gets the craft's vehicle ammo of a certain type.
+	int getVehicleAmmoCount(const std::string &ammo, const Mod *mod) const;
+	/// Gets the Craft's armament (weapons & ammunition) of a certain type.
+	int getArmamentCount(const std::string &armament, const Mod *mod) const;
 	/// Sets the craft's dogfight status.
 	void setInDogfight(const bool inDogfight);
 	/// Gets if the craft is in dogfight.

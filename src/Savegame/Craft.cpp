@@ -944,6 +944,61 @@ int Craft::getVehicleCount(const std::string &vehicle) const
 }
 
 /**
+ * Returns the total amount of vehicle ammo of a
+ * certain type onboard the craft.
+ *
+ * Ammo is implicitly stored when a vehicle is added to the craft.
+ *
+ * Method should be safe for the case of crafts returning from a mission since
+ * as far as i understand "DebriefingState::reequipCraft()" removes a vehicle
+ * from the craft if not enough ammo is available.
+ *
+ * @param ammo Ammo item ID
+ * @param mod Mod for the saved game.
+ * @return Number of vehicle ammo (clips)
+ */
+int Craft::getVehicleAmmoCount(const std::string &ammo, const Mod *mod) const
+{
+	int total = 0;
+	for (std::vector<Vehicle*>::const_iterator i = _vehicles.begin(); i != _vehicles.end(); ++i)
+	{
+		if (!(*i)->getRules()->getCompatibleAmmo()->empty() && (*i)->getRules()->getCompatibleAmmo()->front() == ammo)
+		{
+			total += (*i)->getAmmo();
+			if (mod->getItem(ammo, false)->getClipSize() > 0)
+			{
+				total /= mod->getItem(ammo, false)->getClipSize();
+			}
+		}
+	}
+	return total;
+}
+
+/**
+ * Returns the total amount armament (weapons and ammunition) of a
+ * certain type installed on the craft.
+ * @param armament Armament type.
+ * @param mod Mod for the saved game.
+ * @return Amount of the specific Armament.
+ */
+int Craft::getArmamentCount(const std::string &armament, const Mod *mod) const
+{
+	int total = 0;
+	for (std::vector<CraftWeapon*>::const_iterator i = _weapons.begin(); i != _weapons.end(); ++i)
+	{
+		if ((*i)->getRules()->getLauncherItem() == armament)
+		{
+			total++;
+		}
+		if ((*i)->getRules()->getClipItem() == armament)
+		{
+			total += (*i)->getClipsLoaded(mod);
+		}
+	}
+	return total;
+}
+
+/**
  * Returns the items claimed by soldiers on the craft.
  *
  * @return Pointer to mapping of claimed items and the respective amount for all soldiers on the craft.
