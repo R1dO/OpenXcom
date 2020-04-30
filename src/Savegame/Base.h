@@ -155,6 +155,8 @@ public:
 	int getLongRangeDetection() const;
 	/// Gets the base's crafts of a certain type.
 	int getCraftCount(const std::string &craft) const;
+	/// Get the amount of an item assigned to base crafts.
+	int getCraftItemCount(const std::string &id) const;
 	/// Gets the base's craft maintenance.
 	int getCraftMaintenance() const;
 	/// Gets the base's soldiers of a certain type.

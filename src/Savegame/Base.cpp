@@ -1029,6 +1029,48 @@ int Base::getCraftMaintenance() const
 }
 
  /**
+ * Returns the total amount of a specific storage item assigned to all crafts.
+ *
+ * This includes armament, HWP ammo and special fuel.
+ * While fuel is permanently removed it still has its merit to display the
+ * elerium claims from aircraft. Especially when fuel retrieval becomes an
+ * option, which might be handy upon sale of a craft (although fuel removal
+ * shows contempt towards any buyer).
+ *
+ * @param id Item type
+ * @return Total amount of specific item in all crafts.
+ */
+int Base::getCraftItemCount(const std::string &id) const
+{
+	// Not using early returns to ensure this function still works when an item is
+	// used for multiple categories (e.g. HWP ammo & craft weapon ammo).
+	// For instance mods using generic ammo.
+	int qtyInCrafts = 0;
+	for (std::vector<Craft*>::const_iterator i = _crafts.begin(); i != _crafts.end(); ++i)
+	{
+		// Fuel (elerium / zrbite)
+		if ((*i)->getRules()->getRefuelItem() == id)
+		{
+			qtyInCrafts += (*i)->getFuel();
+		}
+		// Armament (weapons and ammunition installed on the craft).
+		if ((*i)->getNumWeapons() > 0)
+		{
+			qtyInCrafts += (*i)->getArmamentCount(id, _mod);
+		}
+		// HWP (vehicle and ammo).
+		if ((*i)->getNumVehicles() > 0)
+		{
+			qtyInCrafts += (*i)->getVehicleCount(id);
+			qtyInCrafts += (*i)->getVehicleAmmoCount(id, _mod);
+		}
+		// Battlescape items
+		qtyInCrafts += (*i)->getItems()->getItem(id);
+	}
+	return qtyInCrafts;
+}
+
+ /**
  * Gets the amount of a certain soldier type not available for assignment.
  *
  * Either in sickbay or assigned to a craft.
