@@ -394,6 +394,26 @@ std::vector<Transfer*> *Base::getTransfers()
 	return &_transfers;
 }
 
+ /**
+ * Returns the total amount of a specific storage item en-route to base.
+ *
+ * @param id Item type
+ * @return Total amount of specific item in en-route.
+ */
+int Base::getTransferItemCount(const std::string &id) const
+{
+	int qtyEnRoute = 0;
+	for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
+	{
+		if ((*i)->getType() == TRANSFER_ITEM && (*i)->getItems() == id)
+		{
+			qtyEnRoute += (*i)->getQuantity();
+		}
+	}
+	return qtyEnRoute;
+}
+
+
 /**
  * Returns the list of items in the base storage rooms.
  * Does NOT return items assigned to craft or in transfer.
@@ -559,16 +579,20 @@ int Base::getAvailableScientists() const
 /**
  * Returns the total amount of scientists contained
  * in the base.
+ * @param includeTransfers Whether to include scientists currently en-route (default=true)
  * @return Number of scientists.
  */
-int Base::getTotalScientists() const
+int Base::getTotalScientists(bool includeTransfers) const
 {
 	int total = _scientists;
-	for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
+	if (includeTransfers)
 	{
-		if ((*i)->getType() == TRANSFER_SCIENTIST)
+		for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
 		{
-			total += (*i)->getQuantity();
+			if ((*i)->getType() == TRANSFER_SCIENTIST)
+			{
+				total += (*i)->getQuantity();
+			}
 		}
 	}
 	const std::vector<ResearchProject *> & research (getResearch());
@@ -984,16 +1008,20 @@ int Base::getLongRangeDetection() const
  * Returns the total amount of craft of
  * a certain type stored in the base.
  * @param craft Craft type.
+ * @param includeTransfers Whether to include crafts currently en-route (default=true)
  * @return Number of craft.
  */
-int Base::getCraftCount(const std::string &craft) const
+int Base::getCraftCount(const std::string &craft, bool includeTransfers) const
 {
 	int total = 0;
-	for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
+	if (includeTransfers)
 	{
-		if ((*i)->getType() == TRANSFER_CRAFT && (*i)->getCraft()->getRules()->getType() == craft)
+		for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
 		{
-			total++;
+			if ((*i)->getType() == TRANSFER_CRAFT && (*i)->getCraft()->getRules()->getType() == craft)
+			{
+				total++;
+			}
 		}
 	}
 	for (std::vector<Craft*>::const_iterator i = _crafts.begin(); i != _crafts.end(); ++i)
@@ -1112,16 +1140,20 @@ int Base::getSoldierArmorCount(const std::string &armor) const
  * Returns the total amount of soldiers of
  * a certain type stored in the base.
  * @param soldier Soldier type.
+ * @param includeTransfers Whether to include soldiers currently en-route (default=true)
  * @return Number of soldiers.
  */
-int Base::getSoldierCount(const std::string &soldier) const
+int Base::getSoldierCount(const std::string &soldier, bool includeTransfers) const
 {
 	int total = 0;
-	for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
+	if (includeTransfers)
 	{
-		if ((*i)->getType() == TRANSFER_SOLDIER && (*i)->getSoldier()->getRules()->getType() == soldier)
+		for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
 		{
-			total++;
+			if ((*i)->getType() == TRANSFER_SOLDIER && (*i)->getSoldier()->getRules()->getType() == soldier)
+			{
+				total++;
+			}
 		}
 	}
 	for (std::vector<Soldier*>::const_iterator i = _soldiers.begin(); i != _soldiers.end(); ++i)

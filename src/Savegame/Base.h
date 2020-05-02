@@ -89,6 +89,8 @@ public:
 	std::vector<Craft*> *getCrafts();
 	/// Gets the base's transfers.
 	std::vector<Transfer*> *getTransfers();
+	/// Gets the amount of a storage item en-route to base.
+	int getTransferItemCount(const std::string &id) const;
 	/// Gets the base's items.
 	ItemContainer *getStorageItems();
 	/// Gets the base's scientists.
@@ -110,7 +112,7 @@ public:
 	/// Gets the base's available scientists.
 	int getAvailableScientists() const;
 	/// Gets the base's total scientists.
-	int getTotalScientists() const;
+	int getTotalScientists(bool includeTransfers = true) const;
 	/// Gets the base's available engineers.
 	int getAvailableEngineers() const;
 	/// Gets the base's total engineers.
@@ -154,13 +156,13 @@ public:
 	/// Gets the base's long range detection.
 	int getLongRangeDetection() const;
 	/// Gets the base's crafts of a certain type.
-	int getCraftCount(const std::string &craft) const;
+	int getCraftCount(const std::string &craft, bool includeTransfers = true) const;
 	/// Get the amount of an item assigned to base crafts.
 	int getCraftItemCount(const std::string &id) const;
 	/// Gets the base's craft maintenance.
 	int getCraftMaintenance() const;
 	/// Gets the base's soldiers of a certain type.
-	int getSoldierCount(const std::string &soldier) const;
+	int getSoldierCount(const std::string &soldier, bool includeTransfers = true) const;
 	/// Gets the armor amount of a certain type equiped by soldiers.
 	int getSoldierArmorCount(const std::string &armor) const;
 	/// Gets the base's personnel maintenance.
