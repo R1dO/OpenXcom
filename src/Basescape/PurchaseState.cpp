@@ -162,7 +162,7 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 			PurchaseRow row = { TRANSFER_SOLDIER, rule, tr(rule->getType()), rule->getBuyCost(), _base->getSoldierCount(rule->getType()), 0, 0, 0 };
 			if (_alternateScreen)
 			{
-				row.qtySrc = _base->getSoldierCount(rule->getType(), false);
+				row.qtySrc = _base->getSoldierCount(rule->getType(), false) - _base->getAllocatedSoldiers(rule->getType());
 				row.reserved = _base->getAllocatedSoldiers(rule->getType());
 				row.inTransfer = _base->getSoldierCount(rule->getType()) - _base->getSoldierCount(rule->getType(), false);;
 			}
@@ -346,13 +346,16 @@ void PurchaseState::updateList()
 		}
 		std::ostringstream ssQty, ssAmount;
 		ssQty << _items[i].qtySrc;
-		ssAmount << _items[i].amount;
 		if (_alternateScreen)
 		{
-			_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), "(999)", "", ssAmount.str().c_str());
+			std::ostringstream ssReserved;
+			ssReserved << "(" << _items[i].reserved << ")";
+			ssAmount << _items[i].inTransfer + _items[i].amount;
+			_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssReserved.str().c_str(), "", ssAmount.str().c_str());
 		}
 		else
 		{
+			ssAmount << _items[i].amount;
 			_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
 		}
 		_rows.push_back(i);
@@ -690,14 +693,15 @@ void PurchaseState::decreaseByValue(int change)
  */
 void PurchaseState::updateItemStrings()
 {
-	std::ostringstream ss, ss5;
-	ss << getRow().amount;
+	std::ostringstream ss;
 	if (_alternateScreen)
 	{
+		ss << getRow().amount + getRow().inTransfer;
 		_lstItems->setCellText(_sel, 5, ss.str());
 	}
 	else
 	{
+		ss << getRow().amount;
 		_lstItems->setCellText(_sel, 3, ss.str());
 	}
 
