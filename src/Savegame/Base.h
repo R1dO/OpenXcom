@@ -157,6 +157,8 @@ public:
 	int getLongRangeDetection() const;
 	/// Gets the base's crafts of a certain type.
 	int getCraftCount(const std::string &craft, bool includeTransfers = true) const;
+	/// Gets the amount of a specific craft available for missions.
+	int getCraftAvailable(const std::string &craft) const;
 	/// Get the amount of an item assigned to base crafts.
 	int getCraftItemCount(const std::string &id) const;
 	/// Gets the base's craft maintenance.

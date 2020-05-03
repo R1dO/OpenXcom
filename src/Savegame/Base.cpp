@@ -1008,7 +1008,7 @@ int Base::getLongRangeDetection() const
  * Returns the total amount of craft of
  * a certain type stored in the base.
  * @param craft Craft type.
- * @param includeTransfers Whether to include crafts currently en-route (default=true)
+ * @param includeTransfers Whether to include crafts currently in transfer (default=true).
  * @return Number of craft.
  */
 int Base::getCraftCount(const std::string &craft, bool includeTransfers) const
@@ -1027,6 +1027,25 @@ int Base::getCraftCount(const std::string &craft, bool includeTransfers) const
 	for (std::vector<Craft*>::const_iterator i = _crafts.begin(); i != _crafts.end(); ++i)
 	{
 		if ((*i)->getRules()->getType() == craft)
+		{
+			total++;
+		}
+	}
+	return total;
+}
+
+/**
+ * Returns the total amount of a specific craft able to conduct missions
+ * (e.g. not a mission, refueling, rearming, etc)
+ * @param craft Craft type.
+ * @return Number of craft.
+ */
+int Base::getCraftAvailable(const std::string &craft) const
+{
+	int total = 0;
+	for (std::vector<Craft*>::const_iterator i = _crafts.begin(); i != _crafts.end(); ++i)
+	{
+		if ((*i)->getRules()->getType() == craft && (*i)->getStatus() == "STR_READY" )
 		{
 			total++;
 		}
