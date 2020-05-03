@@ -162,9 +162,8 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 			PurchaseRow row = { TRANSFER_SOLDIER, rule, tr(rule->getType()), rule->getBuyCost(), _base->getSoldierCount(rule->getType()), 0, 0, 0 };
 			if (_alternateScreen)
 			{
-				row.qtySrc = _base->getSoldierCount(rule->getType(), false) - _base->getAllocatedSoldiers(rule->getType());
 				row.reserved = _base->getAllocatedSoldiers(rule->getType());
-				row.inTransfer = _base->getSoldierCount(rule->getType()) - _base->getSoldierCount(rule->getType(), false);;
+				row.inTransfer = row.qtySrc - _base->getSoldierCount(rule->getType(), false);;
 			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
@@ -178,9 +177,8 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 		PurchaseRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), _game->getMod()->getScientistCost() * 2, _base->getTotalScientists(), 0, 0, 0 };
 		if (_alternateScreen)
 		{
-			row.qtySrc = _base->getScientists();
 			row.reserved = _base->getAllocatedScientists();
-			row.inTransfer = _base->getTotalScientists() - _base->getTotalScientists(false);
+			row.inTransfer = row.qtySrc - _base->getTotalScientists(false);
 		}
 		_items.push_back(row);
 		std::string cat = getCategory(_items.size() - 1);
@@ -193,9 +191,8 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 		PurchaseRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), _game->getMod()->getEngineerCost() * 2, _base->getTotalEngineers(), 0, 0, 0 };
 		if (_alternateScreen)
 		{
-			row.qtySrc = _base->getAvailableEngineers();
 			row.reserved = _base->getAllocatedEngineers();
-			row.inTransfer = _base->getTotalEngineers() - _base->getAvailableEngineers() - _base->getAllocatedEngineers();
+			row.inTransfer = row.qtySrc - _base->getAvailableEngineers() - row.reserved;
 		}
 		_items.push_back(row);
 		std::string cat = getCategory(_items.size() - 1);
@@ -213,9 +210,8 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 			PurchaseRow row = { TRANSFER_CRAFT, rule, tr(rule->getType()), rule->getBuyCost(), _base->getCraftCount(rule->getType()), 0, 0, 0 };
 			if (_alternateScreen)
 			{
-				row.qtySrc = _base->getCraftAvailable(rule->getType());
-				row.inTransfer = _base->getCraftCount(rule->getType()) - _base->getCraftCount(rule->getType(), false);
-				row.reserved = _base->getCraftCount(rule->getType()) - row.qtySrc - row.inTransfer;
+				row.inTransfer = row.qtySrc - _base->getCraftCount(rule->getType(), false);
+				row.reserved = row.qtySrc - row.inTransfer - _base->getCraftAvailable(rule->getType());
 			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
@@ -238,6 +234,7 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 				// They get removed from base upon assignment.
 				row.reserved = _base->getCraftItemCount(rule->getType());
 				row.inTransfer = _base->getTransferItemCount(rule->getType());
+				row.qtySrc += row.reserved + row.inTransfer;
 			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);

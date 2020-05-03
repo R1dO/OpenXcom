@@ -50,7 +50,7 @@ private:
 		void *rule;        ///< Pointer to ruleset of item.
 		std::string name;  ///< Translated name of item.
 		int cost;          ///< Purchase cost of item.
-		int qtySrc;        ///< Starting amount on base (excluding transfers and reserved amounts)
+		int qtySrc;        ///< Total starting amount on base (including transfers)
 		int amount;        /**< Requested change.
 		                    *
 		                    * + Positive values moves an item towards base stores (e.g BUY).
