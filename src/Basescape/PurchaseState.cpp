@@ -113,12 +113,9 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 
 	if (_alternateScreen)
 	{
-		_lstItems->setArrowColumn(245, ARROW_VERTICAL);
-		// Use an empty column to reserve space (25) for the arrows. To allow for arbitrary cell text alignment.
-		_lstItems->setColumns(6, 139, 55, 24, 24, 25, 18);
-		_lstItems->setAlign(ALIGN_RIGHT, 2);
-		_lstItems->setAlign(ALIGN_RIGHT, 3);
-		_lstItems->setAlign(ALIGN_RIGHT, 5);
+		_lstItems->setArrowColumn(241, ARROW_VERTICAL);
+		// Use an empty column to reserve space (28) for the arrows. To allow for arbitrary cell text alignment.
+		_lstItems->setColumns(6, 140, 55, 22, 22, 28, 18);
 	}
 	else
 	{
