@@ -213,8 +213,9 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 			PurchaseRow row = { TRANSFER_CRAFT, rule, tr(rule->getType()), rule->getBuyCost(), _base->getCraftCount(rule->getType()), 0, 0, 0 };
 			if (_alternateScreen)
 			{
-				row.qtySrc = _base->getCraftCount(rule->getType(), false);
+				row.qtySrc = _base->getCraftAvailable(rule->getType());
 				row.inTransfer = _base->getCraftCount(rule->getType()) - _base->getCraftCount(rule->getType(), false);
+				row.reserved = _base->getCraftCount(rule->getType()) - row.qtySrc - row.inTransfer;
 			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
