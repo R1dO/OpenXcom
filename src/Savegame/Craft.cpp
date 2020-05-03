@@ -964,11 +964,17 @@ int Craft::getVehicleAmmoCount(const std::string &ammo, const Mod *mod) const
 	{
 		if (!(*i)->getRules()->getCompatibleAmmo()->empty() && (*i)->getRules()->getCompatibleAmmo()->front() == ammo)
 		{
-			total += (*i)->getAmmo();
-			if (mod->getItem(ammo, false)->getClipSize() > 0)
+			int clipsPerVehicle, ammoClipsize;
+			ammoClipsize = mod->getItem(ammo, true)->getClipSize();
+			if (ammoClipsize > 0 && (*i)->getRules()->getClipSize() > 0)
 			{
-				total /= mod->getItem(ammo, false)->getClipSize();
+				clipsPerVehicle = (*i)->getRules()->getClipSize() / ammoClipsize;
 			}
+			else
+			{
+				clipsPerVehicle = ammoClipsize;
+			}
+			total += clipsPerVehicle;
 		}
 	}
 	return total;
