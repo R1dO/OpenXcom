@@ -340,16 +340,24 @@ void PurchaseState::updateList()
 			}
 		}
 		std::ostringstream ssQty, ssAmount;
-		ssQty << _items[i].qtySrc;
 		if (_alternateScreen)
 		{
 			std::ostringstream ssReserved;
-			ssReserved << "(" << _items[i].reserved << ")";
-			ssAmount << _items[i].inTransfer + _items[i].amount;
+			// First # column represent the total amount currently on base
+			ssQty << _items[i].qtySrc - _items[i].inTransfer;
+			if (_items[i].reserved != 0)
+			{
+				ssReserved << "(" << _items[i].reserved << ")";
+			}
+			if (_items[i].inTransfer + _items[i].amount != 0)
+			{
+				ssAmount << _items[i].inTransfer + _items[i].amount;
+			}
 			_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssReserved.str().c_str(), "", ssAmount.str().c_str());
 		}
 		else
 		{
+			ssQty << _items[i].qtySrc;
 			ssAmount << _items[i].amount;
 			_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
 		}
@@ -691,7 +699,10 @@ void PurchaseState::updateItemStrings()
 	std::ostringstream ss;
 	if (_alternateScreen)
 	{
-		ss << getRow().amount + getRow().inTransfer;
+		if (getRow().inTransfer + getRow().amount != 0)
+		{
+			ss << getRow().inTransfer + getRow().amount;
+		}
 		_lstItems->setCellText(_sel, 5, ss.str());
 	}
 	else
