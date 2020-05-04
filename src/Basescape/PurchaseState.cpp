@@ -750,9 +750,6 @@ void PurchaseState::cbxCategoryChange(Action *)
 ++ */
 void PurchaseState::updateSubtitleLine()
 {
-	_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
-	_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
-
 	std::ostringstream ss;
 	ss << _base->getUsedStores();
 	if (std::abs(_iQty) > 0.05)
@@ -763,7 +760,25 @@ void PurchaseState::updateSubtitleLine()
 		ss << std::fixed << std::setprecision(1) << _iQty << ")";
 	}
 	ss << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
+
+	if (_alternateScreen)
+	{
+		std::ostringstream ssFunds;
+		ssFunds << Unicode::formatFunding(_game->getSavedGame()->getFunds());
+		if (_total > 0)
+		{
+			ssFunds << " (" << Unicode::formatFunding(-1*_total) << ")";
+		}
+		_txtFunds->setText(tr("STR_FUNDS").arg(ssFunds.str()));
+		// Abuse default "_txtPurchases" to display used space (since "_txtFunds" already shows purchase cost)
+		_txtPurchases->setText(tr("STR_SPACE_USED").arg(ss.str()));
+	}
+	else
+	{
+		_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
+		_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
+		_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
+	}
 }
 
 }
