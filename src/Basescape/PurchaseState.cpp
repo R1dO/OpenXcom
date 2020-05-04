@@ -234,8 +234,8 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 			{
 				// No need to check reservation of research and manufacture items.
 				// They get removed from base upon assignment.
-				row.reserved = _base->getCraftItemCount(rule->getType());
-				row.inTransfer = _base->getTransferItemCount(rule->getType());
+				row.reserved = _base->getCraftItemCount(*i);
+				row.inTransfer = _base->getTransferItemCount(*i);
 				row.qtySrc += row.reserved + row.inTransfer;
 			}
 			_items.push_back(row);
