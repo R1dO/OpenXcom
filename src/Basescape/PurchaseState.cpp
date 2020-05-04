@@ -67,6 +67,7 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 	_txtPurchases = new Text(150, 9, 160, 24);
 	_txtSpaceUsed = new Text(150, 9, 160, 34);
 	_txtCost = new Text(102, 9, 152, 44);
+	_txtBase = new Text(51, 9, 207, 44);
 	_txtQuantity = new Text(60, 9, 256, 44);
 	_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
 	_lstItems = new TextList(287, 120, 8, 54);
@@ -84,6 +85,7 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 	add(_txtPurchases, "text", "buyMenu");
 	add(_txtSpaceUsed, "text", "buyMenu");
 	add(_txtCost, "text", "buyMenu");
+	add(_txtBase, "text", "buyMenu");
 	add(_txtQuantity, "text", "buyMenu");
 	add(_lstItems, "list", "buyMenu");
 	add(_cbxCategory, "text", "buyMenu");
@@ -113,6 +115,9 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 
 	if (_alternateScreen)
 	{
+		_txtCost->setText(tr("STR_COST"));
+		_txtBase->setText(tr("STR_BASE"));
+
 		_lstItems->setArrowColumn(241, ARROW_VERTICAL);
 		// Use an empty column to reserve space (28) for the arrows. To allow for arbitrary cell text alignment.
 		_lstItems->setColumns(6, 140, 55, 22, 22, 28, 18);
