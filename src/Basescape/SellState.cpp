@@ -115,17 +115,6 @@ SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _
 	_txtTitle->setAlign(ALIGN_CENTER);
 	_txtTitle->setText(tr("STR_SELL_ITEMS_SACK_PERSONNEL"));
 
-	_txtSales->setText(tr("STR_VALUE_OF_SALES").arg(Unicode::formatFunding(_total)));
-
-	_txtFunds->setText(tr("STR_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
-
-	_txtSpaceUsed->setVisible(Options::storageLimitsEnforced);
-
-	std::ostringstream ss;
-	ss << _base->getUsedStores() << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(ss.str());
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
-
 	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
 
 	_txtSell->setText(tr("STR_SELL_SACK"));
@@ -242,6 +231,7 @@ SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _
 	_cbxCategory->onChange((ActionHandler)&SellState::cbxCategoryChange);
 
 	updateList();
+	updateSubtitleLine();
 
 	_timerInc = new Timer(250);
 	_timerInc->onTimer((StateHandler)&SellState::increase);
@@ -655,7 +645,6 @@ void SellState::updateItemStrings()
 	_lstItems->setCellText(_sel, 2, ss.str());
 	ss2 << getRow().qtySrc - getRow().amount;
 	_lstItems->setCellText(_sel, 1, ss2.str());
-	_txtSales->setText(tr("STR_VALUE_OF_SALES").arg(Unicode::formatFunding(_total)));
 
 	if (getRow().amount > 0)
 	{
@@ -674,20 +663,12 @@ void SellState::updateItemStrings()
 		}
 	}
 
-	ss3 << _base->getUsedStores();
-	if (std::abs(_spaceChange) > 0.05)
-	{
-		ss3 << "(";
-		if (_spaceChange > 0.05)
-			ss3 << "+";
-		ss3 << std::fixed << std::setprecision(1) << _spaceChange << ")";
-	}
-	ss3 << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss3.str()));
 	if (Options::storageLimitsEnforced)
 	{
 		_btnOk->setVisible(!_base->storesOverfull(_spaceChange));
 	}
+
+	updateSubtitleLine();
 }
 
 /**
@@ -696,6 +677,31 @@ void SellState::updateItemStrings()
 void SellState::cbxCategoryChange(Action *)
 {
 	updateList();
+}
+
+/**
+++ * Updates entities below screen title.
+++ *
+++ * The (derived) values between title and list.
+++ */
+void SellState::updateSubtitleLine()
+{
+	_txtSpaceUsed->setVisible(Options::storageLimitsEnforced);
+
+	_txtSales->setText(tr("STR_VALUE_OF_SALES").arg(Unicode::formatFunding(_total)));
+	_txtFunds->setText(tr("STR_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
+
+	std::ostringstream ss;
+	ss << _base->getUsedStores();
+	if (std::abs(_spaceChange) > 0.05)
+	{
+		ss << "(";
+		if (_spaceChange > 0.05)
+			ss << "+";
+		ss << std::fixed << std::setprecision(1) << _spaceChange << ")";
+	}
+	ss << ":" << _base->getAvailableStores();
+	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
 }
 
 }
