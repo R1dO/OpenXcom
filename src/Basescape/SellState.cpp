@@ -59,6 +59,7 @@ namespace OpenXcom
 SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _total(0), _spaceChange(0), _origin(origin)
 {
 	bool overfull = Options::storageLimitsEnforced && _base->storesOverfull();
+	_alternateScreen = Options::alternateBaseScreens;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -121,8 +122,17 @@ SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _
 
 	_txtValue->setText(tr("STR_VALUE"));
 
-	_lstItems->setArrowColumn(182, ARROW_VERTICAL);
-	_lstItems->setColumns(4, 156, 54, 24, 53);
+	if (_alternateScreen)
+	{
+		_lstItems->setArrowColumn(189, ARROW_VERTICAL);
+		// Use an empty column to reserve space (28) for the arrows. To allow for arbitrary cell text alignment.
+		_lstItems->setColumns(6, 140, 22, 22, 28, 18, 55);
+	}
+	else
+	{
+		_lstItems->setArrowColumn(182, ARROW_VERTICAL);
+		_lstItems->setColumns(4, 156, 54, 24, 53);
+	}
 	_lstItems->setSelectable(true);
 	_lstItems->setBackground(_window);
 	_lstItems->setMargin(2);
@@ -133,6 +143,7 @@ SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _
 	_lstItems->onRightArrowRelease((ActionHandler)&SellState::lstItemsRightArrowRelease);
 	_lstItems->onRightArrowClick((ActionHandler)&SellState::lstItemsRightArrowClick);
 	_lstItems->onMousePress((ActionHandler)&SellState::lstItemsMousePress);
+	_lstItems->setWordWrap(true);
 
 	_cats.push_back("STR_ALL_ITEMS");
 
@@ -326,8 +337,16 @@ void SellState::updateList()
 		std::ostringstream ssQty, ssAmount;
 		ssQty << _items[i].qtySrc - _items[i].amount;
 		ssAmount << _items[i].amount;
-		_lstItems->addRow(4, name.c_str(), ssQty.str().c_str(), ssAmount.str().c_str(), Unicode::formatFunding(_items[i].cost).c_str());
+		if (_alternateScreen)
+		{
+			_lstItems->addRow(6, name.c_str(), ssQty.str().c_str(), "(999)", "", ssAmount.str().c_str(), Unicode::formatFunding(_items[i].cost).c_str());
+		}
+		else
+		{
+			_lstItems->addRow(4, name.c_str(), ssQty.str().c_str(), ssAmount.str().c_str(), Unicode::formatFunding(_items[i].cost).c_str());
+		}
 		_rows.push_back(i);
+
 		if (_items[i].amount > 0)
 		{
 			_lstItems->setRowColor(_rows.size() - 1, _lstItems->getSecondaryColor());
@@ -642,9 +661,16 @@ void SellState::updateItemStrings()
 {
 	std::ostringstream ss, ss2, ss3;
 	ss << getRow().amount;
-	_lstItems->setCellText(_sel, 2, ss.str());
 	ss2 << getRow().qtySrc - getRow().amount;
 	_lstItems->setCellText(_sel, 1, ss2.str());
+	if (_alternateScreen)
+	{
+		_lstItems->setCellText(_sel, 4, ss.str());
+	}
+	else
+	{
+		_lstItems->setCellText(_sel, 2, ss.str());
+	}
 
 	if (getRow().amount > 0)
 	{

@@ -62,6 +62,8 @@ private:
 	std::string getCategory(int sel) const;
 	/// Gets the row of the current selection.
 	TransferRow &getRow() { return _items[_rows[_sel]]; }
+	/// Do we use the alternate base screen option?
+	bool _alternateScreen;
 	/// Updates entities below screen title.
 	void updateSubtitleLine();
 public:
