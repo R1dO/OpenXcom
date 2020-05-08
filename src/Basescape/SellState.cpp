@@ -165,7 +165,9 @@ SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _
 	{
 		if ((*i)->getCraft() == 0)
 		{
-			TransferRow row = { TRANSFER_SOLDIER, (*i), (*i)->getName(true), 0, 1, 0, 0 };
+			SellRow row = { TRANSFER_SOLDIER, (*i), (*i)->getName(true), 0, 1, 0, 0, 0, true };
+			// Original behavior makes sense (no display of named soldiers assigned to
+			// craft or in-transfer, to protect against sale).
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -178,7 +180,9 @@ SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _
 	{
 		if ((*i)->getStatus() != "STR_OUT")
 		{
-			TransferRow row = { TRANSFER_CRAFT, (*i), (*i)->getName(_game->getLanguage()), (*i)->getRules()->getSellCost(), 1, 0, 0 };
+			SellRow row = { TRANSFER_CRAFT, (*i), (*i)->getName(_game->getLanguage()), (*i)->getRules()->getSellCost(), 1, 0, 0, 0, true };
+			// Original behavior makes sense (no display of named aircraft currently
+			// on a mission or in-transfer, to protect against sale).
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -187,48 +191,99 @@ SellState::SellState(Base *base, OptionsOrigin origin) : _base(base), _sel(0), _
 			}
 		}
 	}
-	if (_base->getAvailableScientists() > 0)
-	{
-		TransferRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), 0, _base->getAvailableScientists(), 0, 0 };
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+
+	{ //Scientists
+		SellRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), 0, _base->getAvailableScientists(), 0, 0, 0, true };
+		if (_alternateScreen)
 		{
-			_cats.push_back(cat);
+			row.qtySrc = _base->getTotalScientists();
+			row.reserved = _base->getAllocatedScientists();
+			row.inTransfer = row.qtySrc - _base->getTotalScientists(false);
+		}
+		if (row.qtySrc > 0)
+		{
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
 		}
 	}
-	if (_base->getAvailableEngineers() > 0)
-	{
-		TransferRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), 0, _base->getAvailableEngineers(), 0, 0 };
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+
+	{ //Engineers
+		SellRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), 0, _base->getAvailableEngineers(), 0, 0, 0, true };
+		if (_alternateScreen)
 		{
-			_cats.push_back(cat);
+			row.qtySrc = _base->getTotalEngineers();
+			row.reserved = _base->getAllocatedEngineers();
+			row.inTransfer = row.qtySrc - _base->getAvailableEngineers() - row.reserved;
+		}
+		if (row.qtySrc > 0)
+		{
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
 		}
 	}
+
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
-		int qty = _base->getStorageItems()->getItem(*i);
-		if (Options::storageLimitsEnforced && _origin == OPT_BATTLESCAPE)
+		RuleItem *rule = _game->getMod()->getItem(*i, true);
+		SellRow row = { TRANSFER_ITEM, rule, tr(*i), rule->getSellCost(), _base->getStorageItems()->getItem(*i), 0, 0, 0, true };
+
+		// If returning from a mission allow sale of reserved items.
+		if (_origin == OPT_BATTLESCAPE)
 		{
-			for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end(); ++j)
+			row.protectReserved = false;
+
+			// Unless it is one of the special categories below
+			for (std::vector<Craft*>::const_iterator j = _base->getCrafts()->begin(); j != _base->getCrafts()->end(); ++j)
 			{
-				if ((*j)->getItems() == *i)
+				// Fuel (elerium / zrbite)
+				if ((*j)->getRules()->getRefuelItem() == (*i))
 				{
-					qty += (*j)->getQuantity();
+					row.protectReserved = true;
+				}
+				// Armament
+				else if ((*j)->getNumWeapons() > 0 && (*j)->getArmamentCount(*i, _game->getMod()) > 0)
+				{
+					row.protectReserved = true;
+				}
+				// HWP (vehicle and ammo).
+				else if ((*j)->getNumVehicles() > 0 && ( (*j)->getVehicleCount(*i) > 0 || (*j)->getVehicleAmmoCount(*i, _game->getMod()) > 0))
+				{
+					row.protectReserved = true;
 				}
 			}
-			for (std::vector<Craft*>::iterator j = _base->getCrafts()->begin(); j != _base->getCrafts()->end(); ++j)
+			// Any armor
+			if (_armors.find(*i) != _armors.end())
 			{
-				qty += (*j)->getItems()->getItem(*i);
+				row.protectReserved = true;
 			}
 		}
-		RuleItem *rule = _game->getMod()->getItem(*i, true);
-		if (qty > 0 && (Options::canSellLiveAliens || !rule->isAlien()))
+
+		if (_alternateScreen)
 		{
-			TransferRow row = { TRANSFER_ITEM, rule, tr(*i), rule->getSellCost(), qty, 0, 0 };
+			row.reserved = _base->getCraftItemCount(*i) + _base->getSoldierArmorCount(*i);
+			row.inTransfer = _base->getTransferItemCount(*i);
+			row.qtySrc += row.reserved + row.inTransfer;
+		}
+		else if (Options::storageLimitsEnforced && _origin == OPT_BATTLESCAPE)
+		{
+			row.qtySrc += _base->getTransferItemCount(*i);
+			if (row.protectReserved == false)
+			{
+				row.qtySrc += _base->getCraftItemCount(*i);
+			}
+		}
+
+		if (row.qtySrc > 0 && (Options::canSellLiveAliens || !rule->isAlien()))
+		{
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -367,7 +422,7 @@ void SellState::btnOkClick(Action *)
 	_game->getSavedGame()->setFunds(_game->getSavedGame()->getFunds() + _total);
 	Soldier *soldier;
 	Craft *craft;
-	for (std::vector<TransferRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	for (std::vector<SellRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
 		if (i->amount > 0)
 		{

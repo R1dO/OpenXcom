@@ -42,13 +42,33 @@ class Base;
 class SellState : public State
 {
 private:
+	/**
+	 * Tailored struct to store variables of importance to the spreadsheet.
+	 */
+	struct SellRow
+	{
+		TransferType type;    ///< Item category.
+		void *rule;           ///< Pointer to ruleset of item.
+		std::string name;     ///< Translated name of item.
+		int cost;             ///< Sell value of item.
+		int qtySrc;           ///< Total starting amount on base (including transfers)
+		int amount;           /**< Requested change.
+		                       *
+		                       * + Positive values moves an item towards base stores (e.g undo).
+		                       * + Negative values moves an item away from base stores (e.g. SELL).
+		                       */
+		int inTransfer;       ///< Amount currently on route to base
+		int reserved;         ///< Reserved amount of items(s).
+		bool protectReserved; ///< Protect reserved items against sale?
+	};
+
 	Base *_base;
 	TextButton *_btnOk, *_btnCancel;
 	Window *_window;
 	Text *_txtTitle, *_txtSales, *_txtFunds, *_txtQuantity, *_txtSell, *_txtValue, *_txtSpaceUsed;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
-	std::vector<TransferRow> _items;
+	std::vector<SellRow> _items;
 	std::vector<int> _rows;
 	std::vector<std::string> _cats;
 	std::set<std::string> _craftWeapons, _armors;
@@ -61,7 +81,7 @@ private:
 	/// Gets the category of the current selection.
 	std::string getCategory(int sel) const;
 	/// Gets the row of the current selection.
-	TransferRow &getRow() { return _items[_rows[_sel]]; }
+	SellRow &getRow() { return _items[_rows[_sel]]; }
 	/// Do we use the alternate base screen option?
 	bool _alternateScreen;
 	/// Updates entities below screen title.
