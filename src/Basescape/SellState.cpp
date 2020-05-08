@@ -653,7 +653,12 @@ void SellState::increase()
  */
 void SellState::changeByValue(int change, int dir)
 {
-	if (dir > 0)
+	if (dir > 0 && getRow().protectReserved == true)
+	{
+		if (0 >= change || (getRow().qtySrc - getRow().reserved) <= getRow().amount) return;
+		change = std::min((getRow().qtySrc - getRow().reserved) - getRow().amount, change);
+	}
+	else if (dir > 0)
 	{
 		if (0 >= change || getRow().qtySrc <= getRow().amount) return;
 		change = std::min(getRow().qtySrc - getRow().amount, change);
