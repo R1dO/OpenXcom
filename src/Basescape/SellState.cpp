@@ -391,13 +391,22 @@ void SellState::updateList()
 		}
 		std::ostringstream ssQty, ssAmount;
 		ssQty << _items[i].qtySrc - _items[i].amount;
-		ssAmount << _items[i].amount;
 		if (_alternateScreen)
 		{
-			_lstItems->addRow(6, name.c_str(), ssQty.str().c_str(), "(999)", "", ssAmount.str().c_str(), Unicode::formatFunding(_items[i].cost).c_str());
+			std::ostringstream ssReserved;
+			if (_items[i].reserved != 0)
+			{
+				ssReserved << "(" << _items[i].reserved << ")";
+			}
+			if (_items[i].amount != 0)
+			{
+				ssAmount << _items[i].amount;
+			}
+			_lstItems->addRow(6, name.c_str(), ssQty.str().c_str(), ssReserved.str().c_str(), "", ssAmount.str().c_str(), Unicode::formatFunding(_items[i].cost).c_str());
 		}
 		else
 		{
+			ssAmount << _items[i].amount;
 			_lstItems->addRow(4, name.c_str(), ssQty.str().c_str(), ssAmount.str().c_str(), Unicode::formatFunding(_items[i].cost).c_str());
 		}
 		_rows.push_back(i);
@@ -715,15 +724,19 @@ void SellState::decrease()
 void SellState::updateItemStrings()
 {
 	std::ostringstream ss, ss2, ss3;
-	ss << getRow().amount;
 	ss2 << getRow().qtySrc - getRow().amount;
 	_lstItems->setCellText(_sel, 1, ss2.str());
 	if (_alternateScreen)
 	{
+		if (getRow().amount != 0)
+		{
+			ss << getRow().amount;
+		}
 		_lstItems->setCellText(_sel, 4, ss.str());
 	}
 	else
 	{
+		ss << getRow().amount;
 		_lstItems->setCellText(_sel, 2, ss.str());
 	}
 
