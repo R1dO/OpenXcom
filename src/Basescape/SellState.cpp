@@ -785,11 +785,6 @@ void SellState::cbxCategoryChange(Action *)
 ++ */
 void SellState::updateSubtitleLine()
 {
-	_txtSpaceUsed->setVisible(Options::storageLimitsEnforced);
-
-	_txtSales->setText(tr("STR_VALUE_OF_SALES").arg(Unicode::formatFunding(_total)));
-	_txtFunds->setText(tr("STR_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
-
 	std::ostringstream ss;
 	ss << _base->getUsedStores();
 	if (std::abs(_spaceChange) > 0.05)
@@ -800,7 +795,28 @@ void SellState::updateSubtitleLine()
 		ss << std::fixed << std::setprecision(1) << _spaceChange << ")";
 	}
 	ss << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
+
+	if (_alternateScreen)
+	{
+		std::ostringstream ssFunds;
+		ssFunds << Unicode::formatFunding(_game->getSavedGame()->getFunds());
+		if (_total > 0)
+		{
+			ssFunds << " (+" << Unicode::formatFunding(_total) << ")";
+		}
+		// Let "_txtSales" show the current funds & the change.
+		_txtSales->setText(tr("STR_FUNDS").arg(ssFunds.str()));
+		// Abuse default "_txtFunds" to display used space (since "_txtSales" already shows purchase cost)
+		_txtFunds->setText(tr("STR_SPACE_USED").arg(ss.str()));
+	}
+	else
+	{
+		_txtSpaceUsed->setVisible(Options::storageLimitsEnforced);
+
+		_txtSales->setText(tr("STR_VALUE_OF_SALES").arg(Unicode::formatFunding(_total)));
+		_txtFunds->setText(tr("STR_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
+		_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
+	}
 }
 
 }
