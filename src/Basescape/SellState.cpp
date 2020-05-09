@@ -465,15 +465,50 @@ void SellState::btnOkClick(Action *)
 				_base->setEngineers(_base->getEngineers() - i->amount);
 				break;
 			case TRANSFER_ITEM:
+				int toRemove = i->amount;
 				RuleItem *item = (RuleItem*)i->rule;
-				if (_base->getStorageItems()->getItem(item->getType()) < i->amount)
+				// Start by canceling outstanding orders (rerouted or returned to sender by post-office)
+				for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && toRemove;)
 				{
-					int toRemove = i->amount - _base->getStorageItems()->getItem(item->getType());
+					if ((*j)->getItems() == item->getType())
+					{
+						if ((*j)->getQuantity() <= toRemove)
+						{
+							toRemove -= (*j)->getQuantity();
+							delete *j;
+							j = _base->getTransfers()->erase(j);
+						}
+						else
+						{
+							(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - toRemove);
+							toRemove = 0;
+						}
+					}
+					else
+					{
+						++j;
+					}
+				}
 
-					// remove all of said items from base
+				// If we still need to remove any, take them from the base storage facilities.
+				if (_base->getStorageItems()->getItem(item->getType()) < toRemove)
+				{
+					// Remove all of said items from base
+					toRemove -= _base->getStorageItems()->getItem(item->getType());
 					_base->getStorageItems()->removeItem(item->getType(), INT_MAX);
+				}
+				else
+				{
+					_base->getStorageItems()->removeItem(item->getType(), toRemove);
+					toRemove = 0;
+				}
 
-					// if we still need to remove any, remove them from the crafts first, and keep a running tally
+				// As a last resort remove them from the crafts. We postponed it as long
+				// as possible but now it is time for our ready-for-battle veterans to
+				// hand over their shiny stuff .
+				// Better stay away from the troopers for a while commander ... UPROAR!!
+				if (toRemove > 0)
+				{
 					for (std::vector<Craft*>::iterator j = _base->getCrafts()->begin(); j != _base->getCrafts()->end() && toRemove; ++j)
 					{
 						if ((*j)->getItems()->getItem(item->getType()) < toRemove)
@@ -484,36 +519,8 @@ void SellState::btnOkClick(Action *)
 						else
 						{
 							(*j)->getItems()->removeItem(item->getType(), toRemove);
-							toRemove = 0;
 						}
 					}
-
-					// if there are STILL any left to remove, take them from the transfers, and if necessary, delete it.
-					for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && toRemove;)
-					{
-						if ((*j)->getItems() == item->getType())
-						{
-							if ((*j)->getQuantity() <= toRemove)
-							{
-								toRemove -= (*j)->getQuantity();
-								delete *j;
-								j = _base->getTransfers()->erase(j);
-							}
-							else
-							{
-								(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - toRemove);
-								toRemove = 0;
-							}
-						}
-						else
-						{
-							++j;
-						}
-					}
-				}
-				else
-				{
-					_base->getStorageItems()->removeItem(item->getType(), i->amount);
 				}
 				break;
 			}
@@ -779,10 +786,10 @@ void SellState::cbxCategoryChange(Action *)
 }
 
 /**
-++ * Updates entities below screen title.
-++ *
-++ * The (derived) values between title and list.
-++ */
+* Updates entities below screen title.
+*
+* The (derived) values between title and list.
+*/
 void SellState::updateSubtitleLine()
 {
 	std::ostringstream ss;
