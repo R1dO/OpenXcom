@@ -44,7 +44,7 @@ private:
 	Base *_baseFrom, *_baseTo;
 	TextButton *_btnOk, *_btnCancel;
 	Window *_window;
-	Text *_txtTitle, *_txtQuantity, *_txtAmountTransfer, *_txtAmountDestination;
+	Text *_txtTitle, *_txtQuantity, *_txtAmountTransfer, *_txtAmountDestination, *_txtFunds;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
 	std::vector<TransferRow> _items;
@@ -63,6 +63,8 @@ private:
 	TransferRow &getRow() { return _items[_rows[_sel]]; }
 	/// Gets distance between bases.
 	double getDistance() const;
+	/// Do we use the alternate base screen option?
+	bool _alternateScreen;
 public:
 	/// Creates the Transfer Items state.
 	TransferItemsState(Base *baseFrom, Base *baseTo);

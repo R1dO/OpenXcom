@@ -56,16 +56,31 @@ namespace OpenXcom
  */
 TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom(baseFrom), _baseTo(baseTo), _sel(0), _total(0), _pQty(0), _cQty(0), _aQty(0), _iQty(0.0), _distance(0.0), _ammoColor(0)
 {
+	_alternateScreen = Options::alternateBaseScreens;
+
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
 	_btnOk = new TextButton(148, 16, 8, 176);
 	_btnCancel = new TextButton(148, 16, 164, 176);
 	_txtTitle = new Text(310, 17, 5, 8);
-	_txtQuantity = new Text(50, 9, 150, 24);
-	_txtAmountTransfer = new Text(60, 17, 200, 24);
-	_txtAmountDestination = new Text(60, 17, 260, 24);
-	_cbxCategory = new ComboBox(this, 120, 16, 10, 24);
-	_lstItems = new TextList(287, 128, 8, 44);
+	if (_alternateScreen)
+	{
+		_txtFunds = new Text(150, 9, 10, 24);
+		_txtQuantity = new Text(50, 9, 150, 36);
+		_txtAmountTransfer = new Text(60, 17, 200, 36);
+		_txtAmountDestination = new Text(60, 17, 260, 36);
+		_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
+		_lstItems = new TextList(287, 120, 8, 54);
+	}
+	else
+	{
+		_txtFunds = new Text(50, 9, 150, 24); // Dummy
+		_txtQuantity = new Text(50, 9, 150, 24);
+		_txtAmountTransfer = new Text(60, 17, 200, 24);
+		_txtAmountDestination = new Text(60, 17, 260, 24);
+		_cbxCategory = new ComboBox(this, 120, 16, 10, 24);
+		_lstItems = new TextList(287, 128, 8, 44);
+	}
 
 	// Set palette
 	setInterface("transferMenu");
@@ -81,6 +96,7 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	add(_txtAmountDestination, "text", "transferMenu");
 	add(_lstItems, "list", "transferMenu");
 	add(_cbxCategory, "text", "transferMenu");
+	add(_txtFunds, "text", "transferMenu");
 
 	centerAllSurfaces();
 
@@ -98,6 +114,11 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	_txtTitle->setBig();
 	_txtTitle->setAlign(ALIGN_CENTER);
 	_txtTitle->setText(tr("STR_TRANSFER"));
+
+	if (_alternateScreen)
+	{
+		_txtFunds->setText(tr("STR_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
+	}
 
 	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
 
