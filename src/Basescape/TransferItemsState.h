@@ -65,6 +65,10 @@ private:
 	double getDistance() const;
 	/// Do we use the alternate base screen option?
 	bool _alternateScreen;
+	/// Updates entities below screen title.
+	void updateSubtitleLine();
+	/// Updates variable cells in the spreadsheet header row.
+	void updateSpreadsheetHeader();
 public:
 	/// Creates the Transfer Items state.
 	TransferItemsState(Base *baseFrom, Base *baseTo);

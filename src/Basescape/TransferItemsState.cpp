@@ -115,19 +115,6 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	_txtTitle->setAlign(ALIGN_CENTER);
 	_txtTitle->setText(tr("STR_TRANSFER"));
 
-	if (_alternateScreen)
-	{
-		_txtFunds->setText(tr("STR_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
-	}
-
-	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
-
-	_txtAmountTransfer->setText(tr("STR_AMOUNT_TO_TRANSFER"));
-	_txtAmountTransfer->setWordWrap(true);
-
-	_txtAmountDestination->setText(tr("STR_AMOUNT_AT_DESTINATION"));
-	_txtAmountDestination->setWordWrap(true);
-
 	_lstItems->setArrowColumn(193, ARROW_VERTICAL);
 	_lstItems->setColumns(4, 162, 58, 40, 20);
 	_lstItems->setSelectable(true);
@@ -225,6 +212,8 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	_cbxCategory->setOptions(_cats, true);
 	_cbxCategory->onChange((ActionHandler)&TransferItemsState::cbxCategoryChange);
 
+	updateSubtitleLine();
+	updateSpreadsheetHeader();
 	updateList();
 
 	_timerInc = new Timer(250);
@@ -332,6 +321,39 @@ void TransferItemsState::updateList()
 			_lstItems->setRowColor(_rows.size() - 1, _ammoColor);
 		}
 	}
+}
+
+/**
+ * Updates entities below screen title.
+ *
+ * The (derived) values between title and list.
+ */
+void TransferItemsState::updateSubtitleLine()
+{
+	if (_alternateScreen)
+	{
+		std::ostringstream ssFunds;
+		ssFunds << Unicode::formatFunding(_game->getSavedGame()->getFunds());
+		if (_total > 0)
+		{
+			ssFunds << " (" << Unicode::formatFunding(-1*_total) << ")";
+		}
+		_txtFunds->setText(tr("STR_FUNDS").arg(ssFunds.str()));
+	}
+}
+
+/**
+ * Updates variable cells in the spreadsheet header row.
+ */
+void TransferItemsState::updateSpreadsheetHeader()
+{
+	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
+
+	_txtAmountTransfer->setText(tr("STR_AMOUNT_TO_TRANSFER"));
+	_txtAmountTransfer->setWordWrap(true);
+
+	_txtAmountDestination->setText(tr("STR_AMOUNT_AT_DESTINATION"));
+	_txtAmountDestination->setWordWrap(true);
 }
 
 /**
@@ -754,6 +776,8 @@ void TransferItemsState::updateItemStrings()
 			}
 		}
 	}
+	updateSubtitleLine();
+	updateSpreadsheetHeader();
 }
 
 /**
