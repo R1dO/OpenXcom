@@ -115,8 +115,18 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	_txtTitle->setAlign(ALIGN_CENTER);
 	_txtTitle->setText(tr("STR_TRANSFER"));
 
-	_lstItems->setArrowColumn(193, ARROW_VERTICAL);
-	_lstItems->setColumns(4, 162, 58, 40, 20);
+	if (_alternateScreen)
+	{
+		_lstItems->setArrowColumn(189, ARROW_VERTICAL);
+		// Use an empty column to reserve space (28) for the arrows. To allow for arbitrary cell text alignment. Max 285
+		_lstItems->setColumns(7, 140, 22, 22, 28, 29, 22, 22);
+		_lstItems->setWordWrap(true);
+	}
+	else
+	{
+		_lstItems->setArrowColumn(193, ARROW_VERTICAL);
+		_lstItems->setColumns(4, 162, 58, 40, 20);
+	}
 	_lstItems->setSelectable(true);
 	_lstItems->setBackground(_window);
 	_lstItems->setMargin(2);
@@ -345,8 +355,16 @@ void TransferItemsState::updateList()
 		ssQtySrc << _items[i].qtySrc - _items[i].amount;
 		ssQtyDst << _items[i].qtyDst;
 		ssAmount << _items[i].amount;
-		_lstItems->addRow(4, name.c_str(), ssQtySrc.str().c_str(), ssAmount.str().c_str(), ssQtyDst.str().c_str());
+		if (_alternateScreen)
+		{
+			_lstItems->addRow(7, name.c_str(), ssQtySrc.str().c_str(), "(999)", "", ssAmount.str().c_str(), ssQtyDst.str().c_str(), "(999)");
+		}
+		else
+		{
+			_lstItems->addRow(4, name.c_str(), ssQtySrc.str().c_str(), ssAmount.str().c_str(), ssQtyDst.str().c_str());
+		}
 		_rows.push_back(i);
+
 		if (_items[i].amount > 0)
 		{
 			_lstItems->setRowColor(_rows.size() - 1, _lstItems->getSecondaryColor());
@@ -792,8 +810,16 @@ void TransferItemsState::updateItemStrings()
 	std::ostringstream ss1, ss2;
 	ss1 << getRow().qtySrc - getRow().amount;
 	ss2 << getRow().amount;
-	_lstItems->setCellText(_sel, 1, ss1.str());
-	_lstItems->setCellText(_sel, 2, ss2.str());
+	if (_alternateScreen)
+	{
+		_lstItems->setCellText(_sel, 1, ss1.str());
+		_lstItems->setCellText(_sel, 4, ss2.str());
+	}
+	else
+	{
+		_lstItems->setCellText(_sel, 1, ss1.str());
+		_lstItems->setCellText(_sel, 2, ss2.str());
+	}
 
 	if (getRow().amount > 0)
 	{
