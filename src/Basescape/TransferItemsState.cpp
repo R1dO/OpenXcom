@@ -150,7 +150,9 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	{
 		if ((*i)->getCraft() == 0)
 		{
-			TransferRow row = { TRANSFER_SOLDIER, (*i), (*i)->getName(true), (int)(5 * _distance), 1, 0, 0 };
+			TransferItemRow row = { TRANSFER_SOLDIER, (*i), (*i)->getName(true), (int)(5 * _distance), 1, 0, 0, 0, 0, 0, 0 };
+			// Original behavior makes sense (no display of named soldiers assigned to
+			// craft or in-transfer, to protect against transfer).
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -163,7 +165,9 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	{
 		if ((*i)->getStatus() != "STR_OUT" || (Options::canTransferCraftsWhileAirborne && (*i)->getFuel() >= (*i)->getFuelLimit(_baseTo)))
 		{
-			TransferRow row = { TRANSFER_CRAFT, (*i), (*i)->getName(_game->getLanguage()), (int)(25 * _distance), 1, 0, 0 };
+			TransferItemRow row = { TRANSFER_CRAFT, (*i), (*i)->getName(_game->getLanguage()), (int)(25 * _distance), 1, 0, 0, 0, 0, 0, 0 };
+			// Original behavior makes sense (no display of named aircraft currently
+			// on a mission or in-transfer, to protect against transfer).
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -172,34 +176,65 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 			}
 		}
 	}
-	if (_baseFrom->getAvailableScientists() > 0)
-	{
-		TransferRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), (int)(5 * _distance), _baseFrom->getAvailableScientists(), _baseTo->getAvailableScientists(), 0 };
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+	{// Scientists
+		TransferItemRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), (int)(5 * _distance), _baseFrom->getAvailableScientists(), _baseTo->getAvailableScientists(), 0, 0, 0, 0, 0 };
+		if (_alternateScreen)
 		{
-			_cats.push_back(cat);
+			row.qtySrc = _baseFrom->getTotalScientists();
+			row.qtyDst = _baseTo->getTotalScientists();
+			row.transferSrc = row.qtySrc - _baseFrom->getTotalScientists(false);
+			row.transferDst = row.qtyDst - _baseTo->getTotalScientists(false);
+			row.reservedSrc = _baseFrom->getAllocatedScientists();
+			row.reservedDst = _baseTo->getAllocatedScientists();
+		}
+		if (row.qtySrc > 0)
+		{
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
 		}
 	}
-	if (_baseFrom->getAvailableEngineers() > 0)
-	{
-		TransferRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), (int)(5 * _distance), _baseFrom->getAvailableEngineers(), _baseTo->getAvailableEngineers(), 0 };
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+	{// Engineers
+		TransferItemRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), (int)(5 * _distance), _baseFrom->getAvailableEngineers(), _baseTo->getAvailableEngineers(), 0, 0, 0, 0, 0 };
+		if (_alternateScreen)
 		{
-			_cats.push_back(cat);
+			row.qtySrc = _baseFrom->getTotalEngineers();
+			row.qtyDst = _baseTo->getTotalEngineers();
+			row.reservedSrc = _baseFrom->getAllocatedEngineers();
+			row.reservedDst = _baseTo->getAllocatedEngineers();
+			row.transferSrc = row.qtySrc - _baseFrom->getAvailableEngineers() - row.reservedSrc;
+			row.transferDst = row.qtyDst - _baseTo->getAvailableEngineers() - row.reservedDst;
+		}
+		if (row.qtySrc > 0)
+		{
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
 		}
 	}
+	// Items
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
-		int qty = _baseFrom->getStorageItems()->getItem(*i);
-		if (qty > 0)
+		RuleItem *rule = _game->getMod()->getItem(*i);
+		TransferItemRow row = { TRANSFER_ITEM, rule, tr(*i), (int)(1 * _distance), _baseFrom->getStorageItems()->getItem(*i), _baseTo->getStorageItems()->getItem(*i), 0, 0, 0, 0 };
+		if (_alternateScreen)
 		{
-			RuleItem *rule = _game->getMod()->getItem(*i);
-			TransferRow row = { TRANSFER_ITEM, rule, tr(*i), (int)(1 * _distance), qty, _baseTo->getStorageItems()->getItem(*i), 0 };
+			row.transferSrc = _baseFrom->getTransferItemCount(*i);
+			row.transferDst = _baseTo->getTransferItemCount(*i);
+			row.reservedSrc = _baseFrom->getCraftItemCount(*i) + _baseFrom->getSoldierArmorCount(*i);
+			row.reservedDst = _baseTo->getCraftItemCount(*i) + _baseTo->getSoldierArmorCount(*i);
+			row.qtySrc += row.reservedSrc + row.transferSrc;
+			row.qtyDst += row.reservedDst + row.transferDst;
+		}
+		if (row.qtySrc > 0)
+		{
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -372,7 +407,7 @@ void TransferItemsState::completeTransfer()
 {
 	int time = (int)floor(6 + _distance / 10.0);
 	_game->getSavedGame()->setFunds(_game->getSavedGame()->getFunds() - _total);
-	for (std::vector<TransferRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	for (std::vector<TransferItemRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
 		if (i->amount > 0)
 		{

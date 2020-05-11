@@ -41,13 +41,32 @@ class Base;
 class TransferItemsState : public State
 {
 private:
+	/**
+	 * Tailored struct to store variables of importance to the spreadsheet.
+	 */
+	struct TransferItemRow
+	{
+		TransferType type;   ///< Item category.
+		void *rule;          ///< Pointer to ruleset of item.
+		std::string name;    ///< Translated name of item.
+		int cost;            ///< Cost of transferring this item.
+		int qtySrc, qtyDst;  ///< Starting amount on bases (stores + transfer + craft).
+		int amount;          /**< Requested change.
+		                      *
+		                      * + Positive values moves an item towards target base.
+		                      * + Negative values moves an item towards current base.
+		                      */
+		int transferSrc, transferDst;  ///< Amount currently on route to bases.
+		int reservedSrc, reservedDst;  ///< Reserved amount of items(s).
+	};
+
 	Base *_baseFrom, *_baseTo;
 	TextButton *_btnOk, *_btnCancel;
 	Window *_window;
 	Text *_txtTitle, *_txtQuantity, *_txtAmountTransfer, *_txtAmountDestination, *_txtFunds;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
-	std::vector<TransferRow> _items;
+	std::vector<TransferItemRow> _items;
 	std::vector<int> _rows;
 	std::vector<std::string> _cats;
 	std::set<std::string> _craftWeapons, _armors;
@@ -60,7 +79,7 @@ private:
 	/// Gets the category of the current selection.
 	std::string getCategory(int sel) const;
 	/// Gets the row of the current selection.
-	TransferRow &getRow() { return _items[_rows[_sel]]; }
+	TransferItemRow &getRow() { return _items[_rows[_sel]]; }
 	/// Gets distance between bases.
 	double getDistance() const;
 	/// Do we use the alternate base screen option?
