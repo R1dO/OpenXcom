@@ -696,7 +696,7 @@ void TransferItemsState::increase()
  */
 void TransferItemsState::increaseByValue(int change)
 {
-	if (0 >= change || getRow().qtySrc <= getRow().amount) return;
+	if (0 >= change || getRow().qtySrc - getRow().reservedSrc <= getRow().amount) return;
 	std::string errorMessage;
 	RuleItem *selItem = 0;
 	Craft *craft = 0;
@@ -747,7 +747,7 @@ void TransferItemsState::increaseByValue(int change)
 		case TRANSFER_SOLDIER:
 		case TRANSFER_SCIENTIST:
 		case TRANSFER_ENGINEER:
-			change = std::min(std::min(freeQuarters, getRow().qtySrc - getRow().amount), change);
+			change = std::min(std::min(freeQuarters, getRow().qtySrc - getRow().reservedSrc - getRow().amount), change);
 			_pQty += change;
 			getRow().amount += change;
 			_total += getRow().cost * change;
@@ -770,7 +770,7 @@ void TransferItemsState::increaseByValue(int change)
 				{
 					freeStoresForItem = (freeStores + 0.05) / storesNeededPerItem;
 				}
-				change = std::min(std::min((int)freeStoresForItem, getRow().qtySrc - getRow().amount), change);
+				change = std::min(std::min((int)freeStoresForItem, getRow().qtySrc - getRow().reservedSrc - getRow().amount), change);
 				_iQty += change * storesNeededPerItem;
 				getRow().amount += change;
 				_total += getRow().cost * change;
@@ -778,7 +778,7 @@ void TransferItemsState::increaseByValue(int change)
 			else
 			{
 				int freeContainment = Options::storageLimitsEnforced ? _baseTo->getAvailableContainment() - _baseTo->getUsedContainment() - _aQty : INT_MAX;
-				change = std::min(std::min(freeContainment, getRow().qtySrc - getRow().amount), change);
+				change = std::min(std::min(freeContainment, getRow().qtySrc - getRow().reservedSrc - getRow().amount), change);
 				_aQty += change;
 				getRow().amount += change;
 				_total += getRow().cost * change;
