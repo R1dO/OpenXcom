@@ -992,11 +992,12 @@ int Craft::getArmamentCount(const std::string &armament, const Mod *mod) const
 	int total = 0;
 	for (std::vector<CraftWeapon*>::const_iterator i = _weapons.begin(); i != _weapons.end(); ++i)
 	{
-		if ((*i)->getRules()->getLauncherItem() == armament)
+		// (*i) = 0 means no weapon loaded in the available slot.
+		if ((*i) != 0 && (*i)->getRules()->getLauncherItem() == armament)
 		{
 			total++;
 		}
-		if ((*i)->getRules()->getClipItem() == armament)
+		if ((*i) != 0 && (*i)->getRules()->getClipItem() == armament)
 		{
 			total += (*i)->getClipsLoaded(mod);
 		}
