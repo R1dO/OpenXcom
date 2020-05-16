@@ -175,6 +175,22 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 			}
 		}
 	}
+	for (std::vector<Soldier*>::iterator i = _baseTo->getSoldiers()->begin(); i != _baseTo->getSoldiers()->end(); ++i)
+	{
+		if ((*i)->getCraft() == 0)
+		{
+			TransferItemRow row = { TRANSFER_SOLDIER, (*i), (*i)->getName(true), (int)(5 * _distance), 0, 1, 0, 0, 0, 0, 0 };
+			// Original behavior makes sense (no display of named soldiers assigned to
+			// craft or in-transfer, to protect against transfer).
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
+		}
+	}
+
 	for (std::vector<Craft*>::iterator i = _baseFrom->getCrafts()->begin(); i != _baseFrom->getCrafts()->end(); ++i)
 	{
 		if ((*i)->getStatus() != "STR_OUT" || (Options::canTransferCraftsWhileAirborne && (*i)->getFuel() >= (*i)->getFuelLimit(_baseTo)))
@@ -190,6 +206,22 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 			}
 		}
 	}
+	for (std::vector<Craft*>::iterator i = _baseTo->getCrafts()->begin(); i != _baseTo->getCrafts()->end(); ++i)
+	{
+		if ((*i)->getStatus() != "STR_OUT" || (Options::canTransferCraftsWhileAirborne && (*i)->getFuel() >= (*i)->getFuelLimit(_baseFrom)))
+		{
+			TransferItemRow row = { TRANSFER_CRAFT, (*i), (*i)->getName(_game->getLanguage()), (int)(25 * _distance), 0, 1, 0, 0, 0, 0, 0 };
+			// Original behavior makes sense (no display of named aircraft currently
+			// on a mission or in-transfer, to protect against transfer).
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
+		}
+	}
+
 	{// Scientists
 		TransferItemRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), (int)(5 * _distance), _baseFrom->getAvailableScientists(), _baseTo->getAvailableScientists(), 0, 0, 0, 0, 0 };
 		if (_alternateScreen)
@@ -201,7 +233,7 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 			row.reservedSrc = _baseFrom->getAllocatedScientists();
 			row.reservedDst = _baseTo->getAllocatedScientists();
 		}
-		if (row.qtySrc > 0)
+		if (row.qtySrc > 0 || (_alternateScreen && row.qtyDst > 0))
 		{
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
@@ -222,7 +254,7 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 			row.transferSrc = row.qtySrc - _baseFrom->getAvailableEngineers() - row.reservedSrc;
 			row.transferDst = row.qtyDst - _baseTo->getAvailableEngineers() - row.reservedDst;
 		}
-		if (row.qtySrc > 0)
+		if (row.qtySrc > 0 || (_alternateScreen && row.qtyDst > 0))
 		{
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
@@ -247,7 +279,7 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 			row.qtySrc += row.reservedSrc + row.transferSrc;
 			row.qtyDst += row.reservedDst + row.transferDst;
 		}
-		if (row.qtySrc > 0)
+		if (row.qtySrc > 0 || (_alternateScreen && row.qtyDst > 0))
 		{
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
