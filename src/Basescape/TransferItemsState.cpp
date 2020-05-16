@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <sstream>
 #include <climits>
+#include <iomanip>
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Mod/Mod.h"
@@ -66,9 +67,9 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	if (_alternateScreen)
 	{
 		_txtFunds = new Text(150, 9, 10, 24);
-		_txtQuantity = new Text(50, 9, 150, 36);
-		_txtAmountTransfer = new Text(60, 17, 200, 36);
-		_txtAmountDestination = new Text(60, 17, 260, 36);
+		_txtQuantity = new Text(50, 17, 147, 36);
+		_txtAmountTransfer = new Text(54, 17, 197, 36);
+		_txtAmountDestination = new Text(60, 17, 251, 36);
 		_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
 		_lstItems = new TextList(287, 120, 8, 54);
 	}
@@ -96,8 +97,10 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	add(_txtAmountDestination, "text", "transferMenu");
 	add(_lstItems, "list", "transferMenu");
 	add(_cbxCategory, "text", "transferMenu");
-	add(_txtFunds, "text", "transferMenu");
-
+	if (_alternateScreen)
+	{
+		add(_txtFunds, "text", "transferMenu");
+	}
 	centerAllSurfaces();
 
 	// Set up objects
@@ -418,13 +421,36 @@ void TransferItemsState::updateSubtitleLine()
  */
 void TransferItemsState::updateSpreadsheetHeader()
 {
-	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
-
 	_txtAmountTransfer->setText(tr("STR_AMOUNT_TO_TRANSFER"));
 	_txtAmountTransfer->setWordWrap(true);
-
-	_txtAmountDestination->setText(tr("STR_AMOUNT_AT_DESTINATION"));
 	_txtAmountDestination->setWordWrap(true);
+
+	if (_alternateScreen)
+	{
+		std::ostringstream ssSrc, ssDst ;
+		ssSrc << tr("STR_QUANTITY_UC") << "\n" << Unicode::TOK_COLOR_FLIP;
+		ssDst << tr("STR_DESTINATION_UC") << "\n" << Unicode::TOK_COLOR_FLIP;
+		if (std::abs(_iQty) > 0.05)
+		{
+			ssSrc << std::fixed << std::setprecision(1) << _baseFrom->getUsedStores() - _iQty;
+			ssDst << std::fixed << std::setprecision(1) << _baseTo->getUsedStores() + _iQty;
+		}
+		else
+		{
+			ssSrc << std::fixed << std::setprecision(1) << _baseFrom->getUsedStores();
+			ssDst << std::fixed << std::setprecision(1) << _baseTo->getUsedStores();
+		}
+		ssSrc << Unicode::TOK_COLOR_FLIP << ":" << _baseFrom->getAvailableStores();
+		ssDst << Unicode::TOK_COLOR_FLIP << ":" << _baseTo->getAvailableStores();
+
+		_txtQuantity->setText(ssSrc.str().c_str());
+		_txtAmountDestination->setText(ssDst.str().c_str());
+	}
+	else
+	{
+		_txtQuantity->setText(tr("STR_QUANTITY_UC"));
+		_txtAmountDestination->setText(tr("STR_AMOUNT_AT_DESTINATION"));
+	}
 }
 
 /**
