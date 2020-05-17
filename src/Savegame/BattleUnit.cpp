@@ -3192,9 +3192,9 @@ int BattleUnit::getMurdererId() const
 }
 
 /**
- * Set information on the unit's fatal blow.
- * @param UnitSide unit's side that was shot.
- * @param UnitBodyPart unit's body part that was shot.
+ * Set information on the unit's fatal shot.
+ * @param side Side of a unit that was shot.
+ * @param bodypart Part of the unit's body that was shot.
  */
 void BattleUnit::setFatalShotInfo(UnitSide side, UnitBodyPart bodypart)
 {
