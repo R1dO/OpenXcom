@@ -548,6 +548,24 @@ bool Game::isQuitting() const
 }
 
 /**
+ * Returns whether the game is in campaign mode.
+ * @return whether the game is a campaign or not.
+ */
+bool Game::isCampaign() const
+{
+	return _save->getMonthsPassed() > -1;
+}
+
+/**
+ * Returns whether the game is in Skirmish (battle) mode.
+ * @return whether the game is a Skirmish (battle) or not.
+ */
+bool Game::isSkirmish() const
+{
+	return !isCampaign();
+}
+
+/**
  * Loads the most appropriate languages
  * given current system and game options.
  */
