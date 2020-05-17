@@ -18,6 +18,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "../Engine/State.h"
+#include "../Savegame/BattleUnit.h"
 
 namespace OpenXcom
 {
@@ -55,9 +56,8 @@ private:
 	Bar *_barTimeUnits, *_barEnergy, *_barHealth, *_barFatalWounds, *_barBravery, *_barMorale, *_barReactions, *_barFiring, *_barThrowing, *_barMelee, *_barStrength;
 	Bar *_barPsiStrength, *_barPsiSkill;
 
-	Text *_txtFrontArmor, *_txtLeftArmor, *_txtRightArmor, *_txtRearArmor, *_txtUnderArmor;
-	Text *_numFrontArmor, *_numLeftArmor, *_numRightArmor, *_numRearArmor, *_numUnderArmor;
-	Bar *_barFrontArmor, *_barLeftArmor, *_barRightArmor, *_barRearArmor, *_barUnderArmor;
+	Text *_txtArmor[SIDE_MAX], *_numArmor[SIDE_MAX];
+	Bar *_barArmor[SIDE_MAX];
 	TextButton *_btnPrev, *_btnNext;
 public:
 	/// Creates the Unit Info state.

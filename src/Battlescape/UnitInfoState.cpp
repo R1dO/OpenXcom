@@ -18,7 +18,6 @@
  */
 #include "UnitInfoState.h"
 #include <sstream>
-#include "../Savegame/BattleUnit.h"
 #include "../Savegame/SavedGame.h"
 #include "../Savegame/SavedBattleGame.h"
 #include "../Engine/Game.h"
@@ -38,6 +37,29 @@
 
 namespace OpenXcom
 {
+/**
+ * User interface bar ID identifier of armor sides.
+ */
+const std::string ARMOR_BAR_ID[SIDE_MAX] =
+{
+	"barFrontArmor",
+	"barLeftArmor",
+	"barRightArmor",
+	"barRearArmor",
+	"barUnderArmor"
+};
+
+/**
+ * User interface string identifier of armor sides.
+ */
+const std::string ARMOR_SIDE_STRING[SIDE_MAX] =
+{
+	"STR_FRONT_ARMOR_UC",
+	"STR_LEFT_ARMOR_UC",
+	"STR_RIGHT_ARMOR_UC",
+	"STR_REAR_ARMOR_UC",
+	"STR_UNDER_ARMOR_UC"
+};
 
 /**
  * Initializes all the elements in the Unit Info screen.
@@ -130,29 +152,13 @@ UnitInfoState::UnitInfoState(BattleUnit *unit, BattlescapeState *parent, bool fr
 	_barPsiSkill = new Bar(150, 5, 170, yPos + 1);
 	yPos += step;
 
-	_txtFrontArmor = new Text(140, 9, 8, yPos);
-	_numFrontArmor= new Text(18, 9, 150, yPos);
-	_barFrontArmor = new Bar(150, 5, 170, yPos + 1);
-	yPos += step;
-
-	_txtLeftArmor = new Text(140, 9, 8, yPos);
-	_numLeftArmor = new Text(18, 9, 150, yPos);
-	_barLeftArmor = new Bar(150, 5, 170, yPos + 1);
-	yPos += step;
-
-	_txtRightArmor = new Text(140, 9, 8, yPos);
-	_numRightArmor = new Text(18, 9, 150, yPos);
-	_barRightArmor = new Bar(150, 5, 170, yPos + 1);
-	yPos += step;
-
-	_txtRearArmor = new Text(140, 9, 8, yPos);
-	_numRearArmor = new Text(18, 9, 150, yPos);
-	_barRearArmor = new Bar(150, 5, 170, yPos + 1);
-	yPos += step;
-
-	_txtUnderArmor = new Text(140, 9, 8, yPos);
-	_numUnderArmor = new Text(18, 9, 150, yPos);
-	_barUnderArmor = new Bar(150, 5, 170, yPos + 1);
+	for (int i = 0; i < SIDE_MAX; ++i)
+	{
+		_txtArmor[i] = new Text(140, 9, 8, yPos);
+		_numArmor[i] = new Text(18, 9, 150, yPos);
+		_barArmor[i] = new Bar(150, 5, 170, yPos + 1);
+		yPos += step;
+	}
 
 	if (!_mindProbe)
 	{
@@ -219,25 +225,12 @@ UnitInfoState::UnitInfoState(BattleUnit *unit, BattlescapeState *parent, bool fr
 	add(_numPsiSkill);
 	add(_barPsiSkill, "barPsiSkill", "stats", 0);
 
-	add(_txtFrontArmor);
-	add(_numFrontArmor);
-	add(_barFrontArmor, "barFrontArmor", "stats", 0);
-
-	add(_txtLeftArmor);
-	add(_numLeftArmor);
-	add(_barLeftArmor, "barLeftArmor", "stats", 0);
-
-	add(_txtRightArmor);
-	add(_numRightArmor);
-	add(_barRightArmor, "barRightArmor", "stats", 0);
-
-	add(_txtRearArmor);
-	add(_numRearArmor);
-	add(_barRearArmor, "barRearArmor", "stats", 0);
-
-	add(_txtUnderArmor);
-	add(_numUnderArmor);
-	add(_barUnderArmor, "barUnderArmor", "stats", 0);
+	for (int i = 0; i < SIDE_MAX; ++i)
+	{
+		add(_txtArmor[i]);
+		add(_numArmor[i]);
+		add(_barArmor[i], ARMOR_BAR_ID[i], "stats", 0);
+	}
 
 	if (!_mindProbe)
 	{
@@ -378,50 +371,17 @@ UnitInfoState::UnitInfoState(BattleUnit *unit, BattlescapeState *parent, bool fr
 
 	_barPsiSkill->setScale(1.0);
 
-	_txtFrontArmor->setColor(color);
-	_txtFrontArmor->setHighContrast(true);
-	_txtFrontArmor->setText(tr("STR_FRONT_ARMOR_UC"));
+	for (int i = 0; i < SIDE_MAX; ++i)
+	{
+		_txtArmor[i]->setColor(color);
+		_txtArmor[i]->setHighContrast(true);
+		_txtArmor[i]->setText(tr(ARMOR_SIDE_STRING[i]));
 
-	_numFrontArmor->setColor(color2);
-	_numFrontArmor->setHighContrast(true);
+		_numArmor[i]->setColor(color2);
+		_numArmor[i]->setHighContrast(true);
 
-	_barFrontArmor->setScale(1.0);
-
-	_txtLeftArmor->setColor(color);
-	_txtLeftArmor->setHighContrast(true);
-	_txtLeftArmor->setText(tr("STR_LEFT_ARMOR_UC"));
-
-	_numLeftArmor->setColor(color2);
-	_numLeftArmor->setHighContrast(true);
-
-	_barLeftArmor->setScale(1.0);
-
-	_txtRightArmor->setColor(color);
-	_txtRightArmor->setHighContrast(true);
-	_txtRightArmor->setText(tr("STR_RIGHT_ARMOR_UC"));
-
-	_numRightArmor->setColor(color2);
-	_numRightArmor->setHighContrast(true);
-
-	_barRightArmor->setScale(1.0);
-
-	_txtRearArmor->setColor(color);
-	_txtRearArmor->setHighContrast(true);
-	_txtRearArmor->setText(tr("STR_REAR_ARMOR_UC"));
-
-	_numRearArmor->setColor(color2);
-	_numRearArmor->setHighContrast(true);
-
-	_barRearArmor->setScale(1.0);
-
-	_txtUnderArmor->setColor(color);
-	_txtUnderArmor->setHighContrast(true);
-	_txtUnderArmor->setText(tr("STR_UNDER_ARMOR_UC"));
-
-	_numUnderArmor->setColor(color2);
-	_numUnderArmor->setHighContrast(true);
-
-	_barUnderArmor->setScale(1.0);
+		_barArmor[i]->setScale(1.0);
+	}
 
 	if (!_mindProbe)
 	{
@@ -566,35 +526,14 @@ void UnitInfoState::init()
 		_barPsiSkill->setVisible(false);
 	}
 
+	for (int i = 0; i < SIDE_MAX; ++i)
+	{
 	ss.str("");
-	ss << _unit->getArmor(SIDE_FRONT);
-	_numFrontArmor->setText(ss.str());
-	_barFrontArmor->setMax(_unit->getMaxArmor(SIDE_FRONT));
-	_barFrontArmor->setValue(_unit->getArmor(SIDE_FRONT));
-
-	ss.str("");
-	ss << _unit->getArmor(SIDE_LEFT);
-	_numLeftArmor->setText(ss.str());
-	_barLeftArmor->setMax(_unit->getMaxArmor(SIDE_LEFT));
-	_barLeftArmor->setValue(_unit->getArmor(SIDE_LEFT));
-
-	ss.str("");
-	ss << _unit->getArmor(SIDE_RIGHT);
-	_numRightArmor->setText(ss.str());
-	_barRightArmor->setMax(_unit->getMaxArmor(SIDE_RIGHT));
-	_barRightArmor->setValue(_unit->getArmor(SIDE_RIGHT));
-
-	ss.str("");
-	ss << _unit->getArmor(SIDE_REAR);
-	_numRearArmor->setText(ss.str());
-	_barRearArmor->setMax(_unit->getMaxArmor(SIDE_REAR));
-	_barRearArmor->setValue(_unit->getArmor(SIDE_REAR));
-
-	ss.str("");
-	ss << _unit->getArmor(SIDE_UNDER);
-	_numUnderArmor->setText(ss.str());
-	_barUnderArmor->setMax(_unit->getMaxArmor(SIDE_UNDER));
-	_barUnderArmor->setValue(_unit->getArmor(SIDE_UNDER));
+	ss << _unit->getArmor(static_cast<UnitSide>(i));
+	_numArmor[i]->setText(ss.str());
+	_barArmor[i]->setMax(_unit->getMaxArmor(static_cast<UnitSide>(i)));
+	_barArmor[i]->setValue(_unit->getArmor(static_cast<UnitSide>(i)));
+	}
 }
 
 
