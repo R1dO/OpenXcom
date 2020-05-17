@@ -509,22 +509,40 @@ void TransferItemsState::completeTransfer()
 	_game->getSavedGame()->setFunds(_game->getSavedGame()->getFunds() - _total);
 	for (std::vector<TransferItemRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
-		if (i->amount > 0)
+		if (i->amount != 0)
 		{
+			// Juggle based on direction
+			Base *origin, *destination;
+			int change;
+			bool toOriginTransfers;
+			if (i->amount > 0)
+			{
+				origin = _baseFrom;
+				destination = _baseTo;
+				toOriginTransfers = i->transferSrc;
+			}
+			else
+			{
+				origin = _baseTo;
+				destination = _baseFrom;
+				toOriginTransfers = i->transferDst;
+			}
+			change = abs(i->amount);
+
 			Transfer *t = 0;
 			Craft *craft = 0;
 			switch (i->type)
 			{
 			case TRANSFER_SOLDIER:
-				for (std::vector<Soldier*>::iterator s = _baseFrom->getSoldiers()->begin(); s != _baseFrom->getSoldiers()->end(); ++s)
+				for (std::vector<Soldier*>::iterator s = origin->getSoldiers()->begin(); s != origin->getSoldiers()->end(); ++s)
 				{
 					if (*s == i->rule)
 					{
 						(*s)->setPsiTraining(false);
 						t = new Transfer(time);
 						t->setSoldier(*s);
-						_baseTo->getTransfers()->push_back(t);
-						_baseFrom->getSoldiers()->erase(s);
+						destination->getTransfers()->push_back(t);
+						origin->getSoldiers()->erase(s);
 						break;
 					}
 				}
@@ -532,37 +550,36 @@ void TransferItemsState::completeTransfer()
 			case TRANSFER_CRAFT:
 				craft = (Craft*)i->rule;
 				// Transfer soldiers inside craft
-				for (std::vector<Soldier*>::iterator s = _baseFrom->getSoldiers()->begin(); s != _baseFrom->getSoldiers()->end();)
+				for (std::vector<Soldier*>::iterator s = origin->getSoldiers()->begin(); s != origin->getSoldiers()->end();)
 				{
 					if ((*s)->getCraft() == craft)
 					{
 						(*s)->setPsiTraining(false);
 						if (craft->getStatus() == "STR_OUT")
 						{
-							_baseTo->getSoldiers()->push_back(*s);
+							destination->getSoldiers()->push_back(*s);
 						}
 						else
 						{
 							t = new Transfer(time);
 							t->setSoldier(*s);
-							_baseTo->getTransfers()->push_back(t);
+							destination->getTransfers()->push_back(t);
 						}
-						s = _baseFrom->getSoldiers()->erase(s);
+						s = origin->getSoldiers()->erase(s);
 					}
 					else
 					{
 						++s;
 					}
 				}
-
 				// Transfer craft
-				_baseFrom->removeCraft(craft, false);
+				origin->removeCraft(craft, false);
 				if (craft->getStatus() == "STR_OUT")
 				{
 					bool returning = (craft->getDestination() == (Target*)craft->getBase());
-					_baseTo->getCrafts()->push_back(craft);
-					craft->setBase(_baseTo, false);
-					if (craft->getFuel() <= craft->getFuelLimit(_baseTo))
+					destination->getCrafts()->push_back(craft);
+					craft->setBase(destination, false);
+					if (craft->getFuel() <= craft->getFuelLimit(destination))
 					{
 						craft->setLowFuel(true);
 						craft->returnToBase();
@@ -577,26 +594,122 @@ void TransferItemsState::completeTransfer()
 				{
 					t = new Transfer(time);
 					t->setCraft(craft);
-					_baseTo->getTransfers()->push_back(t);
+					destination->getTransfers()->push_back(t);
 				}
 				break;
 			case TRANSFER_SCIENTIST:
-				_baseFrom->setScientists(_baseFrom->getScientists() - i->amount);
-				t = new Transfer(time);
-				t->setScientists(i->amount);
-				_baseTo->getTransfers()->push_back(t);
+				// Redirect on-route first (protect against negative amounts on base).
+				if (toOriginTransfers)
+				{
+					for (std::vector<Transfer*>::iterator s = origin->getTransfers()->begin(); s != origin->getTransfers()->end();)
+					{
+						if ((*s)->getType() == TRANSFER_SCIENTIST && (*s)->getQuantity() <= change)
+						{
+							t = new Transfer(time + (*s)->getHours());
+							t->setScientists((*s)->getQuantity());
+							destination->getTransfers()->push_back(t);
+							change -= (*s)->getQuantity();
+							s = origin->getTransfers()->erase(s);
+						}
+						else if ((*s)->getType() == TRANSFER_SCIENTIST && (*s)->getQuantity() > change)
+						{
+							t = new Transfer(time + (*s)->getHours());
+							t->setScientists(change);
+							destination->getTransfers()->push_back(t);
+
+							(*s)->setScientists((*s)->getQuantity() - change);
+							change = 0;
+							break;
+						}
+						else
+						{
+							++s;
+						}
+					}
+				}
+				if (change > 0)
+				{
+					origin->setScientists(origin->getScientists() - change);
+					t = new Transfer(time);
+					t->setScientists(change);
+					destination->getTransfers()->push_back(t);
+				}
 				break;
 			case TRANSFER_ENGINEER:
-				_baseFrom->setEngineers(_baseFrom->getEngineers() - i->amount);
-				t = new Transfer(time);
-				t->setEngineers(i->amount);
-				_baseTo->getTransfers()->push_back(t);
+				// Redirect on-route first (protect against negative amounts on base).
+				if (toOriginTransfers)
+				{
+					for (std::vector<Transfer*>::iterator s = origin->getTransfers()->begin(); s != origin->getTransfers()->end();)
+					{
+						if ((*s)->getType() == TRANSFER_ENGINEER && (*s)->getQuantity() <= change)
+						{
+							t = new Transfer(time + (*s)->getHours());
+							t->setEngineers((*s)->getQuantity());
+							destination->getTransfers()->push_back(t);
+							change -= (*s)->getQuantity();
+							s = origin->getTransfers()->erase(s);
+						}
+						else if ((*s)->getType() == TRANSFER_ENGINEER && (*s)->getQuantity() > change)
+						{
+							t = new Transfer(time + (*s)->getHours());
+							t->setEngineers(change);
+							destination->getTransfers()->push_back(t);
+
+							(*s)->setEngineers((*s)->getQuantity() - change);
+							change = 0;
+							break;
+						}
+						else
+						{
+							++s;
+						}
+					}
+				}
+				if (change > 0)
+				{
+					origin->setEngineers(origin->getEngineers() - change);
+					t = new Transfer(time);
+					t->setEngineers(change);
+					destination->getTransfers()->push_back(t);
+				}
 				break;
 			case TRANSFER_ITEM:
-				_baseFrom->getStorageItems()->removeItem(((RuleItem*)i->rule)->getType(), i->amount);
-				t = new Transfer(time);
-				t->setItems(((RuleItem*)i->rule)->getType(), i->amount);
-				_baseTo->getTransfers()->push_back(t);
+				// Redirect on-route first (protect against negative amounts on base).
+				if (toOriginTransfers)
+				{
+					for (std::vector<Transfer*>::iterator s = origin->getTransfers()->begin(); s != origin->getTransfers()->end();)
+					{
+						if ((*s)->getItems() == ((RuleItem*)i->rule)->getType() && (*s)->getQuantity() <= change)
+						{
+							t = new Transfer(time + (*s)->getHours());
+							t->setItems(((RuleItem*)i->rule)->getType(), (*s)->getQuantity());
+							destination->getTransfers()->push_back(t);
+							change -= (*s)->getQuantity();
+							s = origin->getTransfers()->erase(s);
+						}
+						else if ((*s)->getItems() == ((RuleItem*)i->rule)->getType() && (*s)->getQuantity() > change)
+						{
+							t = new Transfer(time + (*s)->getHours());
+							t->setItems(((RuleItem*)i->rule)->getType(), change);
+							destination->getTransfers()->push_back(t);
+
+							(*s)->setItems(((RuleItem*)i->rule)->getType(), (*s)->getQuantity() - change);
+							change = 0;
+							break;
+						}
+						else
+						{
+							++s;
+						}
+					}
+				}
+				if (change > 0)
+				{
+					origin->getStorageItems()->removeItem(((RuleItem*)i->rule)->getType(), change);
+					t = new Transfer(time);
+					t->setItems(((RuleItem*)i->rule)->getType(), change);
+					destination->getTransfers()->push_back(t);
+				}
 				break;
 			}
 		}
