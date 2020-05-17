@@ -105,6 +105,8 @@ public:
 	std::vector<Vehicle*> *getVehicles();
 	/// Gets the craft's amount of fuel.
 	int getFuel() const;
+	/// Gets the craft's amount of specific fuel.
+	int getFuelCount(const std::string &fuel) const;
 	/// Sets the craft's amount of fuel.
 	void setFuel(int fuel);
 	/// Gets the craft's percentage of fuel.
@@ -165,6 +167,8 @@ public:
 	int getSpaceUsed() const;
 	/// Gets the craft's vehicles of a certain type.
 	int getVehicleCount(const std::string &vehicle) const;
+	/// Get the craft's Armament (weapons and ammo) of a certain type.
+	int getArmamentCount(const std::string &weapon) const;
 	/// Sets the craft's dogfight status.
 	void setInDogfight(const bool inDogfight);
 	/// Gets if the craft is in dogfight.

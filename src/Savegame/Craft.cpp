@@ -501,6 +501,24 @@ int Craft::getFuel() const
 }
 
 /**
+ * Returns the total amount of non-standard fuel (e.g. elerium / zrbite)
+ * contained in the craft.
+ * @param fuel Fuel type.
+ * @return Amount of the specific fuel.
+ */
+int Craft::getFuelCount(const std::string &fuel) const
+{
+	if ( _rules->getRefuelItem() == fuel)
+	{
+		return getFuel();
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+/**
  * Changes the amount of fuel currently contained
  * in this craft.
  * @param fuel Amount of fuel.
