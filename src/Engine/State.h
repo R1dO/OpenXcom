@@ -20,11 +20,12 @@
 #include <vector>
 #include <string>
 #include <SDL.h>
-#include "../Savegame/Soldier.h"
 #include "LocalizedText.h"
 
 namespace OpenXcom
 {
+
+enum SoldierGender { GENDER_MALE, GENDER_FEMALE };
 
 class Game;
 class Surface;

@@ -21,12 +21,12 @@
 #include <yaml-cpp/yaml.h>
 #include "../Mod/Unit.h"
 #include "../Mod/StatString.h"
+#include "../Engine/State.h"
 
 namespace OpenXcom
 {
 
 enum SoldierRank { RANK_ROOKIE, RANK_SQUADDIE, RANK_SERGEANT, RANK_CAPTAIN, RANK_COLONEL, RANK_COMMANDER};
-enum SoldierGender { GENDER_MALE, GENDER_FEMALE };
 enum SoldierLook { LOOK_BLONDE, LOOK_BROWNHAIR, LOOK_ORIENTAL, LOOK_AFRICAN };
 
 class Craft;
