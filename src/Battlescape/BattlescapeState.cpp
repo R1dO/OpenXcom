@@ -77,7 +77,6 @@ namespace OpenXcom
 
 /**
  * Initializes all the elements in the Battlescape screen.
- * @param game Pointer to the core game.
  */
 BattlescapeState::BattlescapeState() : _reserve(0), _firstInit(true), _isMouseScrolling(false), _isMouseScrolled(false), _xBeforeMouseScrolling(0), _yBeforeMouseScrolling(0), _totalMouseMoveX(0), _totalMouseMoveY(0), _mouseMovedOverThreshold(0), _mouseOverIcons(false), _autosave(false)
 {
@@ -477,7 +476,7 @@ BattlescapeState::BattlescapeState() : _reserve(0), _firstInit(true), _isMouseSc
 
 
 /**
- * Deletes the battlescapestate.
+ * Cleans up the Battlescape state.
  */
 BattlescapeState::~BattlescapeState()
 {
@@ -1463,7 +1462,8 @@ void BattlescapeState::setStateInterval(Uint32 interval)
 }
 
 /**
- * Gets pointer to the game. Some states need this info.
+ * Gets pointer to the game. 
+ * Some states need this info.
  * @return Pointer to game.
  */
 Game *BattlescapeState::getGame() const
@@ -1472,7 +1472,8 @@ Game *BattlescapeState::getGame() const
 }
 
 /**
- * Gets pointer to the map. Some states need this info.
+ * Gets pointer to the map.
+ * Some states need this info.
  * @return Pointer to map.
  */
 Map *BattlescapeState::getMap() const
@@ -2066,7 +2067,7 @@ void BattlescapeState::showPsiButton(bool show)
 }
 
 /**
- * Clears mouse-scrolling state (isMouseScrolling).
+ * Clears mouse-scrolling state.
  */
 void BattlescapeState::clearMouseScrollingState()
 {
@@ -2082,7 +2083,7 @@ BattlescapeGame *BattlescapeState::getBattleGame()
 }
 
 /**
- * Handler for the mouse moving over the icons, disabling the tile selection cube.
+ * Handler for the mouse moving over the icons, disables the tile selection cube.
  * @param action Pointer to an action.
  */
 void BattlescapeState::mouseInIcons(Action *)

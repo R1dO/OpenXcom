@@ -95,7 +95,7 @@ public:
 	/// Selects the previous soldier.
 	void selectPreviousPlayerUnit(bool checkReselect = false, bool setReselect = false, bool checkInventory = false);
 	static const int DEFAULT_ANIM_SPEED = 100;
-	/// Creates the Battlescape state.
+	/// Initializes all the elements in the Battlescape screen.
 	BattlescapeState();
 	/// Cleans up the Battlescape state.
 	~BattlescapeState();
@@ -161,7 +161,7 @@ public:
 	void btnPersonalLightingClick(Action *action);
 	/// Determines whether a playable unit is selected.
 	bool playableUnitSelected();
-	/// Updates soldier name/rank/tu/energy/health/morale.
+	/// Updates a soldier's name/rank/tu/energy/health/morale.
 	void updateSoldierInfo(bool checkFOV = true);
 	/// Animates map objects on the map, also smoke,fire, ...
 	void animate();
@@ -169,13 +169,13 @@ public:
 	void handleState();
 	/// Sets the state timer interval.
 	void setStateInterval(Uint32 interval);
-	/// Gets game.
+	/// Gets pointer to the game.
 	Game *getGame() const;
-	/// Gets map.
+	/// Gets pointer to the map.
 	Map *getMap() const;
 	/// Show debug message.
 	void debug(const std::string &message);
-	/// Show warning message.
+	/// Shows a warning message.
 	void warning(const std::string &message);
 	/// Handles keypresses.
 	void handle(Action *action);
@@ -183,7 +183,7 @@ public:
 	void popup(State *state);
 	/// Finishes a battle.
 	void finishBattle(bool abort, int inExitArea);
-	/// Show the launch button.
+	/// Shows the launch button.
 	void showLaunchButton(bool show);
 	/// Shows the PSI button.
 	void showPsiButton(bool show);
@@ -203,7 +203,7 @@ public:
 	void mouseOutIcons(Action *action);
 	/// Checks if the mouse is over the icons.
 	bool getMouseOverIcons() const;
-	/// Is the player allowed to press buttons?
+	/// Determines whether the player is allowed to press buttons.
 	bool allowButtons(bool allowSaving = false) const;
 	/// Handler for clicking the reserve TUs to kneel button.
 	void btnReserveKneelClick(Action *action);

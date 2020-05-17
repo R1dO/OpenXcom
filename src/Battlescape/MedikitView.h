@@ -37,9 +37,9 @@ class MedikitView : public InteractiveSurface
 	BattleUnit *_unit;
 	Text *_partTxt, *_woundTxt;
 public:
-	/// Creates the MedikitView.
+	/// Initializes the MedikitView.
 	MedikitView (int w, int h, int x, int y, Game * game, BattleUnit *unit, Text *partTxt, Text *woundTxt);
-	/// Draws the body view.
+	/// Draws the medikit view.
 	void draw();
 	/// Gets the selected body part.
 	int getSelectedPart() const;

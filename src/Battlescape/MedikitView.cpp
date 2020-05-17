@@ -42,7 +42,7 @@ const std::string PARTS_STRING[BODYPART_MAX] =
 };
 
 /**
- * Initializes the Medikit view.
+ * Initializes the MedikitView.
  * @param w The MinikitView width.
  * @param h The MinikitView height.
  * @param x The MinikitView x origin.
@@ -60,6 +60,8 @@ MedikitView::MedikitView (int w, int h, int x, int y, Game * game, BattleUnit *u
 
 /**
  * Draws the medikit view.
+ *
+ * Shows the bodyparts and their fatal wounds (if applicable).
  */
 void MedikitView::draw()
 {
@@ -95,7 +97,7 @@ void MedikitView::draw()
 }
 
 /**
- * Handles clicks on the medikit view.
+ * Handles clicking on the body view.
  * @param action Pointer to an action.
  * @param state State that the action handlers belong to.
  */
