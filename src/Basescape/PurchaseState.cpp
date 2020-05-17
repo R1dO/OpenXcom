@@ -56,6 +56,8 @@ namespace OpenXcom
  */
 PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQty(0), _cQty(0), _iQty(0.0), _ammoColor(0)
 {
+	_alternateScreen = Options::alternateBaseScreens;
+
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
 	_btnOk = new TextButton(148, 16, 8, 176);
@@ -65,6 +67,7 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 	_txtPurchases = new Text(150, 9, 160, 24);
 	_txtSpaceUsed = new Text(150, 9, 160, 34);
 	_txtCost = new Text(102, 9, 152, 44);
+	_txtBase = new Text(51, 9, 207, 44);
 	_txtQuantity = new Text(60, 9, 256, 44);
 	_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
 	_lstItems = new TextList(287, 120, 8, 54);
@@ -82,6 +85,7 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 	add(_txtPurchases, "text", "buyMenu");
 	add(_txtSpaceUsed, "text", "buyMenu");
 	add(_txtCost, "text", "buyMenu");
+	add(_txtBase, "text", "buyMenu");
 	add(_txtQuantity, "text", "buyMenu");
 	add(_lstItems, "list", "buyMenu");
 	add(_cbxCategory, "text", "buyMenu");
@@ -103,21 +107,26 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 	_txtTitle->setAlign(ALIGN_CENTER);
 	_txtTitle->setText(tr("STR_PURCHASE_HIRE_PERSONNEL"));
 
-	_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
-
-	_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
-
 	_txtSpaceUsed->setVisible(Options::storageLimitsEnforced);
-	std::ostringstream ss;
-	ss << _base->getUsedStores() << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
 
 	_txtCost->setText(tr("STR_COST_PER_UNIT_UC"));
 
 	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
 
-	_lstItems->setArrowColumn(227, ARROW_VERTICAL);
-	_lstItems->setColumns(4, 150, 55, 50, 28);
+	if (_alternateScreen)
+	{
+		_txtCost->setText(tr("STR_COST"));
+		_txtBase->setText(tr("STR_BASE"));
+
+		_lstItems->setArrowColumn(241, ARROW_VERTICAL);
+		// Use an empty column to reserve space (28) for the arrows. To allow for arbitrary cell text alignment.
+		_lstItems->setColumns(6, 140, 55, 22, 22, 28, 18);
+	}
+	else
+	{
+		_lstItems->setArrowColumn(227, ARROW_VERTICAL);
+		_lstItems->setColumns(4, 150, 55, 50, 28);
+	}
 	_lstItems->setSelectable(true);
 	_lstItems->setBackground(_window);
 	_lstItems->setMargin(2);
@@ -128,6 +137,7 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 	_lstItems->onRightArrowRelease((ActionHandler)&PurchaseState::lstItemsRightArrowRelease);
 	_lstItems->onRightArrowClick((ActionHandler)&PurchaseState::lstItemsRightArrowClick);
 	_lstItems->onMousePress((ActionHandler)&PurchaseState::lstItemsMousePress);
+	_lstItems->setWordWrap(true);
 
 	_cats.push_back("STR_ALL_ITEMS");
 
@@ -151,7 +161,12 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 		RuleSoldier *rule = _game->getMod()->getSoldier(*i);
 		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()))
 		{
-			TransferRow row = { TRANSFER_SOLDIER, rule, tr(rule->getType()), rule->getBuyCost(), _base->getSoldierCount(rule->getType()), 0, 0 };
+			PurchaseRow row = { TRANSFER_SOLDIER, rule, tr(rule->getType()), rule->getBuyCost(), _base->getSoldierCount(rule->getType()), 0, 0, 0 };
+			if (_alternateScreen)
+			{
+				row.reserved = _base->getAllocatedSoldiers(rule->getType());
+				row.inTransfer = row.qtySrc - _base->getSoldierCount(rule->getType(), false);;
+			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -161,7 +176,12 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 		}
 	}
 	{
-		TransferRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), _game->getMod()->getScientistCost() * 2, _base->getTotalScientists(), 0, 0 };
+		PurchaseRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), _game->getMod()->getScientistCost() * 2, _base->getTotalScientists(), 0, 0, 0 };
+		if (_alternateScreen)
+		{
+			row.reserved = _base->getAllocatedScientists();
+			row.inTransfer = row.qtySrc - _base->getTotalScientists(false);
+		}
 		_items.push_back(row);
 		std::string cat = getCategory(_items.size() - 1);
 		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -170,7 +190,12 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 		}
 	}
 	{
-		TransferRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), _game->getMod()->getEngineerCost() * 2, _base->getTotalEngineers(), 0, 0 };
+		PurchaseRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), _game->getMod()->getEngineerCost() * 2, _base->getTotalEngineers(), 0, 0, 0 };
+		if (_alternateScreen)
+		{
+			row.reserved = _base->getAllocatedEngineers();
+			row.inTransfer = row.qtySrc - _base->getAvailableEngineers() - row.reserved;
+		}
 		_items.push_back(row);
 		std::string cat = getCategory(_items.size() - 1);
 		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -184,7 +209,12 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 		RuleCraft *rule = _game->getMod()->getCraft(*i);
 		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()))
 		{
-			TransferRow row = { TRANSFER_CRAFT, rule, tr(rule->getType()), rule->getBuyCost(), _base->getCraftCount(rule->getType()), 0, 0 };
+			PurchaseRow row = { TRANSFER_CRAFT, rule, tr(rule->getType()), rule->getBuyCost(), _base->getCraftCount(rule->getType()), 0, 0, 0 };
+			if (_alternateScreen)
+			{
+				row.inTransfer = row.qtySrc - _base->getCraftCount(rule->getType(), false);
+				row.reserved = row.qtySrc - row.inTransfer - _base->getCraftAvailable(rule->getType());
+			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -199,7 +229,15 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 		RuleItem *rule = _game->getMod()->getItem(*i);
 		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()))
 		{
-			TransferRow row = { TRANSFER_ITEM, rule, tr(rule->getType()), rule->getBuyCost(), _base->getStorageItems()->getItem(rule->getType()), 0, 0 };
+			PurchaseRow row = { TRANSFER_ITEM, rule, tr(rule->getType()), rule->getBuyCost(), _base->getStorageItems()->getItem(rule->getType()), 0, 0, 0 };
+			if (_alternateScreen)
+			{
+				// No need to check reservation of research and manufacture items.
+				// They get removed from base upon assignment.
+				row.reserved = _base->getCraftItemCount(*i);
+				row.inTransfer = _base->getTransferItemCount(*i);
+				row.qtySrc += row.reserved + row.inTransfer;
+			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -218,6 +256,8 @@ PurchaseState::PurchaseState(Base *base) : _base(base), _sel(0), _total(0), _pQt
 	_timerInc->onTimer((StateHandler)&PurchaseState::increase);
 	_timerDec = new Timer(250);
 	_timerDec->onTimer((StateHandler)&PurchaseState::decrease);
+
+	updateSubtitleLine();
 }
 
 /**
@@ -305,10 +345,29 @@ void PurchaseState::updateList()
 			}
 		}
 		std::ostringstream ssQty, ssAmount;
-		ssQty << _items[i].qtySrc;
-		ssAmount << _items[i].amount;
-		_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
+		if (_alternateScreen)
+		{
+			std::ostringstream ssReserved;
+			// First # column represent the total amount currently on base
+			ssQty << _items[i].qtySrc - _items[i].inTransfer;
+			if (_items[i].reserved != 0)
+			{
+				ssReserved << "(" << _items[i].reserved << ")";
+			}
+			if (_items[i].inTransfer + _items[i].amount != 0)
+			{
+				ssAmount << _items[i].inTransfer + _items[i].amount;
+			}
+			_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssReserved.str().c_str(), "", ssAmount.str().c_str());
+		}
+		else
+		{
+			ssQty << _items[i].qtySrc;
+			ssAmount << _items[i].amount;
+			_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
+		}
 		_rows.push_back(i);
+
 		if (_items[i].amount > 0)
 		{
 			_lstItems->setRowColor(_rows.size() - 1, _lstItems->getSecondaryColor());
@@ -327,7 +386,7 @@ void PurchaseState::updateList()
 void PurchaseState::btnOkClick(Action *)
 {
 	_game->getSavedGame()->setFunds(_game->getSavedGame()->getFunds() - _total);
-	for (std::vector<TransferRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	for (std::vector<PurchaseRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
 		if (i->amount > 0)
 		{
@@ -642,10 +701,21 @@ void PurchaseState::decreaseByValue(int change)
  */
 void PurchaseState::updateItemStrings()
 {
-	_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
-	std::ostringstream ss, ss5;
-	ss << getRow().amount;
-	_lstItems->setCellText(_sel, 3, ss.str());
+	std::ostringstream ss;
+	if (_alternateScreen)
+	{
+		if (getRow().inTransfer + getRow().amount != 0)
+		{
+			ss << getRow().inTransfer + getRow().amount;
+		}
+		_lstItems->setCellText(_sel, 5, ss.str());
+	}
+	else
+	{
+		ss << getRow().amount;
+		_lstItems->setCellText(_sel, 3, ss.str());
+	}
+
 	if (getRow().amount > 0)
 	{
 		_lstItems->setRowColor(_sel, _lstItems->getSecondaryColor());
@@ -662,16 +732,7 @@ void PurchaseState::updateItemStrings()
 			}
 		}
 	}
-	ss5 << _base->getUsedStores();
-	if (std::abs(_iQty) > 0.05)
-	{
-		ss5 << "(";
-		if (_iQty > 0.05)
-			ss5 << "+";
-		ss5 << std::fixed << std::setprecision(1) << _iQty << ")";
-	}
-	ss5 << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss5.str()));
+	updateSubtitleLine();
 }
 
 /**
@@ -680,6 +741,44 @@ void PurchaseState::updateItemStrings()
 void PurchaseState::cbxCategoryChange(Action *)
 {
 	updateList();
+}
+
+/**
+++ * Updates entities below screen title.
+++ *
+++ * The (derived) values between title and list.
+++ */
+void PurchaseState::updateSubtitleLine()
+{
+	std::ostringstream ss;
+	ss << _base->getUsedStores();
+	if (std::abs(_iQty) > 0.05)
+	{
+		ss << "(";
+		if (_iQty > 0.05)
+			ss << "+";
+		ss << std::fixed << std::setprecision(1) << _iQty << ")";
+	}
+	ss << ":" << _base->getAvailableStores();
+
+	if (_alternateScreen)
+	{
+		std::ostringstream ssFunds;
+		ssFunds << Unicode::formatFunding(_game->getSavedGame()->getFunds());
+		if (_total > 0)
+		{
+			ssFunds << " (" << Unicode::formatFunding(-1*_total) << ")";
+		}
+		_txtFunds->setText(tr("STR_FUNDS").arg(ssFunds.str()));
+		// Abuse default "_txtPurchases" to display used space (since "_txtFunds" already shows purchase cost)
+		_txtPurchases->setText(tr("STR_SPACE_USED").arg(ss.str()));
+	}
+	else
+	{
+		_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
+		_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
+		_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
+	}
 }
 
 }

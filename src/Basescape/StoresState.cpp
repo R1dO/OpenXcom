@@ -84,6 +84,7 @@ StoresState::StoresState(Base *base) : _base(base)
 	_lstStores->setSelectable(true);
 	_lstStores->setBackground(_window);
 	_lstStores->setMargin(2);
+	_lstStores->setWordWrap(true);
 
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)

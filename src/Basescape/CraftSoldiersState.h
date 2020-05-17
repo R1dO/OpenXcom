@@ -41,18 +41,23 @@ class CraftSoldiersState : public State
 private:
 	TextButton *_btnOk;
 	Window *_window;
-	Text *_txtTitle, *_txtName, *_txtRank, *_txtCraft, *_txtAvailable, *_txtUsed;
+	Text *_txtTitle, *_txtName, *_txtRank, *_txtCraft,  *_txtAvailable, *_txtUsed, *_txtVehicleUsage, *_txtSoldiers;
 	ComboBox *_cbxSortBy;
 	TextList *_lstSoldiers;
 
 	Base *_base;
 	size_t _craft;
+	Craft *_currentCraft;
 	Uint8 _otherCraftColor;
 	std::vector<Soldier *> _origSoldierOrder;
 	std::vector<SortFunctor *> _sortFunctors;
+	/// Do we use the alternate base screen option?
+	bool _alternateScreen;
 
 	/// initializes the display list based on the craft soldier's list
 	void initList();
+	/// Updates entities below screen title.
+	void updateSubtitleLine();
 public:
 	/// Creates the Craft Soldiers state.
 	CraftSoldiersState(Base *base, size_t craft);

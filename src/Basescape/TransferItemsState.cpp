@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <sstream>
 #include <climits>
+#include <iomanip>
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Mod/Mod.h"
@@ -56,16 +57,31 @@ namespace OpenXcom
  */
 TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom(baseFrom), _baseTo(baseTo), _sel(0), _total(0), _pQty(0), _cQty(0), _aQty(0), _iQty(0.0), _distance(0.0), _ammoColor(0)
 {
+	_alternateScreen = Options::alternateBaseScreens;
+
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
 	_btnOk = new TextButton(148, 16, 8, 176);
 	_btnCancel = new TextButton(148, 16, 164, 176);
 	_txtTitle = new Text(310, 17, 5, 8);
-	_txtQuantity = new Text(50, 9, 150, 24);
-	_txtAmountTransfer = new Text(60, 17, 200, 24);
-	_txtAmountDestination = new Text(60, 17, 260, 24);
-	_cbxCategory = new ComboBox(this, 120, 16, 10, 24);
-	_lstItems = new TextList(287, 128, 8, 44);
+	if (_alternateScreen)
+	{
+		_txtFunds = new Text(150, 9, 10, 24);
+		_txtQuantity = new Text(50, 17, 147, 36);
+		_txtAmountTransfer = new Text(54, 17, 197, 36);
+		_txtAmountDestination = new Text(60, 17, 251, 36);
+		_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
+		_lstItems = new TextList(287, 120, 8, 54);
+	}
+	else
+	{
+		_txtFunds = new Text(50, 9, 150, 24); // Dummy
+		_txtQuantity = new Text(50, 9, 150, 24);
+		_txtAmountTransfer = new Text(60, 17, 200, 24);
+		_txtAmountDestination = new Text(60, 17, 260, 24);
+		_cbxCategory = new ComboBox(this, 120, 16, 10, 24);
+		_lstItems = new TextList(287, 128, 8, 44);
+	}
 
 	// Set palette
 	setInterface("transferMenu");
@@ -81,7 +97,10 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	add(_txtAmountDestination, "text", "transferMenu");
 	add(_lstItems, "list", "transferMenu");
 	add(_cbxCategory, "text", "transferMenu");
-
+	if (_alternateScreen)
+	{
+		add(_txtFunds, "text", "transferMenu");
+	}
 	centerAllSurfaces();
 
 	// Set up objects
@@ -99,16 +118,18 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	_txtTitle->setAlign(ALIGN_CENTER);
 	_txtTitle->setText(tr("STR_TRANSFER"));
 
-	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
-
-	_txtAmountTransfer->setText(tr("STR_AMOUNT_TO_TRANSFER"));
-	_txtAmountTransfer->setWordWrap(true);
-
-	_txtAmountDestination->setText(tr("STR_AMOUNT_AT_DESTINATION"));
-	_txtAmountDestination->setWordWrap(true);
-
-	_lstItems->setArrowColumn(193, ARROW_VERTICAL);
-	_lstItems->setColumns(4, 162, 58, 40, 20);
+	if (_alternateScreen)
+	{
+		_lstItems->setArrowColumn(189, ARROW_VERTICAL);
+		// Use an empty column to reserve space (28) for the arrows. To allow for arbitrary cell text alignment. Max 285
+		_lstItems->setColumns(7, 140, 22, 22, 28, 29, 22, 22);
+		_lstItems->setWordWrap(true);
+	}
+	else
+	{
+		_lstItems->setArrowColumn(193, ARROW_VERTICAL);
+		_lstItems->setColumns(4, 162, 58, 40, 20);
+	}
 	_lstItems->setSelectable(true);
 	_lstItems->setBackground(_window);
 	_lstItems->setMargin(2);
@@ -142,7 +163,9 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	{
 		if ((*i)->getCraft() == 0)
 		{
-			TransferRow row = { TRANSFER_SOLDIER, (*i), (*i)->getName(true), (int)(5 * _distance), 1, 0, 0 };
+			TransferItemRow row = { TRANSFER_SOLDIER, (*i), (*i)->getName(true), (int)(5 * _distance), 1, 0, 0, 0, 0, 0, 0 };
+			// Original behavior makes sense (no display of named soldiers assigned to
+			// craft or in-transfer, to protect against transfer).
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -155,7 +178,9 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	{
 		if ((*i)->getStatus() != "STR_OUT" || (Options::canTransferCraftsWhileAirborne && (*i)->getFuel() >= (*i)->getFuelLimit(_baseTo)))
 		{
-			TransferRow row = { TRANSFER_CRAFT, (*i), (*i)->getName(_game->getLanguage()), (int)(25 * _distance), 1, 0, 0 };
+			TransferItemRow row = { TRANSFER_CRAFT, (*i), (*i)->getName(_game->getLanguage()), (int)(25 * _distance), 1, 0, 0, 0, 0, 0, 0 };
+			// Original behavior makes sense (no display of named aircraft currently
+			// on a mission or in-transfer, to protect against transfer).
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -164,34 +189,65 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 			}
 		}
 	}
-	if (_baseFrom->getAvailableScientists() > 0)
-	{
-		TransferRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), (int)(5 * _distance), _baseFrom->getAvailableScientists(), _baseTo->getAvailableScientists(), 0 };
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+	{// Scientists
+		TransferItemRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), (int)(5 * _distance), _baseFrom->getAvailableScientists(), _baseTo->getAvailableScientists(), 0, 0, 0, 0, 0 };
+		if (_alternateScreen)
 		{
-			_cats.push_back(cat);
+			row.qtySrc = _baseFrom->getTotalScientists();
+			row.qtyDst = _baseTo->getTotalScientists();
+			row.transferSrc = row.qtySrc - _baseFrom->getTotalScientists(false);
+			row.transferDst = row.qtyDst - _baseTo->getTotalScientists(false);
+			row.reservedSrc = _baseFrom->getAllocatedScientists();
+			row.reservedDst = _baseTo->getAllocatedScientists();
+		}
+		if (row.qtySrc > 0)
+		{
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
 		}
 	}
-	if (_baseFrom->getAvailableEngineers() > 0)
-	{
-		TransferRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), (int)(5 * _distance), _baseFrom->getAvailableEngineers(), _baseTo->getAvailableEngineers(), 0 };
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+	{// Engineers
+		TransferItemRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), (int)(5 * _distance), _baseFrom->getAvailableEngineers(), _baseTo->getAvailableEngineers(), 0, 0, 0, 0, 0 };
+		if (_alternateScreen)
 		{
-			_cats.push_back(cat);
+			row.qtySrc = _baseFrom->getTotalEngineers();
+			row.qtyDst = _baseTo->getTotalEngineers();
+			row.reservedSrc = _baseFrom->getAllocatedEngineers();
+			row.reservedDst = _baseTo->getAllocatedEngineers();
+			row.transferSrc = row.qtySrc - _baseFrom->getAvailableEngineers() - row.reservedSrc;
+			row.transferDst = row.qtyDst - _baseTo->getAvailableEngineers() - row.reservedDst;
+		}
+		if (row.qtySrc > 0)
+		{
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
 		}
 	}
+	// Items
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
-		int qty = _baseFrom->getStorageItems()->getItem(*i);
-		if (qty > 0)
+		RuleItem *rule = _game->getMod()->getItem(*i);
+		TransferItemRow row = { TRANSFER_ITEM, rule, tr(*i), (int)(1 * _distance), _baseFrom->getStorageItems()->getItem(*i), _baseTo->getStorageItems()->getItem(*i), 0, 0, 0, 0 };
+		if (_alternateScreen)
 		{
-			RuleItem *rule = _game->getMod()->getItem(*i);
-			TransferRow row = { TRANSFER_ITEM, rule, tr(*i), (int)(1 * _distance), qty, _baseTo->getStorageItems()->getItem(*i), 0 };
+			row.transferSrc = _baseFrom->getTransferItemCount(*i);
+			row.transferDst = _baseTo->getTransferItemCount(*i);
+			row.reservedSrc = _baseFrom->getCraftItemCount(*i) + _baseFrom->getSoldierArmorCount(*i);
+			row.reservedDst = _baseTo->getCraftItemCount(*i) + _baseTo->getSoldierArmorCount(*i);
+			row.qtySrc += row.reservedSrc + row.transferSrc;
+			row.qtyDst += row.reservedDst + row.transferDst;
+		}
+		if (row.qtySrc > 0)
+		{
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -204,6 +260,8 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	_cbxCategory->setOptions(_cats, true);
 	_cbxCategory->onChange((ActionHandler)&TransferItemsState::cbxCategoryChange);
 
+	updateSubtitleLine();
+	updateSpreadsheetHeader();
 	updateList();
 
 	_timerInc = new Timer(250);
@@ -299,9 +357,35 @@ void TransferItemsState::updateList()
 		std::ostringstream ssQtySrc, ssQtyDst, ssAmount;
 		ssQtySrc << _items[i].qtySrc - _items[i].amount;
 		ssQtyDst << _items[i].qtyDst;
-		ssAmount << _items[i].amount;
-		_lstItems->addRow(4, name.c_str(), ssQtySrc.str().c_str(), ssAmount.str().c_str(), ssQtyDst.str().c_str());
+		if (_alternateScreen)
+		{
+			std::ostringstream ssReservedSrc, ssReservedDst;
+			if (_items[i].reservedSrc != 0)
+			{
+				ssReservedSrc << "(" << _items[i].reservedSrc << ")";
+			}
+			if (_items[i].reservedDst != 0)
+			{
+				ssReservedDst << "(" << _items[i].reservedDst << ")";
+			}
+
+			if (_items[i].amount > 0)
+			{
+				ssAmount << ">" << _items[i].amount;
+			}
+			else if (_items[i].amount < 0)
+			{
+				ssAmount << "<" << _items[i].amount;
+			}
+			_lstItems->addRow(7, name.c_str(), ssQtySrc.str().c_str(), ssReservedSrc.str().c_str(), "", ssAmount.str().c_str(), ssQtyDst.str().c_str(), ssReservedDst.str().c_str());
+		}
+		else
+		{
+			ssAmount << _items[i].amount;
+			_lstItems->addRow(4, name.c_str(), ssQtySrc.str().c_str(), ssAmount.str().c_str(), ssQtyDst.str().c_str());
+		}
 		_rows.push_back(i);
+
 		if (_items[i].amount > 0)
 		{
 			_lstItems->setRowColor(_rows.size() - 1, _lstItems->getSecondaryColor());
@@ -310,6 +394,62 @@ void TransferItemsState::updateList()
 		{
 			_lstItems->setRowColor(_rows.size() - 1, _ammoColor);
 		}
+	}
+}
+
+/**
+ * Updates entities below screen title.
+ *
+ * The (derived) values between title and list.
+ */
+void TransferItemsState::updateSubtitleLine()
+{
+	if (_alternateScreen)
+	{
+		std::ostringstream ssFunds;
+		ssFunds << Unicode::formatFunding(_game->getSavedGame()->getFunds());
+		if (_total > 0)
+		{
+			ssFunds << " (" << Unicode::formatFunding(-1*_total) << ")";
+		}
+		_txtFunds->setText(tr("STR_FUNDS").arg(ssFunds.str()));
+	}
+}
+
+/**
+ * Updates variable cells in the spreadsheet header row.
+ */
+void TransferItemsState::updateSpreadsheetHeader()
+{
+	_txtAmountTransfer->setText(tr("STR_AMOUNT_TO_TRANSFER"));
+	_txtAmountTransfer->setWordWrap(true);
+	_txtAmountDestination->setWordWrap(true);
+
+	if (_alternateScreen)
+	{
+		std::ostringstream ssSrc, ssDst ;
+		ssSrc << tr("STR_QUANTITY_UC") << "\n" << Unicode::TOK_COLOR_FLIP;
+		ssDst << tr("STR_DESTINATION_UC") << "\n" << Unicode::TOK_COLOR_FLIP;
+		if (std::abs(_iQty) > 0.05)
+		{
+			ssSrc << std::fixed << std::setprecision(1) << _baseFrom->getUsedStores() - _iQty;
+			ssDst << std::fixed << std::setprecision(1) << _baseTo->getUsedStores() + _iQty;
+		}
+		else
+		{
+			ssSrc << std::fixed << std::setprecision(1) << _baseFrom->getUsedStores();
+			ssDst << std::fixed << std::setprecision(1) << _baseTo->getUsedStores();
+		}
+		ssSrc << Unicode::TOK_COLOR_FLIP << ":" << _baseFrom->getAvailableStores();
+		ssDst << Unicode::TOK_COLOR_FLIP << ":" << _baseTo->getAvailableStores();
+
+		_txtQuantity->setText(ssSrc.str().c_str());
+		_txtAmountDestination->setText(ssDst.str().c_str());
+	}
+	else
+	{
+		_txtQuantity->setText(tr("STR_QUANTITY_UC"));
+		_txtAmountDestination->setText(tr("STR_AMOUNT_AT_DESTINATION"));
 	}
 }
 
@@ -329,7 +469,7 @@ void TransferItemsState::completeTransfer()
 {
 	int time = (int)floor(6 + _distance / 10.0);
 	_game->getSavedGame()->setFunds(_game->getSavedGame()->getFunds() - _total);
-	for (std::vector<TransferRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	for (std::vector<TransferItemRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
 		if (i->amount > 0)
 		{
@@ -556,7 +696,7 @@ void TransferItemsState::increase()
  */
 void TransferItemsState::increaseByValue(int change)
 {
-	if (0 >= change || getRow().qtySrc <= getRow().amount) return;
+	if (0 >= change || getRow().qtySrc - getRow().reservedSrc <= getRow().amount) return;
 	std::string errorMessage;
 	RuleItem *selItem = 0;
 	Craft *craft = 0;
@@ -607,7 +747,7 @@ void TransferItemsState::increaseByValue(int change)
 		case TRANSFER_SOLDIER:
 		case TRANSFER_SCIENTIST:
 		case TRANSFER_ENGINEER:
-			change = std::min(std::min(freeQuarters, getRow().qtySrc - getRow().amount), change);
+			change = std::min(std::min(freeQuarters, getRow().qtySrc - getRow().reservedSrc - getRow().amount), change);
 			_pQty += change;
 			getRow().amount += change;
 			_total += getRow().cost * change;
@@ -630,7 +770,7 @@ void TransferItemsState::increaseByValue(int change)
 				{
 					freeStoresForItem = (freeStores + 0.05) / storesNeededPerItem;
 				}
-				change = std::min(std::min((int)freeStoresForItem, getRow().qtySrc - getRow().amount), change);
+				change = std::min(std::min((int)freeStoresForItem, getRow().qtySrc - getRow().reservedSrc - getRow().amount), change);
 				_iQty += change * storesNeededPerItem;
 				getRow().amount += change;
 				_total += getRow().cost * change;
@@ -638,7 +778,7 @@ void TransferItemsState::increaseByValue(int change)
 			else
 			{
 				int freeContainment = Options::storageLimitsEnforced ? _baseTo->getAvailableContainment() - _baseTo->getUsedContainment() - _aQty : INT_MAX;
-				change = std::min(std::min(freeContainment, getRow().qtySrc - getRow().amount), change);
+				change = std::min(std::min(freeContainment, getRow().qtySrc - getRow().reservedSrc - getRow().amount), change);
 				_aQty += change;
 				getRow().amount += change;
 				_total += getRow().cost * change;
@@ -713,11 +853,28 @@ void TransferItemsState::updateItemStrings()
 {
 	std::ostringstream ss1, ss2;
 	ss1 << getRow().qtySrc - getRow().amount;
-	ss2 << getRow().amount;
-	_lstItems->setCellText(_sel, 1, ss1.str());
-	_lstItems->setCellText(_sel, 2, ss2.str());
+	if (_alternateScreen)
+	{
+		_lstItems->setCellText(_sel, 1, ss1.str());
 
-	if (getRow().amount > 0)
+		if (getRow().amount > 0)
+		{
+			ss2 << ">" << getRow().amount;
+		}
+		else if (getRow().amount < 0)
+		{
+			ss2 << "<" << getRow().amount;
+		}
+		_lstItems->setCellText(_sel, 4, ss2.str());
+	}
+	else
+	{
+		ss2 << getRow().amount;
+		_lstItems->setCellText(_sel, 1, ss1.str());
+		_lstItems->setCellText(_sel, 2, ss2.str());
+	}
+
+	if (getRow().amount != 0)
 	{
 		_lstItems->setRowColor(_sel, _lstItems->getSecondaryColor());
 	}
@@ -733,6 +890,8 @@ void TransferItemsState::updateItemStrings()
 			}
 		}
 	}
+	updateSubtitleLine();
+	updateSpreadsheetHeader();
 }
 
 /**

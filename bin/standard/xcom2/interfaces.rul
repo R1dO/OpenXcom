@@ -825,6 +825,7 @@ interfaces: #done
         color: 1   # blue
       - id: text
         color: 1   # blue
+        color2: 208  # white
       - id: list
         color: 244   # blue
         color2: 1  # white

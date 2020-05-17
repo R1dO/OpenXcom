@@ -788,6 +788,7 @@ interfaces:
         color: 218   # blue
       - id: text
         color: 218   # blue
+        color2: 208  # white
       - id: list
         color: 218   # blue
         color2: 208  # white

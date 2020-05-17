@@ -41,14 +41,33 @@ class Base;
 class PurchaseState : public State
 {
 private:
+	/**
+	 * Tailored struct to store variables of importance to the spreadsheet.
+	 */
+	struct PurchaseRow
+	{
+		TransferType type; ///< Item category.
+		void *rule;        ///< Pointer to ruleset of item.
+		std::string name;  ///< Translated name of item.
+		int cost;          ///< Purchase cost of item.
+		int qtySrc;        ///< Total starting amount on base (including transfers)
+		int amount;        /**< Requested change.
+		                    *
+		                    * + Positive values moves an item towards base stores (e.g BUY).
+		                    * + Negative values moves an item away from base stores (e.g. undo).
+		                    */
+		int inTransfer;    ///< Amount currently on route to base
+		int reserved;      ///< Reserved amount of items(s).
+	};
+
 	Base *_base;
 
 	TextButton *_btnOk, *_btnCancel;
 	Window *_window;
-	Text *_txtTitle, *_txtFunds, *_txtPurchases, *_txtCost, *_txtQuantity, *_txtSpaceUsed;
+	Text *_txtTitle, *_txtFunds, *_txtPurchases, *_txtCost, *_txtQuantity, *_txtSpaceUsed, *_txtBase;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
-	std::vector<TransferRow> _items;
+	std::vector<PurchaseRow> _items;
 	std::vector<int> _rows;
 	std::vector<std::string> _cats;
 	std::set<std::string> _craftWeapons, _armors;
@@ -60,7 +79,11 @@ private:
 	/// Gets the category of the current selection.
 	std::string getCategory(int sel) const;
 	/// Gets the row of the current selection.
-	TransferRow &getRow() { return _items[_rows[_sel]]; }
+	PurchaseRow &getRow() { return _items[_rows[_sel]]; }
+	/// Do we use the alternate base screen option?
+	bool _alternateScreen;
+	/// Updates entities below screen title.
+	void updateSubtitleLine();
 public:
 	/// Creates the Purchase state.
 	PurchaseState(Base *base);
