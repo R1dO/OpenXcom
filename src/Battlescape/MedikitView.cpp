@@ -31,7 +31,7 @@ namespace OpenXcom
 /**
  * User interface string identifier of body parts.
  */
-const std::string PARTS_STRING[6] =
+const std::string PARTS_STRING[BODYPART_MAX] =
 {
 	"STR_HEAD",
 	"STR_TORSO",
@@ -132,7 +132,7 @@ int MedikitView::getSelectedPart() const
  */
 void MedikitView::updateSelectedPart()
 {
-	for (int i = 0; i < 6; ++i)
+	for (int i = 0; i < BODYPART_MAX; ++i)
 	{
 		if (_unit->getFatalWound(i))
 		{

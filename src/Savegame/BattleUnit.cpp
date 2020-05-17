@@ -134,7 +134,7 @@ BattleUnit::BattleUnit(Soldier *soldier, int depth) :
 	_currentArmor[SIDE_RIGHT] = _maxArmor[SIDE_RIGHT];
 	_currentArmor[SIDE_REAR] = _maxArmor[SIDE_REAR];
 	_currentArmor[SIDE_UNDER] = _maxArmor[SIDE_UNDER];
-	for (int i = 0; i < BODYPARTS_MAX; ++i)
+	for (int i = 0; i < BODYPART_MAX; ++i)
 		_fatalWounds[i] = 0;
 	for (int i = 0; i < OBJECTS_MAX; ++i)
 		_cache[i] = 0;
@@ -248,7 +248,7 @@ BattleUnit::BattleUnit(Unit *unit, UnitFaction faction, int id, Armor *armor, St
 	_currentArmor[SIDE_RIGHT] = _maxArmor[SIDE_RIGHT];
 	_currentArmor[SIDE_REAR] = _maxArmor[SIDE_REAR];
 	_currentArmor[SIDE_UNDER] = _maxArmor[SIDE_UNDER];
-	for (int i = 0; i < BODYPARTS_MAX; ++i)
+	for (int i = 0; i < BODYPART_MAX; ++i)
 		_fatalWounds[i] = 0;
 	for (int i = 0; i < OBJECTS_MAX; ++i)
 		_cache[i] = 0;
@@ -330,7 +330,7 @@ void BattleUnit::load(const YAML::Node &node)
 	_floating = node["floating"].as<bool>(_floating);
 	for (int i=0; i < SIDES_MAX; i++)
 		_currentArmor[i] = node["armor"][i].as<int>(_currentArmor[i]);
-	for (int i=0; i < BODYPARTS_MAX; i++)
+	for (int i=0; i < BODYPART_MAX; i++)
 		_fatalWounds[i] = node["fatalWounds"][i].as<int>(_fatalWounds[i]);
 	_fire = node["fire"].as<int>(_fire);
 	_expBravery = node["expBravery"].as<int>(_expBravery);
@@ -399,7 +399,7 @@ YAML::Node BattleUnit::save() const
 	node["kneeled"] = _kneeled;
 	node["floating"] = _floating;
 	for (int i=0; i < SIDES_MAX; i++) node["armor"].push_back(_currentArmor[i]);
-	for (int i=0; i < BODYPARTS_MAX; i++) node["fatalWounds"].push_back(_fatalWounds[i]);
+	for (int i=0; i < BODYPART_MAX; i++) node["fatalWounds"].push_back(_fatalWounds[i]);
 	node["fire"] = _fire;
 	node["expBravery"] = _expBravery;
 	node["expReactions"] = _expReactions;
@@ -1612,7 +1612,7 @@ int BattleUnit::getMaxArmor(UnitSide side) const
 int BattleUnit::getFatalWounds() const
 {
 	int sum = 0;
-	for (int i = 0; i < BODYPARTS_MAX; ++i)
+	for (int i = 0; i < BODYPART_MAX; ++i)
 		sum += _fatalWounds[i];
 	return sum;
 }
@@ -2328,7 +2328,7 @@ int BattleUnit::getTurretType() const
  */
 int BattleUnit::getFatalWound(int part) const
 {
-	if (part < 0 || part >= BODYPARTS_MAX )
+	if (part < 0 || part >= BODYPART_MAX )
 		return 0;
 	return _fatalWounds[part];
 }
@@ -2341,7 +2341,7 @@ int BattleUnit::getFatalWound(int part) const
  */
 void BattleUnit::heal(int part, int woundAmount, int healthAmount)
 {
-	if (part < 0 || part >= BODYPARTS_MAX || !_fatalWounds[part])
+	if (part < 0 || part >= BODYPART_MAX || !_fatalWounds[part])
 	{
 		return;
 	}

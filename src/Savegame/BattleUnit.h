@@ -47,10 +47,23 @@ class AIModule;
 struct BattleUnitStatistics;
 struct StatAdjustment;
 
+/// @file
 enum UnitStatus {STATUS_STANDING, STATUS_WALKING, STATUS_FLYING, STATUS_TURNING, STATUS_AIMING, STATUS_COLLAPSING, STATUS_DEAD, STATUS_UNCONSCIOUS, STATUS_PANICKING, STATUS_BERSERK, STATUS_IGNORE_ME};
 enum UnitFaction {FACTION_PLAYER, FACTION_HOSTILE, FACTION_NEUTRAL};
 enum UnitSide {SIDE_FRONT, SIDE_LEFT, SIDE_RIGHT, SIDE_REAR, SIDE_UNDER};
-enum UnitBodyPart {BODYPART_HEAD, BODYPART_TORSO, BODYPART_RIGHTARM, BODYPART_LEFTARM, BODYPART_RIGHTLEG, BODYPART_LEFTLEG};
+/**
+ * Parts of a unit susceptible to (fatal) wounds.
+ * Left and right are based on the unit's perspective, not players view.
+ */
+enum UnitBodyPart {
+	BODYPART_HEAD,     ///< Head
+	BODYPART_TORSO,    ///< Torso
+	BODYPART_RIGHTARM, ///< Right Arm
+	BODYPART_LEFTARM,  ///< Left Arm
+	BODYPART_RIGHTLEG, ///< Right Leg
+	BODYPART_LEFTLEG,  ///< Left Leg
+	BODYPART_MAX       ///< Amount of enum entries.
+	};
 
 /**
  * Represents a moving unit in the battlescape, player controlled or AI controlled
@@ -61,7 +74,6 @@ class BattleUnit
 private:
 	static const int SPEC_WEAPON_MAX = 3;
 	static const int OBJECTS_MAX = 5; // 4 body parts & 1 turret.
-	static const int BODYPARTS_MAX = BODYPART_LEFTLEG + 1;
 	static const int SIDES_MAX = SIDE_UNDER + 1;
 
 	UnitFaction _faction, _originalFaction;
@@ -81,7 +93,7 @@ private:
 	int _tu, _energy, _health, _morale, _stunlevel;
 	bool _kneeled, _floating, _dontReselect;
 	int _currentArmor[SIDES_MAX], _maxArmor[SIDES_MAX];
-	int _fatalWounds[BODYPARTS_MAX];
+	int _fatalWounds[BODYPART_MAX];
 	int _fire;
 	std::vector<BattleItem*> _inventory;
 	BattleItem* _specWeapon[SPEC_WEAPON_MAX];
