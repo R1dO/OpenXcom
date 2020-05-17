@@ -129,11 +129,8 @@ BattleUnit::BattleUnit(Soldier *soldier, int depth) :
 	_maxArmor[SIDE_RIGHT] = _armor->getSideArmor();
 	_maxArmor[SIDE_REAR] = _armor->getRearArmor();
 	_maxArmor[SIDE_UNDER] = _armor->getUnderArmor();
-	_currentArmor[SIDE_FRONT] = _maxArmor[SIDE_FRONT];
-	_currentArmor[SIDE_LEFT] = _maxArmor[SIDE_LEFT];
-	_currentArmor[SIDE_RIGHT] = _maxArmor[SIDE_RIGHT];
-	_currentArmor[SIDE_REAR] = _maxArmor[SIDE_REAR];
-	_currentArmor[SIDE_UNDER] = _maxArmor[SIDE_UNDER];
+	for (int i = 0; i < SIDE_MAX; ++i)
+		_currentArmor[i] = _maxArmor[i];
 	for (int i = 0; i < BODYPART_MAX; ++i)
 		_fatalWounds[i] = 0;
 	for (int i = 0; i < OBJECTS_MAX; ++i)
@@ -243,11 +240,8 @@ BattleUnit::BattleUnit(Unit *unit, UnitFaction faction, int id, Armor *armor, St
 	_health = _stats.health;
 	_morale = 100;
 	_stunlevel = 0;
-	_currentArmor[SIDE_FRONT] = _maxArmor[SIDE_FRONT];
-	_currentArmor[SIDE_LEFT] = _maxArmor[SIDE_LEFT];
-	_currentArmor[SIDE_RIGHT] = _maxArmor[SIDE_RIGHT];
-	_currentArmor[SIDE_REAR] = _maxArmor[SIDE_REAR];
-	_currentArmor[SIDE_UNDER] = _maxArmor[SIDE_UNDER];
+	for (int i = 0; i < SIDE_MAX; ++i)
+		_currentArmor[i] = _maxArmor[i];
 	for (int i = 0; i < BODYPART_MAX; ++i)
 		_fatalWounds[i] = 0;
 	for (int i = 0; i < OBJECTS_MAX; ++i)
@@ -328,7 +322,7 @@ void BattleUnit::load(const YAML::Node &node)
 	_morale = node["morale"].as<int>(_morale);
 	_kneeled = node["kneeled"].as<bool>(_kneeled);
 	_floating = node["floating"].as<bool>(_floating);
-	for (int i=0; i < SIDES_MAX; i++)
+	for (int i=0; i < SIDE_MAX; i++)
 		_currentArmor[i] = node["armor"][i].as<int>(_currentArmor[i]);
 	for (int i=0; i < BODYPART_MAX; i++)
 		_fatalWounds[i] = node["fatalWounds"][i].as<int>(_fatalWounds[i]);
@@ -398,7 +392,7 @@ YAML::Node BattleUnit::save() const
 	node["morale"] = _morale;
 	node["kneeled"] = _kneeled;
 	node["floating"] = _floating;
-	for (int i=0; i < SIDES_MAX; i++) node["armor"].push_back(_currentArmor[i]);
+	for (int i=0; i < SIDE_MAX; i++) node["armor"].push_back(_currentArmor[i]);
 	for (int i=0; i < BODYPART_MAX; i++) node["fatalWounds"].push_back(_fatalWounds[i]);
 	node["fire"] = _fire;
 	node["expBravery"] = _expBravery;
@@ -2907,7 +2901,7 @@ void BattleUnit::adjustStats(const StatAdjustment &adjustment)
 	_stats.melee += adjustment.statGrowth.melee * adjustment.growthMultiplier * _stats.melee / 100;
 
 	_stats.firing *= adjustment.aimAndArmorMultiplier;
-	for (int i = 0; i < SIDES_MAX; ++i)
+	for (int i = 0; i < SIDE_MAX; ++i)
 	{
 		_maxArmor[i] *= adjustment.aimAndArmorMultiplier;
 	}

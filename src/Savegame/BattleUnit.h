@@ -50,7 +50,20 @@ struct StatAdjustment;
 /// @file
 enum UnitStatus {STATUS_STANDING, STATUS_WALKING, STATUS_FLYING, STATUS_TURNING, STATUS_AIMING, STATUS_COLLAPSING, STATUS_DEAD, STATUS_UNCONSCIOUS, STATUS_PANICKING, STATUS_BERSERK, STATUS_IGNORE_ME};
 enum UnitFaction {FACTION_PLAYER, FACTION_HOSTILE, FACTION_NEUTRAL};
-enum UnitSide {SIDE_FRONT, SIDE_LEFT, SIDE_RIGHT, SIDE_REAR, SIDE_UNDER};
+
+/**
+ * Sides of a unit susceptible to incoming fire.
+ * Left and right are based on the unit's perspective, not players view.
+ */
+enum UnitSide {
+	SIDE_FRONT, ///< Frontal side
+	SIDE_LEFT,  ///< Left side
+	SIDE_RIGHT, ///< Right side
+	SIDE_REAR,  ///< Rear side
+	SIDE_UNDER, ///< Below
+	SIDE_MAX    ///< Amount of enum entries.
+	};
+
 /**
  * Parts of a unit susceptible to (fatal) wounds.
  * Left and right are based on the unit's perspective, not players view.
@@ -74,7 +87,6 @@ class BattleUnit
 private:
 	static const int SPEC_WEAPON_MAX = 3;
 	static const int OBJECTS_MAX = 5; // 4 body parts & 1 turret.
-	static const int SIDES_MAX = SIDE_UNDER + 1;
 
 	UnitFaction _faction, _originalFaction;
 	UnitFaction _killedBy;
@@ -92,7 +104,7 @@ private:
 	std::vector<Tile *> _visibleTiles;
 	int _tu, _energy, _health, _morale, _stunlevel;
 	bool _kneeled, _floating, _dontReselect;
-	int _currentArmor[SIDES_MAX], _maxArmor[SIDES_MAX];
+	int _currentArmor[SIDE_MAX], _maxArmor[SIDE_MAX];
 	int _fatalWounds[BODYPART_MAX];
 	int _fire;
 	std::vector<BattleItem*> _inventory;
