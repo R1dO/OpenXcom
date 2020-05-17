@@ -60,6 +60,9 @@ class BattleUnit
 {
 private:
 	static const int SPEC_WEAPON_MAX = 3;
+	static const int OBJECTS_MAX = 5; // 4 body parts & 1 turret.
+	static const int BODYPARTS_MAX = BODYPART_LEFTLEG + 1;
+	static const int SIDES_MAX = SIDE_UNDER + 1;
 
 	UnitFaction _faction, _originalFaction;
 	UnitFaction _killedBy;
@@ -77,20 +80,20 @@ private:
 	std::vector<Tile *> _visibleTiles;
 	int _tu, _energy, _health, _morale, _stunlevel;
 	bool _kneeled, _floating, _dontReselect;
-	int _currentArmor[5], _maxArmor[5];
-	int _fatalWounds[6];
+	int _currentArmor[SIDES_MAX], _maxArmor[SIDES_MAX];
+	int _fatalWounds[BODYPARTS_MAX];
 	int _fire;
 	std::vector<BattleItem*> _inventory;
 	BattleItem* _specWeapon[SPEC_WEAPON_MAX];
 	AIModule *_currentAIState;
 	bool _visible;
-	Surface *_cache[5];
+	Surface *_cache[OBJECTS_MAX];
 	bool _cacheInvalid;
 	int _expBravery, _expReactions, _expFiring, _expThrowing, _expPsiSkill, _expPsiStrength, _expMelee;
 	int improveStat(int exp) const;
 	int _motionPoints;
 	int _kills;
-	int _faceDirection; // used only during strafeing moves
+	int _faceDirection; // used only during strafing moves
 	bool _hitByFire, _hitByAnything;
 	int _moraleRestored;
 	int _coverReserve;
