@@ -385,7 +385,6 @@ if ( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES 
     add_definitions (
       -Wno-missing-field-initializers # xbrz
       -Wno-implicit-fallthrough
-      -Wno-deprecated-copy
       )
   elseif ( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
     # add warning flags recognized by clang but not by g++
