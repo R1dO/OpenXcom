@@ -100,6 +100,8 @@ private:
 	void _updateTemplateButtons(bool isVisible);
 	/// Refresh the hover status of the mouse
 	void _refreshMouse();
+	/// Updates the soldier accuracy info text.
+	void updateSoldierStatAccuracy();
 };
 
 }

@@ -378,8 +378,6 @@ void InventoryState::updateStats()
 		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
 	}
 
-	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg((int)(unit->getBaseStats()->firing * unit->getHealth()) / unit->getBaseStats()->health));
-
 	_txtReact->setText(tr("STR_REACTIONS_SHORT").arg(unit->getBaseStats()->reactions));
 
 	if (unit->getBaseStats()->psiSkill > 0)
@@ -399,8 +397,24 @@ void InventoryState::updateStats()
 	{
 		_txtPStr->setText("");
 	}
+
+	updateSoldierStatAccuracy();
 }
 
+/**
+ * Updates the soldier accuracy info text.
+ *
+ */
+void InventoryState::updateSoldierStatAccuracy()
+{
+	BattleUnit *unit = _battleGame->getSelectedUnit();
+	int accuracy = unit->getBaseStats()->firing;
+
+	// Adjust for health effects
+	accuracy *= unit->getHealth() / unit->getBaseStats()->health;
+
+	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg(accuracy));
+}
 /**
  * Saves the soldiers' equipment-layout.
  */
