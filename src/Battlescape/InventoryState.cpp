@@ -398,18 +398,37 @@ void InventoryState::updateStats()
 		_txtPStr->setText("");
 	}
 
-	updateSoldierStatAccuracy();
+	updateSoldierStatAccuracy(_inv->getMouseOverItem());
 }
 
 /**
  * Updates the soldier accuracy info text.
  *
+ * Based on the BattleType type of the item under the mouse (defaults to firing accuracy).
+ *
+ * @param item Pointer to battle item.
  */
-void InventoryState::updateSoldierStatAccuracy()
+void InventoryState::updateSoldierStatAccuracy(BattleItem *item)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 	int accuracy = unit->getBaseStats()->firing;
 
+	if (item != 0)
+	{
+		switch (item->getRules()->getBattleType())
+		{
+		case BT_MELEE:
+			accuracy = unit->getBaseStats()->melee;
+			break;
+		case BT_GRENADE:
+		case BT_PROXIMITYGRENADE:
+			accuracy = unit->getBaseStats()->throwing;
+			break;
+		default:
+			// Do nothing, firing accuracy is already the default.
+			break;
+		}
+	}
 	// Adjust for health effects
 	accuracy *= unit->getHealth() / unit->getBaseStats()->health;
 
@@ -907,6 +926,7 @@ void InventoryState::invMouseOver(Action *)
 		_selAmmo->clear();
 		_updateTemplateButtons(!_tu);
 	}
+	updateSoldierStatAccuracy(item);
 }
 
 /**

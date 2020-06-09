@@ -31,6 +31,7 @@ class InteractiveSurface;
 class Inventory;
 class SavedBattleGame;
 class BattlescapeState;
+class BattleItem;
 class BattleUnit;
 class BattlescapeButton;
 
@@ -101,7 +102,7 @@ private:
 	/// Refresh the hover status of the mouse
 	void _refreshMouse();
 	/// Updates the soldier accuracy info text.
-	void updateSoldierStatAccuracy();
+	void updateSoldierStatAccuracy(BattleItem *item);
 };
 
 }
