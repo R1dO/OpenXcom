@@ -852,6 +852,7 @@ void InventoryState::onAutoequip(Action *)
 void InventoryState::invClick(Action *)
 {
 	updateStats();
+	_refreshMouse();
 }
 
 /**
