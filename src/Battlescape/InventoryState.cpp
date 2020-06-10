@@ -596,7 +596,7 @@ void InventoryState::btnUnloadClick(Action *)
 {
 	if (_inv->unload())
 	{
-		updateTxtItem(0);
+		updateTxtItem();
 		_txtAmmo->setText("");
 		_selAmmo->clear();
 		updateStats();
@@ -953,7 +953,7 @@ void InventoryState::invMouseOver(Action *)
  */
 void InventoryState::invMouseOut(Action *)
 {
-	updateTxtItem(0);
+	updateTxtItem();
 	_txtAmmo->setText("");
 	_selAmmo->clear();
 	_updateTemplateButtons(!_tu);
@@ -992,7 +992,7 @@ void InventoryState::txtTooltipIn(Action *action)
 	if (_inv->getSelectedItem() == 0 && Options::battleTooltips)
 	{
 		_currentTooltip = action->getSender()->getTooltip();
-		updateTxtItem(0);
+		updateTxtItem();
 	}
 }
 
@@ -1007,7 +1007,7 @@ void InventoryState::txtTooltipOut(Action *action)
 		if (_currentTooltip == action->getSender()->getTooltip())
 		{
 			_currentTooltip = "";
-			updateTxtItem(0);
+			updateTxtItem();
 		}
 	}
 }

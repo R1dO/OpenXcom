@@ -104,7 +104,7 @@ private:
 	/// Updates the soldier accuracy info text.
 	void updateSoldierStatAccuracy(BattleItem *item);
 	/// Updates the item info text.
-	void updateTxtItem(BattleItem *item);
+	void updateTxtItem(BattleItem *item = 0);
 };
 
 }
