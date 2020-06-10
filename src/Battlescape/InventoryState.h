@@ -103,6 +103,8 @@ private:
 	void _refreshMouse();
 	/// Updates the soldier accuracy info text.
 	void updateSoldierStatAccuracy(BattleItem *item);
+	/// Updates the item info text.
+	void updateTxtItem(BattleItem *item);
 };
 
 }

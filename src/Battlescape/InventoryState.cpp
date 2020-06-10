@@ -434,6 +434,41 @@ void InventoryState::updateSoldierStatAccuracy(BattleItem *item)
 
 	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg(accuracy));
 }
+
+/**
+ * Updates the item info text.
+ *
+ * Will also handle the button tooltips.
+ *
+ * @param item Pointer to battle item.
+ */
+void InventoryState::updateTxtItem(BattleItem *item)
+{
+	if (item != 0)
+  {
+		if (item->getUnit() && item->getUnit()->getStatus() == STATUS_UNCONSCIOUS)
+		{
+			_txtItem->setText(item->getUnit()->getName(_game->getLanguage()));
+		}
+		else if (_game->getSavedGame()->isResearched(item->getRules()->getRequirements()))
+		{
+			_txtItem->setText(tr(item->getRules()->getName()));
+		}
+		else
+		{
+			_txtItem->setText(tr("STR_ALIEN_ARTIFACT"));
+		}
+	}
+	else if (_currentTooltip.empty())
+	{
+		_txtItem->setText("");
+	}
+	else
+	{
+		_txtItem->setText(tr(_currentTooltip));
+	}
+}
+
 /**
  * Saves the soldiers' equipment-layout.
  */
@@ -561,7 +596,7 @@ void InventoryState::btnUnloadClick(Action *)
 {
 	if (_inv->unload())
 	{
-		_txtItem->setText("");
+		updateTxtItem(0);
 		_txtAmmo->setText("");
 		_selAmmo->clear();
 		updateStats();
@@ -869,21 +904,6 @@ void InventoryState::invMouseOver(Action *)
 	BattleItem *item = _inv->getMouseOverItem();
 	if (item != 0)
 	{
-		if (item->getUnit() && item->getUnit()->getStatus() == STATUS_UNCONSCIOUS)
-		{
-			_txtItem->setText(item->getUnit()->getName(_game->getLanguage()));
-		}
-		else
-		{
-			if (_game->getSavedGame()->isResearched(item->getRules()->getRequirements()))
-			{
-				_txtItem->setText(tr(item->getRules()->getName()));
-			}
-			else
-			{
-				_txtItem->setText(tr("STR_ALIEN_ARTIFACT"));
-			}
-		}
 		std::string s;
 		if (item->getAmmoItem() != 0 && item->needsAmmo())
 		{
@@ -919,15 +939,12 @@ void InventoryState::invMouseOver(Action *)
 	}
 	else
 	{
-		if (_currentTooltip.empty())
-		{
-			_txtItem->setText("");
-		}
 		_txtAmmo->setText("");
 		_selAmmo->clear();
 		_updateTemplateButtons(!_tu);
 	}
 	updateSoldierStatAccuracy(item);
+	updateTxtItem(item);
 }
 
 /**
@@ -936,7 +953,7 @@ void InventoryState::invMouseOver(Action *)
  */
 void InventoryState::invMouseOut(Action *)
 {
-	_txtItem->setText("");
+	updateTxtItem(0);
 	_txtAmmo->setText("");
 	_selAmmo->clear();
 	_updateTemplateButtons(!_tu);
@@ -975,7 +992,7 @@ void InventoryState::txtTooltipIn(Action *action)
 	if (_inv->getSelectedItem() == 0 && Options::battleTooltips)
 	{
 		_currentTooltip = action->getSender()->getTooltip();
-		_txtItem->setText(tr(_currentTooltip));
+		updateTxtItem(0);
 	}
 }
 
@@ -990,7 +1007,7 @@ void InventoryState::txtTooltipOut(Action *action)
 		if (_currentTooltip == action->getSender()->getTooltip())
 		{
 			_currentTooltip = "";
-			_txtItem->setText("");
+			updateTxtItem(0);
 		}
 	}
 }
