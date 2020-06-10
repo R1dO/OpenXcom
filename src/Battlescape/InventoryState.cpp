@@ -444,29 +444,31 @@ void InventoryState::updateSoldierStatAccuracy(BattleItem *item)
  */
 void InventoryState::updateTxtItem(BattleItem *item)
 {
+	std::ostringstream ssTxtItem;
 	if (item != 0)
   {
 		if (item->getUnit() && item->getUnit()->getStatus() == STATUS_UNCONSCIOUS)
 		{
-			_txtItem->setText(item->getUnit()->getName(_game->getLanguage()));
+			ssTxtItem << item->getUnit()->getName(_game->getLanguage());
 		}
 		else if (_game->getSavedGame()->isResearched(item->getRules()->getRequirements()))
 		{
-			_txtItem->setText(tr(item->getRules()->getName()));
+			ssTxtItem << tr(item->getRules()->getName());
 		}
 		else
 		{
-			_txtItem->setText(tr("STR_ALIEN_ARTIFACT"));
+			ssTxtItem << tr("STR_ALIEN_ARTIFACT");
 		}
 	}
 	else if (_currentTooltip.empty())
 	{
-		_txtItem->setText("");
+		// Do nothing string is empty by default.
 	}
 	else
 	{
-		_txtItem->setText(tr(_currentTooltip));
+		ssTxtItem << tr(_currentTooltip);
 	}
+	_txtItem->setText(ssTxtItem.str());
 }
 
 /**
