@@ -48,7 +48,7 @@ void Sound::load(const std::string &filename)
 {
 	std::string utf8 = Unicode::convPathToUtf8(filename);
 	_sound = Mix_LoadWAV(utf8.c_str());
-	if (_sound == 0)
+	if (_sound == 0 && !Options::mute)
 	{
 		std::string err = filename + ":" + Mix_GetError();
 		throw Exception(err);
@@ -64,7 +64,7 @@ void Sound::load(const void *data, unsigned int size)
 {
 	SDL_RWops *rw = SDL_RWFromConstMem(data, size);
 	_sound = Mix_LoadWAV_RW(rw, 1);
-	if (_sound == 0)
+	if (_sound == 0 && !Options::mute)
 	{
 		throw Exception(Mix_GetError());
 	}
