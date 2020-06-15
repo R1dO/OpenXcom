@@ -411,7 +411,7 @@ void InventoryState::updateStats()
 void InventoryState::updateSoldierStatAccuracy(BattleItem *item)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
-	int accuracy = unit->getBaseStats()->firing;
+	float accuracy = unit->getBaseStats()->firing;
 
 	if (item != 0)
 	{
@@ -419,6 +419,10 @@ void InventoryState::updateSoldierStatAccuracy(BattleItem *item)
 		{
 		case BT_MELEE:
 			accuracy = unit->getBaseStats()->melee;
+			if (item->getRules()->isSkillApplied())
+			{
+				accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
+			}
 			break;
 		case BT_GRENADE:
 		case BT_PROXIMITYGRENADE:
@@ -430,9 +434,9 @@ void InventoryState::updateSoldierStatAccuracy(BattleItem *item)
 		}
 	}
 	// Adjust for health effects
-	accuracy *= unit->getHealth() / unit->getBaseStats()->health;
+	accuracy *= unit->getAccuracyModifier(item) / 100.0;
 
-	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg(accuracy));
+	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg((int)accuracy));
 }
 
 /**
