@@ -451,13 +451,37 @@ void InventoryState::updateTxtItem(BattleItem *item)
 {
 	std::ostringstream ssTxtItem;
 	if (item != 0)
-  {
+	{
 		if (item->getUnit() && item->getUnit()->getStatus() == STATUS_UNCONSCIOUS)
 		{
 			ssTxtItem << item->getUnit()->getName(_game->getLanguage());
 		}
 		else if (_game->getSavedGame()->isResearched(item->getRules()->getRequirements()))
 		{
+			if (Options::showMoreStatsInInventoryView)
+			{
+				// We are allowed to do fancy things here.
+				int power = 0;
+				if (item->getAmmoItem() != 0 && item->needsAmmo())
+				{
+					power = item->getAmmoItem()->getRules()->getPower();
+				}
+				else
+				{
+					power = item->getRules()->getPower();
+				}
+
+				if (item->getRules()->isStrengthApplied() == true)
+				{
+					BattleUnit *unit = _battleGame->getSelectedUnit();
+					power += unit->getBaseStats()->strength;
+				}
+
+				if (power > 0)
+				{
+					ssTxtItem << tr("STR_POWER_SHORT").arg(power) << " " << Unicode::TOK_COLOR_FLIP ;
+				}
+			}
 			ssTxtItem << tr(item->getRules()->getName());
 		}
 		else
