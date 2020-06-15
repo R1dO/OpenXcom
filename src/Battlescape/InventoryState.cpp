@@ -424,6 +424,7 @@ void InventoryState::updateSoldierStatAccuracy(BattleItem *item)
 				accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
 			}
 			break;
+		case BT_FLARE:
 		case BT_GRENADE:
 		case BT_PROXIMITYGRENADE:
 			accuracy = unit->getBaseStats()->throwing;
