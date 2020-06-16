@@ -46,6 +46,7 @@
 #include "BattlescapeGenerator.h"
 #include "TileEngine.h"
 #include "../Mod/RuleInterface.h"
+#include "../Ufopaedia/Ufopaedia.h"
 
 namespace OpenXcom
 {
@@ -460,27 +461,46 @@ void InventoryState::updateTxtItem(BattleItem *item)
 		{
 			if (Options::showMoreStatsInInventoryView)
 			{
-				// We are allowed to do fancy things here.
 				int power = 0;
+				// Avoid showing power readings on looted but usable items (e.g. FMP STR_LASER_PISTOL_MIB).
+				// Lets assume we can only have power readings if a player can see it in the ufopaedia.
+				// To show power readings from installed ammo both the weapon and clip must be known.
+				bool showPower = false;
+				ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(item->getRules()->getType(), false);
+				if (article && Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
+				{
+					showPower = true;
+				}
+
 				if (item->getAmmoItem() != 0 && item->needsAmmo())
 				{
-					power = item->getAmmoItem()->getRules()->getPower();
+					// Ammo item defines weapon power. It can have it's own ufopeadia requirements.
+					ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(item->getAmmoItem()->getRules()->getType(), false);
+					if (article && Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
+					{
+						power = item->getAmmoItem()->getRules()->getPower();
+					}
+					else
+					{
+						showPower = false;
+					}
 				}
 				else
 				{
 					power = item->getRules()->getPower();
 				}
 
-				if (item->getRules()->isStrengthApplied() == true)
+				if (item->getRules()->isStrengthApplied())
 				{
 					BattleUnit *unit = _battleGame->getSelectedUnit();
 					power += unit->getBaseStats()->strength;
 				}
 
-				if (power > 0)
+				if (power > 0 && showPower)
 				{
 					ssTxtItem << tr("STR_POWER_SHORT").arg(power) << " " << Unicode::TOK_COLOR_FLIP ;
 				}
+				// Note: it is probably better to move logic to `Savegame::BattleItem`
 			}
 			ssTxtItem << tr(item->getRules()->getName());
 		}
