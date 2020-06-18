@@ -97,7 +97,6 @@
 
 // library headers
 #ifndef __NO_OPENGL
-#define NO_SDL_GLEXT
 #include <SDL_opengl.h>
 #endif
 
