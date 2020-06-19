@@ -389,7 +389,7 @@ void InventoryState::updateStats()
 	}
 
 	updateSoldierStatAccuracy(_inv->getMouseOverItem());
-	updateSoldierStatWeight(_inv->getSelectedItem());
+	updateSoldierStatWeight();
 }
 
 /**
@@ -434,14 +434,33 @@ void InventoryState::updateSoldierStatAccuracy(BattleItem *item)
 /**
  * Updates the soldier weight info text.
  *
- * Based on the BattleType type of the item under the mouse.
- *
- * @param item Pointer to battle item.
+ * Recognises if we move an item between a soldier and the ground.
+ * (for preview purposes).
  */
-void InventoryState::updateSoldierStatWeight(BattleItem *item)
+void InventoryState::updateSoldierStatWeight()
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
-	int weight = unit->getCarriedWeight(_inv->getSelectedItem());
+	BattleItem	*item = _inv->getSelectedItem();
+	RuleInventory *slotTo = _inv->getMouseOverSlot();
+	int weight = unit->getCarriedWeight(); //Deliberatly *not* discarding the item grabbed by the mouse.
+
+	if (item != 0 && slotTo != 0)
+	{
+		int itemWeight = item->getRules()->getWeight();
+		if (item->getAmmoItem() != 0 && item->needsAmmo())
+		{
+			itemWeight += item->getAmmoItem()->getRules()->getWeight();
+		}
+
+		if (item->getSlot()->getType() == INV_GROUND && slotTo->getType() != INV_GROUND)
+		{
+			weight += itemWeight;
+		}
+		else if (item->getSlot()->getType() != INV_GROUND && slotTo->getType() == INV_GROUND)
+		{
+			weight -= itemWeight;
+		}
+	}
 
 	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(unit->getBaseStats()->strength));
 	if (weight > unit->getBaseStats()->strength)
@@ -960,6 +979,8 @@ void InventoryState::invClick(Action *)
  */
 void InventoryState::invMouseOver(Action *)
 {
+	updateSoldierStatWeight();
+
 	if (_inv->getSelectedItem() != 0)
 	{
 		return;
