@@ -368,17 +368,6 @@ void InventoryState::updateStats()
 
 	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(unit->getTimeUnits()));
 
-	int weight = unit->getCarriedWeight(_inv->getSelectedItem());
-	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(unit->getBaseStats()->strength));
-	if (weight > unit->getBaseStats()->strength)
-	{
-		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
-	}
-	else
-	{
-		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
-	}
-
 	_txtReact->setText(tr("STR_REACTIONS_SHORT").arg(unit->getBaseStats()->reactions));
 
 	if (unit->getBaseStats()->psiSkill > 0)
@@ -400,6 +389,7 @@ void InventoryState::updateStats()
 	}
 
 	updateSoldierStatAccuracy(_inv->getMouseOverItem());
+	updateSoldierStatWeight(_inv->getSelectedItem());
 }
 
 /**
@@ -439,6 +429,29 @@ void InventoryState::updateSoldierStatAccuracy(BattleItem *item)
 	accuracy *= unit->getAccuracyModifier(item) / 100.0;
 
 	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg((int)accuracy));
+}
+
+/**
+ * Updates the soldier weight info text.
+ *
+ * Based on the BattleType type of the item under the mouse.
+ *
+ * @param item Pointer to battle item.
+ */
+void InventoryState::updateSoldierStatWeight(BattleItem *item)
+{
+	BattleUnit *unit = _battleGame->getSelectedUnit();
+	int weight = unit->getCarriedWeight(_inv->getSelectedItem());
+
+	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(unit->getBaseStats()->strength));
+	if (weight > unit->getBaseStats()->strength)
+	{
+		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
+	}
+	else
+	{
+		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
+	}
 }
 
 /**
