@@ -46,6 +46,7 @@ private:
 	BattleItem *_selItem;
 	bool _tu, _base;
 	BattleItem *_mouseOverItem;
+	RuleInventory *_mouseOverSlot;
 	int _groundOffset, _animFrame;
 	std::map<int, std::map<int, int> > _stackLevel;
 	std::vector<std::pair<int, int> > _grenadeIndicators;
@@ -81,6 +82,10 @@ public:
 	BattleItem *getMouseOverItem() const;
 	/// Sets the mouse over item.
 	void setMouseOverItem(BattleItem *item);
+	/// Gets the currently selected slot.
+	RuleInventory *getMouseOverSlot() const;
+	/// Sets the currently selected slot.
+	void setMouseOverSlot(RuleInventory *slot);
 	/// Handles timers.
 	void think();
 	/// Blits the inventory onto another surface.

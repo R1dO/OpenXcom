@@ -54,7 +54,7 @@ namespace OpenXcom
  * @param y Y position in pixels.
  * @param base Is the inventory being called from the basescape?
  */
-Inventory::Inventory(Game *game, int width, int height, int x, int y, bool base) : InteractiveSurface(width, height, x, y), _game(game), _selUnit(0), _selItem(0), _tu(true), _base(base), _mouseOverItem(0), _groundOffset(0), _animFrame(0)
+Inventory::Inventory(Game *game, int width, int height, int x, int y, bool base) : InteractiveSurface(width, height, x, y), _game(game), _selUnit(0), _selItem(0), _mouseOverSlot(0), _tu(true), _base(base), _mouseOverItem(0), _groundOffset(0), _animFrame(0)
 {
 	_depth = _game->getSavedGame()->getSavedBattle()->getDepth();
 	_grid = new Surface(width, height, 0, 0);
@@ -445,6 +445,24 @@ void Inventory::setMouseOverItem(BattleItem *item)
 }
 
 /**
+ * Returns the slot currently under mouse cursor.
+ * @return Pointer to selected slot, or NULL if none.
+ */
+RuleInventory *Inventory::getMouseOverSlot() const
+{
+	return _mouseOverSlot;
+}
+
+/**
+ * Changes the slot currently under mouse cursor.
+ * @param item Pointer to selected slot, or NULL if none.
+ */
+void Inventory::setMouseOverSlot(RuleInventory *slot)
+{
+	_mouseOverSlot = slot;
+}
+
+/**
  * Handles timers.
  */
 void Inventory::think()
@@ -482,6 +500,7 @@ void Inventory::mouseOver(Action *action, State *state)
 	int x = (int)floor(action->getAbsoluteXMouse()) - getX(),
 		y = (int)floor(action->getAbsoluteYMouse()) - getY();
 	RuleInventory *slot = getSlotInPosition(&x, &y);
+	setMouseOverSlot(slot);
 	if (slot != 0)
 	{
 		if (slot->getType() == INV_GROUND)
