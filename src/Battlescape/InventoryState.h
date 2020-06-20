@@ -106,7 +106,7 @@ private:
 	/// Updates the soldier TU info text.
 	void _updateSoldierStatTu();
 	/// Updates the soldier weight info text.
-	void _updateSoldierStatWeight();
+	void _updateSoldierStatWeight(BattleItem *item = 0);
 	/// Updates the item info text.
 	void _updateTxtItem(BattleItem *item = 0);
 };

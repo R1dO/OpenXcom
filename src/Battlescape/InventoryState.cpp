@@ -449,10 +449,9 @@ void InventoryState::_updateSoldierStatTu()
  * Recognises if we move an item between a soldier and the ground.
  * (for preview purposes).
  */
-void InventoryState::_updateSoldierStatWeight()
+void InventoryState::_updateSoldierStatWeight(BattleItem *item)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
-	BattleItem	*item = _inv->getSelectedItem();
 	RuleInventory *slotTo = _inv->getMouseOverSlot();
 	int weight = unit->getCarriedWeight(); //Deliberatly *not* discarding the item grabbed by the mouse.
 
@@ -991,10 +990,11 @@ void InventoryState::invClick(Action *)
  */
 void InventoryState::invMouseOver(Action *)
 {
-	_updateSoldierStatWeight();
 
 	if (_inv->getSelectedItem() != 0)
 	{
+		_updateSoldierStatWeight(_inv->getSelectedItem());
+		_updateSoldierStatTu(_inv->getSelectedItem());
 		return;
 	}
 
