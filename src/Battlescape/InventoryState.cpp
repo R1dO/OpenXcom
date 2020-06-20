@@ -366,8 +366,6 @@ void InventoryState::updateStats()
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 
-	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(unit->getTimeUnits()));
-
 	_txtReact->setText(tr("STR_REACTIONS_SHORT").arg(unit->getBaseStats()->reactions));
 
 	if (unit->getBaseStats()->psiSkill > 0)
@@ -389,6 +387,7 @@ void InventoryState::updateStats()
 	}
 
 	_updateSoldierStatAccuracy(_inv->getMouseOverItem());
+	_updateSoldierStatTu();
 	_updateSoldierStatWeight();
 }
 
@@ -429,6 +428,19 @@ void InventoryState::_updateSoldierStatAccuracy(BattleItem *item)
 	accuracy *= (double)unit->getHealth() / unit->getBaseStats()->health;
 
 	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg((int)accuracy));
+}
+
+/**
+ * Updates the soldier TU info text.
+ *
+ * Recognises if we move an item between slots.
+ * (for preview purposes).
+ */
+void InventoryState::_updateSoldierStatTu()
+{
+	BattleUnit *unit = _battleGame->getSelectedUnit();
+
+	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(unit->getTimeUnits()));
 }
 
 /**
