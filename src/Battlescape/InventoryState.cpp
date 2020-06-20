@@ -129,10 +129,10 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent) : _tu(tu), _pa
 	add(_selAmmo);
 	add(_inv);
 
-	// move the TU display down to make room for the weight display
+	// move the TU display down to make room for the weight (and Acc) display
 	if (Options::showMoreStatsInInventoryView)
 	{
-		_txtTus->setY(_txtTus->getY() + 8);
+		_txtTus->setY(_txtTus->getY() + 2*8);
 	}
 
 	centerAllSurfaces();
@@ -228,7 +228,7 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent) : _tu(tu), _pa
 
 	_txtTus->setVisible(_tu);
 	_txtWeight->setVisible(Options::showMoreStatsInInventoryView);
-	_txtFAcc->setVisible(Options::showMoreStatsInInventoryView && !_tu);
+	_txtFAcc->setVisible(Options::showMoreStatsInInventoryView);
 	_txtReact->setVisible(Options::showMoreStatsInInventoryView && !_tu);
 	_txtPSkill->setVisible(Options::showMoreStatsInInventoryView && !_tu);
 	_txtPStr->setVisible(Options::showMoreStatsInInventoryView && !_tu);
