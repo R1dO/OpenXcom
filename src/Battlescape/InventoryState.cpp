@@ -402,7 +402,7 @@ void InventoryState::updateStats()
 void InventoryState::_updateSoldierStatAccuracy(BattleItem *item)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
-	float accuracy = unit->getBaseStats()->firing;
+	double accuracy = unit->getBaseStats()->firing;
 
 	if (item != 0)
 	{
@@ -426,7 +426,7 @@ void InventoryState::_updateSoldierStatAccuracy(BattleItem *item)
 		}
 	}
 	// Adjust for health effects
-	accuracy *= unit->getAccuracyModifier(item) / 100.0;
+	accuracy *= (double)unit->getHealth() / unit->getBaseStats()->health;
 
 	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg((int)accuracy));
 }
