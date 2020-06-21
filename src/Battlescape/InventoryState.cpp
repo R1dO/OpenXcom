@@ -460,6 +460,15 @@ void InventoryState::_updateSoldierStatTu(BattleItem *item, bool unloadWeapon)
 	}
 
 	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(tu));
+	// Misuse the color info from "weight" to show red negatives.
+	if (tu <= 0)
+	{
+		_txtTus->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
+	}
+	else
+	{
+		_txtTus->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
+	}
 }
 
 /**
