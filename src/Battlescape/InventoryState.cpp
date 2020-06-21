@@ -445,7 +445,7 @@ void InventoryState::_updateSoldierStatTu(BattleItem *item, bool unloadWeapon)
 	RuleInventory *slotTo = _inv->getMouseOverSlot();
 	int tu = unit->getTimeUnits();
 
-	if (item != 0 && slotTo != 0)
+	if (item != 0 && slotTo != 0 && Options::showMoreStatsInInventoryView)
 	{
 		RuleInventory *slotFrom = item->getSlot();
 		if (slotFrom != slotTo)
@@ -454,7 +454,7 @@ void InventoryState::_updateSoldierStatTu(BattleItem *item, bool unloadWeapon)
 		}
 	}
 
-	if (unloadWeapon == true)
+	if (unloadWeapon == true && Options::showMoreStatsInInventoryView)
 	{
 		tu -= 8;
 	}
