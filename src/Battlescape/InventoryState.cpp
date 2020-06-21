@@ -435,12 +435,25 @@ void InventoryState::_updateSoldierStatAccuracy(BattleItem *item)
  *
  * Recognises if we move an item between slots.
  * (for preview purposes).
+ *
+ * @param item Pointer to battle item.
  */
-void InventoryState::_updateSoldierStatTu()
+void InventoryState::_updateSoldierStatTu(BattleItem *item)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
+	RuleInventory *slotTo = _inv->getMouseOverSlot();
+	int tu = unit->getTimeUnits();
 
-	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(unit->getTimeUnits()));
+	if (item != 0 && slotTo != 0)
+	{
+		RuleInventory *slotFrom = item->getSlot();
+		if (slotFrom != slotTo)
+		{
+			tu -= slotFrom->getCost(slotTo);
+		}
+	}
+
+	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(tu));
 }
 
 /**
