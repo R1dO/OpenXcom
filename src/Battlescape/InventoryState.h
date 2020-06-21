@@ -71,6 +71,8 @@ public:
 	void btnNextClick(Action *action);
 	/// Handler for clicking the Unload button.
 	void btnUnloadClick(Action *action);
+	/// Handler for preview TU cost Unload button.
+	void btnUnloadMouseOver(Action *action);
 	/// Handler for clicking on the Ground -> button.
 	void btnGroundClick(Action *action);
 	/// Handler for clicking the Rank button.
@@ -104,7 +106,7 @@ private:
 	/// Updates the soldier accuracy info text.
 	void _updateSoldierStatAccuracy(BattleItem *item);
 	/// Updates the soldier TU info text.
-	void _updateSoldierStatTu(BattleItem *item = 0);
+	void _updateSoldierStatTu(BattleItem *item = 0, bool unloadWeapon = false);
 	/// Updates the soldier weight info text.
 	void _updateSoldierStatWeight(BattleItem *item = 0);
 	/// Updates the item info text.

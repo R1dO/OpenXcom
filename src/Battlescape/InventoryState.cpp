@@ -180,6 +180,7 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent) : _tu(tu), _pa
 
 	_btnUnload->onMouseClick((ActionHandler)&InventoryState::btnUnloadClick);
 	_btnUnload->setTooltip("STR_UNLOAD_WEAPON");
+	_btnUnload->onMouseOver((ActionHandler)&InventoryState::btnUnloadMouseOver);
 	_btnUnload->onMouseIn((ActionHandler)&InventoryState::txtTooltipIn);
 	_btnUnload->onMouseOut((ActionHandler)&InventoryState::txtTooltipOut);
 
@@ -438,7 +439,7 @@ void InventoryState::_updateSoldierStatAccuracy(BattleItem *item)
  *
  * @param item Pointer to battle item.
  */
-void InventoryState::_updateSoldierStatTu(BattleItem *item)
+void InventoryState::_updateSoldierStatTu(BattleItem *item, bool unloadWeapon)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 	RuleInventory *slotTo = _inv->getMouseOverSlot();
@@ -451,6 +452,11 @@ void InventoryState::_updateSoldierStatTu(BattleItem *item)
 		{
 			tu -= slotFrom->getCost(slotTo);
 		}
+	}
+
+	if (unloadWeapon == true)
+	{
+		tu -= 8;
 	}
 
 	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(tu));
@@ -708,6 +714,18 @@ void InventoryState::btnUnloadClick(Action *)
 		_selAmmo->clear();
 		updateStats();
 		_game->getMod()->getSoundByDepth(0, Mod::ITEM_DROP)->play();
+	}
+}
+
+/**
+ * Preview TU cost Unload button.
+ * @param action Pointer to an action.
+ */
+void InventoryState::btnUnloadMouseOver(Action *action)
+{
+	if (_inv->getSelectedItem() != 0)
+	{
+		_updateSoldierStatTu(_inv->getSelectedItem(), true);
 	}
 }
 
