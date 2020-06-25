@@ -474,16 +474,19 @@ void InventoryState::_setSoldierStatTu(BattleItem *item, bool unloadWeapon)
 /**
  * Updates the soldier weight info text.
  *
- * Recognizes if we move an item between a soldier and the ground.
- * (for preview purposes).
+ * Recognizes if we move a picked up item between a soldier and the ground (for preview purposes).
+ *
+ * Using the following decission tree:
+ *  * If item originates from a soldier slot (general or hand) do nothing unless we mouse-over the ground
+ *    + We cannot predict if player wants to put it in another soldier slot or the ground
+ *  * If item originates from the ground we can safely assume it will move to a soldier slot
  */
 void InventoryState::_setSoldierStatWeight(BattleItem *item)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
-	RuleInventory *slotTo = _inv->getMouseOverSlot();
 	int weight = unit->getCarriedWeight(); //Deliberately *not* discarding the item grabbed by the mouse.
 
-	if (item != 0 && slotTo != 0)
+	if (item != 0)
 	{
 		int itemWeight = item->getRules()->getWeight();
 		if (item->getAmmoItem() != 0 && item->needsAmmo())
@@ -491,14 +494,26 @@ void InventoryState::_setSoldierStatWeight(BattleItem *item)
 			itemWeight += item->getAmmoItem()->getRules()->getWeight();
 		}
 
-		if (item->getSlot()->getType() == INV_GROUND && slotTo->getType() != INV_GROUND)
+		switch (item->getSlot()->getType())
 		{
+		case INV_GROUND:
 			weight += itemWeight;
+			break;
+		case INV_SLOT:
+		case INV_HAND:
+			{
+				RuleInventory *slotTo = _inv->getMouseOverSlot();
+				if (slotTo != 0 && slotTo->getType() == INV_GROUND)
+				{
+					weight -= itemWeight;
+				}
+				break;
+			}
+		default:
+			// Do nothing, we are not dragging an item.
+			break;
 		}
-		else if (item->getSlot()->getType() != INV_GROUND && slotTo->getType() == INV_GROUND)
-		{
-			weight -= itemWeight;
-		}
+
 	}
 
 	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(unit->getBaseStats()->strength));
