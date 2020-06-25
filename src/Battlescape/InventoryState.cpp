@@ -387,9 +387,9 @@ void InventoryState::updateStats()
 		_txtPStr->setText("");
 	}
 
-	_updateSoldierStatAccuracy(_inv->getMouseOverItem());
-	_updateSoldierStatTu();
-	_updateSoldierStatWeight();
+	_setSoldierStatAccuracy(_inv->getMouseOverItem());
+	_setSoldierStatTu();
+	_setSoldierStatWeight();
 }
 
 /**
@@ -399,7 +399,7 @@ void InventoryState::updateStats()
  *
  * @param item Pointer to battle item.
  */
-void InventoryState::_updateSoldierStatAccuracy(BattleItem *item)
+void InventoryState::_setSoldierStatAccuracy(BattleItem *item)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 	double accuracy = unit->getBaseStats()->firing;
@@ -439,7 +439,7 @@ void InventoryState::_updateSoldierStatAccuracy(BattleItem *item)
  *
  * @param item Pointer to battle item.
  */
-void InventoryState::_updateSoldierStatTu(BattleItem *item, bool unloadWeapon)
+void InventoryState::_setSoldierStatTu(BattleItem *item, bool unloadWeapon)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 	RuleInventory *slotTo = _inv->getMouseOverSlot();
@@ -477,7 +477,7 @@ void InventoryState::_updateSoldierStatTu(BattleItem *item, bool unloadWeapon)
  * Recognizes if we move an item between a soldier and the ground.
  * (for preview purposes).
  */
-void InventoryState::_updateSoldierStatWeight(BattleItem *item)
+void InventoryState::_setSoldierStatWeight(BattleItem *item)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 	RuleInventory *slotTo = _inv->getMouseOverSlot();
@@ -519,7 +519,7 @@ void InventoryState::_updateSoldierStatWeight(BattleItem *item)
  *
  * @param item Pointer to battle item.
  */
-void InventoryState::_updateTxtItem(BattleItem *item)
+void InventoryState::_setTxtItem(BattleItem *item)
 {
 	std::ostringstream ssTxtItem;
 	if (item != 0)
@@ -718,7 +718,7 @@ void InventoryState::btnUnloadClick(Action *)
 {
 	if (_inv->unload())
 	{
-		_updateTxtItem();
+		_setTxtItem();
 		_txtAmmo->setText("");
 		_selAmmo->clear();
 		updateStats();
@@ -734,7 +734,7 @@ void InventoryState::btnUnloadMouseOver(Action *action)
 {
 	if (_inv->getSelectedItem() != 0)
 	{
-		_updateSoldierStatTu(_inv->getSelectedItem(), true);
+		_setSoldierStatTu(_inv->getSelectedItem(), true);
 	}
 }
 
@@ -1033,8 +1033,8 @@ void InventoryState::invMouseOver(Action *)
 
 	if (_inv->getSelectedItem() != 0)
 	{
-		_updateSoldierStatWeight(_inv->getSelectedItem());
-		_updateSoldierStatTu(_inv->getSelectedItem());
+		_setSoldierStatWeight(_inv->getSelectedItem());
+		_setSoldierStatTu(_inv->getSelectedItem());
 		return;
 	}
 
@@ -1080,8 +1080,8 @@ void InventoryState::invMouseOver(Action *)
 		_selAmmo->clear();
 		_updateTemplateButtons(!_tu);
 	}
-	_updateSoldierStatAccuracy(item);
-	_updateTxtItem(item);
+	_setSoldierStatAccuracy(item);
+	_setTxtItem(item);
 }
 
 /**
@@ -1090,7 +1090,7 @@ void InventoryState::invMouseOver(Action *)
  */
 void InventoryState::invMouseOut(Action *)
 {
-	_updateTxtItem();
+	_setTxtItem();
 	_txtAmmo->setText("");
 	_selAmmo->clear();
 	_updateTemplateButtons(!_tu);
@@ -1129,7 +1129,7 @@ void InventoryState::txtTooltipIn(Action *action)
 	if (_inv->getSelectedItem() == 0 && Options::battleTooltips)
 	{
 		_currentTooltip = action->getSender()->getTooltip();
-		_updateTxtItem();
+		_setTxtItem();
 	}
 }
 
@@ -1144,7 +1144,7 @@ void InventoryState::txtTooltipOut(Action *action)
 		if (_currentTooltip == action->getSender()->getTooltip())
 		{
 			_currentTooltip = "";
-			_updateTxtItem();
+			_setTxtItem();
 		}
 	}
 }

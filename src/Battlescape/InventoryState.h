@@ -104,13 +104,13 @@ private:
 	/// Refresh the hover status of the mouse
 	void _refreshMouse();
 	/// Updates the soldier accuracy info text.
-	void _updateSoldierStatAccuracy(BattleItem *item);
+	void _setSoldierStatAccuracy(BattleItem *item);
 	/// Updates the soldier TU info text.
-	void _updateSoldierStatTu(BattleItem *item = 0, bool unloadWeapon = false);
+	void _setSoldierStatTu(BattleItem *item = 0, bool unloadWeapon = false);
 	/// Updates the soldier weight info text.
-	void _updateSoldierStatWeight(BattleItem *item = 0);
+	void _setSoldierStatWeight(BattleItem *item = 0);
 	/// Updates the item info text.
-	void _updateTxtItem(BattleItem *item = 0);
+	void _setTxtItem(BattleItem *item = 0);
 };
 
 }
