@@ -129,7 +129,7 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent) : _tu(tu), _pa
 	add(_selAmmo);
 	add(_inv);
 
-	// move the TU display down to make room for the weight (and Acc) display
+	// move the TU display down to make room for the weight (and Accuracy) display
 	if (Options::showMoreStatsInInventoryView)
 	{
 		_txtTus->setY(_txtTus->getY() + 2*8);
@@ -434,7 +434,7 @@ void InventoryState::_updateSoldierStatAccuracy(BattleItem *item)
 /**
  * Updates the soldier TU info text.
  *
- * Recognises if we move an item between slots.
+ * Recognizes if we move an item between slots.
  * (for preview purposes).
  *
  * @param item Pointer to battle item.
@@ -474,14 +474,14 @@ void InventoryState::_updateSoldierStatTu(BattleItem *item, bool unloadWeapon)
 /**
  * Updates the soldier weight info text.
  *
- * Recognises if we move an item between a soldier and the ground.
+ * Recognizes if we move an item between a soldier and the ground.
  * (for preview purposes).
  */
 void InventoryState::_updateSoldierStatWeight(BattleItem *item)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 	RuleInventory *slotTo = _inv->getMouseOverSlot();
-	int weight = unit->getCarriedWeight(); //Deliberatly *not* discarding the item grabbed by the mouse.
+	int weight = unit->getCarriedWeight(); //Deliberately *not* discarding the item grabbed by the mouse.
 
 	if (item != 0 && slotTo != 0)
 	{
@@ -545,7 +545,7 @@ void InventoryState::_updateTxtItem(BattleItem *item)
 
 				if (item->getAmmoItem() != 0 && item->needsAmmo())
 				{
-					// Ammo item defines weapon power. It can have it's own ufopeadia requirements.
+					// Ammo item defines weapon power. It can have it's own ufopaedia requirements.
 					ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(item->getAmmoItem()->getRules()->getType(), false);
 					if (article && Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
 					{
