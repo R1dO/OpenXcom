@@ -434,34 +434,52 @@ void InventoryState::_setSoldierStatAccuracy(BattleItem *item)
 /**
  * Updates the soldier TU info text.
  *
- * Recognizes if we move an item between slots.
- * (for preview purposes).
+ * Recognizes if we move an item between slots (for preview purposes).
+ *
+ * Taking special care for the following (edge) cases:
+ * * Unloading a weapon (using the appropriate button)
+ * * Loading a clip into a weapon
  *
  * @param item Pointer to battle item.
+ * @param unloadWeapon Are we hovering over the unload button?
  */
 void InventoryState::_setSoldierStatTu(BattleItem *item, bool unloadWeapon)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
-	RuleInventory *slotTo = _inv->getMouseOverSlot();
 	int tu = unit->getTimeUnits();
 
-	if (item != 0 && slotTo != 0 && Options::showMoreStatsInInventoryView)
+	if (Options::showMoreStatsInInventoryView && item != 0)
 	{
 		RuleInventory *slotFrom = item->getSlot();
-		if (slotFrom != slotTo)
+		RuleInventory *slotTo = _inv->getMouseOverSlot();
+		if (unloadWeapon == true)
 		{
-			tu -= slotFrom->getCost(slotTo);
+			// Only display cost if both hands are free
+			for (std::vector<BattleItem*>::iterator i = unit->getInventory()->begin(); i != unit->getInventory()->end(); ++i)
+			{
+				if ((*i)->getSlot()->getType() == INV_HAND && (*i) != item)
+				{
+					return;
+				}
+			}
+			tu -= 8;
+		}
+		else if (slotFrom != 0 && slotTo != 0 && slotFrom != slotTo)
+		{
+			BattleItem *itemTo = _inv->getMouseOverItem();
+			if (itemTo != 0 && itemTo->needsAmmo() && itemTo->getAmmoItem() == 0)
+			{
+				tu -= 15;
+			}
+			else
+			{
+				tu -= slotFrom->getCost(slotTo);
+			}
 		}
 	}
 
-	if (unloadWeapon == true && Options::showMoreStatsInInventoryView)
-	{
-		tu -= 8;
-	}
-
-	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(tu));
 	// Misuse the color info from "weight" to show red negatives.
-	if (tu <= 0)
+	if (tu < 0)
 	{
 		_txtTus->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
 	}
@@ -469,6 +487,7 @@ void InventoryState::_setSoldierStatTu(BattleItem *item, bool unloadWeapon)
 	{
 		_txtTus->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
 	}
+	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(tu));
 }
 
 /**
