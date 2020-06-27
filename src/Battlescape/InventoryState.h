@@ -103,6 +103,8 @@ private:
 	void _updateTemplateButtons(bool isVisible);
 	/// Refresh the hover status of the mouse
 	void _refreshMouse();
+	/// Gets weapon (ammo) power.
+	int _getItemPower(BattleItem *item = 0) const;
 	/// Updates the soldier accuracy info text.
 	void _setSoldierStatAccuracy(BattleItem *item);
 	/// Updates the soldier TU info text.

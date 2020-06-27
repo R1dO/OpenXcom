@@ -393,6 +393,57 @@ void InventoryState::updateStats()
 }
 
 /**
+ * Gets weapon (ammo) power.
+ *
+ * @return The power of the weapon (ammo)
+ */
+int InventoryState::_getItemPower(BattleItem *item) const
+{
+	int power = 0;
+	// Avoid showing power readings on looted but usable items (e.g. FMP STR_LASER_PISTOL_MIB).
+	// Lets assume we can only have power readings if a player can see it in the ufopaedia.
+	// To show power readings from installed ammo both the weapon and clip must be known.
+	bool showPower = false;
+	ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(item->getRules()->getType(), false);
+	if (article && Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
+	{
+		showPower = true;
+	}
+
+	if (item->getAmmoItem() != 0 && item->needsAmmo())
+	{
+		// Ammo item defines weapon power. It can have it's own ufopaedia requirements.
+		ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(item->getAmmoItem()->getRules()->getType(), false);
+		if (article && Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
+		{
+			power = item->getAmmoItem()->getRules()->getPower();
+		}
+		else
+		{
+			showPower = false;
+		}
+	}
+	else
+	{
+		power = item->getRules()->getPower();
+	}
+
+	if (item->getRules()->isStrengthApplied())
+	{
+		BattleUnit *unit = _battleGame->getSelectedUnit();
+		power += unit->getBaseStats()->strength;
+	}
+
+	if (showPower == false)
+	{
+		power = 0;
+	}
+
+	return power;
+	// Note: it is probably better to move logic to `Savegame::BattleItem` as preview argument.
+}
+
+/**
  * Updates the soldier accuracy info text.
  *
  * Based on the BattleType type of the item under the mouse (defaults to firing accuracy).
@@ -566,46 +617,11 @@ void InventoryState::_setTxtItem(BattleItem *item)
 		{
 			if (Options::showMoreStatsInInventoryView)
 			{
-				int power = 0;
-				// Avoid showing power readings on looted but usable items (e.g. FMP STR_LASER_PISTOL_MIB).
-				// Lets assume we can only have power readings if a player can see it in the ufopaedia.
-				// To show power readings from installed ammo both the weapon and clip must be known.
-				bool showPower = false;
-				ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(item->getRules()->getType(), false);
-				if (article && Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
-				{
-					showPower = true;
-				}
-
-				if (item->getAmmoItem() != 0 && item->needsAmmo())
-				{
-					// Ammo item defines weapon power. It can have it's own ufopaedia requirements.
-					ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(item->getAmmoItem()->getRules()->getType(), false);
-					if (article && Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
-					{
-						power = item->getAmmoItem()->getRules()->getPower();
-					}
-					else
-					{
-						showPower = false;
-					}
-				}
-				else
-				{
-					power = item->getRules()->getPower();
-				}
-
-				if (item->getRules()->isStrengthApplied())
-				{
-					BattleUnit *unit = _battleGame->getSelectedUnit();
-					power += unit->getBaseStats()->strength;
-				}
-
-				if (power > 0 && showPower)
+				int power = _getItemPower(item);
+				if (power > 0)
 				{
 					ssTxtItem << tr("STR_POWER_SHORT").arg(power) << " " << Unicode::TOK_COLOR_FLIP ;
 				}
-				// Note: it is probably better to move logic to `Savegame::BattleItem`
 			}
 			ssTxtItem << tr(item->getRules()->getName());
 		}
