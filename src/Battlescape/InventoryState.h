@@ -111,6 +111,8 @@ private:
 	void _setSoldierStatWeight(BattleItem *item = 0);
 	/// Updates the item info text.
 	void _setTxtItem(BattleItem *item = 0);
+	/// Display item stats.
+	void _showItemStats(BattleItem *item = 0);
 };
 
 }

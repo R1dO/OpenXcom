@@ -626,6 +626,59 @@ void InventoryState::_setTxtItem(BattleItem *item)
 }
 
 /**
+ * Display item stats.
+ *
+ * Item stats (ammo, medikit) and handobj when appropriate.
+ * Will hide template buttons when needed.
+ *
+ * @param item Pointer to battle item.
+ */
+void InventoryState::_showItemStats(BattleItem *item)
+{
+	if (item != 0)
+	{
+		std::string s;
+		if (item->getAmmoItem() != 0 && item->needsAmmo())
+		{
+			s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoItem()->getAmmoQuantity());
+			SDL_Rect r;
+			r.x = 0;
+			r.y = 0;
+			r.w = RuleInventory::HAND_W * RuleInventory::SLOT_W;
+			r.h = RuleInventory::HAND_H * RuleInventory::SLOT_H;
+			_selAmmo->drawRect(&r, _game->getMod()->getInterface("inventory")->getElement("grid")->color);
+			r.x++;
+			r.y++;
+			r.w -= 2;
+			r.h -= 2;
+			_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
+			item->getAmmoItem()->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo);
+			_updateTemplateButtons(false);
+		}
+		else
+		{
+			_selAmmo->clear();
+			_updateTemplateButtons(!_tu);
+		}
+		if (item->getAmmoQuantity() != 0 && item->needsAmmo())
+		{
+			s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
+		}
+		else if (item->getRules()->getBattleType() == BT_MEDIKIT)
+		{
+			s = tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
+		}
+		_txtAmmo->setText(s);
+	}
+	else
+	{
+		_txtAmmo->setText("");
+		_selAmmo->clear();
+		_updateTemplateButtons(!_tu);
+	}
+}
+
+/**
  * Saves the soldiers' equipment-layout.
  */
 void InventoryState::saveEquipmentLayout()
@@ -753,8 +806,7 @@ void InventoryState::btnUnloadClick(Action *)
 	if (_inv->unload())
 	{
 		_setTxtItem();
-		_txtAmmo->setText("");
-		_selAmmo->clear();
+		_showItemStats();
 		updateStats();
 		_game->getMod()->getSoundByDepth(0, Mod::ITEM_DROP)->play();
 	}
@@ -1073,47 +1125,7 @@ void InventoryState::invMouseOver(Action *)
 	}
 
 	BattleItem *item = _inv->getMouseOverItem();
-	if (item != 0)
-	{
-		std::string s;
-		if (item->getAmmoItem() != 0 && item->needsAmmo())
-		{
-			s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoItem()->getAmmoQuantity());
-			SDL_Rect r;
-			r.x = 0;
-			r.y = 0;
-			r.w = RuleInventory::HAND_W * RuleInventory::SLOT_W;
-			r.h = RuleInventory::HAND_H * RuleInventory::SLOT_H;
-			_selAmmo->drawRect(&r, _game->getMod()->getInterface("inventory")->getElement("grid")->color);
-			r.x++;
-			r.y++;
-			r.w -= 2;
-			r.h -= 2;
-			_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
-			item->getAmmoItem()->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo);
-			_updateTemplateButtons(false);
-		}
-		else
-		{
-			_selAmmo->clear();
-			_updateTemplateButtons(!_tu);
-		}
-		if (item->getAmmoQuantity() != 0 && item->needsAmmo())
-		{
-			s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
-		}
-		else if (item->getRules()->getBattleType() == BT_MEDIKIT)
-		{
-			s = tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
-		}
-		_txtAmmo->setText(s);
-	}
-	else
-	{
-		_txtAmmo->setText("");
-		_selAmmo->clear();
-		_updateTemplateButtons(!_tu);
-	}
+	_showItemStats(item);
 	_setSoldierStatAccuracy(item);
 	_setTxtItem(item);
 }
@@ -1125,9 +1137,7 @@ void InventoryState::invMouseOver(Action *)
 void InventoryState::invMouseOut(Action *)
 {
 	_setTxtItem();
-	_txtAmmo->setText("");
-	_selAmmo->clear();
-	_updateTemplateButtons(!_tu);
+	_showItemStats();
 }
 
 /**
