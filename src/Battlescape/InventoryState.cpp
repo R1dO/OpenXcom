@@ -226,6 +226,7 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent) : _tu(tu), _pa
 	_inv->onMouseClick((ActionHandler)&InventoryState::invClick, 0);
 	_inv->onMouseOver((ActionHandler)&InventoryState::invMouseOver);
 	_inv->onMouseOut((ActionHandler)&InventoryState::invMouseOut);
+	_inv->onMouseIn((ActionHandler)&InventoryState::invMouseIn);
 
 	_txtTus->setVisible(_tu);
 	_txtWeight->setVisible(Options::showMoreStatsInInventoryView);
@@ -1155,6 +1156,16 @@ void InventoryState::invMouseOut(Action *)
 {
 	_setTxtItem();
 	_showItemStats();
+}
+
+/**
+ * Un-Hide item info.
+ * @param action Pointer to an action.
+ */
+void InventoryState::invMouseIn(Action *)
+{
+	_setTxtItem(_inv->getSelectedItem());
+	_showItemStats(_inv->getSelectedItem());
 }
 
 /**

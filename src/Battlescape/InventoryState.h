@@ -89,6 +89,8 @@ public:
 	void invClick(Action *action);
 	/// Handler for showing item info.
 	void invMouseOver(Action *action);
+	/// Handler for un-hiding item info.
+	void invMouseIn(Action *action);
 	/// Handler for hiding item info.
 	void invMouseOut(Action *action);
 	/// Handles keypresses.
