@@ -565,6 +565,7 @@ void InventoryState::_setSoldierStatWeight(BattleItem *item)
 			itemWeight += item->getAmmoItem()->getRules()->getWeight();
 		}
 
+		RuleInventory *slotTo = 0;
 		switch (item->getSlot()->getType())
 		{
 		case INV_GROUND:
@@ -572,14 +573,12 @@ void InventoryState::_setSoldierStatWeight(BattleItem *item)
 			break;
 		case INV_SLOT:
 		case INV_HAND:
+			slotTo = _inv->getMouseOverSlot();
+			if (slotTo != 0 && slotTo->getType() == INV_GROUND)
 			{
-				RuleInventory *slotTo = _inv->getMouseOverSlot();
-				if (slotTo != 0 && slotTo->getType() == INV_GROUND)
-				{
-					weight -= itemWeight;
-				}
-				break;
+				weight -= itemWeight;
 			}
+			break;
 		default:
 			// Do nothing, we are not dragging an item.
 			break;
