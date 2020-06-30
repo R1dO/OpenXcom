@@ -394,7 +394,60 @@ void InventoryState::updateStats()
 }
 
 /**
+ * Gets weapon type accuracy for selected unit.
+ *
+ * Does *not* take into account if item (ammo) has been researched.
+ * Our soldiers are smart enough to derive the type from size and geometry.
+ *
+ * @param item Pointer to battle item.
+ * @param useModifiers Do we consider all modifiers (wounds, two-handed)?
+ * @return The units accuracy for this weapon type.
+ */
+int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
+{
+	BattleUnit *unit = _battleGame->getSelectedUnit();
+	double accuracy = unit->getBaseStats()->firing; // Default value even if no item is selected.
+
+	if (item != 0)
+	{
+		switch (item->getRules()->getBattleType())
+		{
+		case BT_MELEE:
+			accuracy = unit->getBaseStats()->melee;
+			if (item->getRules()->isSkillApplied())
+			{
+				accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
+			}
+			break;
+		case BT_FLARE:
+		case BT_GRENADE:
+		case BT_PROXIMITYGRENADE:
+			accuracy = unit->getBaseStats()->throwing;
+			break;
+		default:
+			// Do nothing, firing accuracy is already the default.
+			break;
+		}
+	}
+
+	// Adjust for health (modifier) effects
+	if (useModifiers)
+	{
+		// Fancy stuff here.
+	}
+	else
+	{
+		accuracy *= (double)unit->getHealth() / unit->getBaseStats()->health;
+	}
+
+	return accuracy;
+	// Note: it is probably better to move logic to `Savegame::BattleItem` as preview argument.
+}
+
+/**
  * Gets weapon (ammo) power.
+ *
+ * Takes into account if item (ammo) has been researched.
  *
  * @return The power of the weapon (ammo)
  */
@@ -453,34 +506,7 @@ int InventoryState::_getItemPower(BattleItem *item) const
  */
 void InventoryState::_setSoldierStatAccuracy(BattleItem *item)
 {
-	BattleUnit *unit = _battleGame->getSelectedUnit();
-	double accuracy = unit->getBaseStats()->firing;
-
-	if (item != 0)
-	{
-		switch (item->getRules()->getBattleType())
-		{
-		case BT_MELEE:
-			accuracy = unit->getBaseStats()->melee;
-			if (item->getRules()->isSkillApplied())
-			{
-				accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
-			}
-			break;
-		case BT_FLARE:
-		case BT_GRENADE:
-		case BT_PROXIMITYGRENADE:
-			accuracy = unit->getBaseStats()->throwing;
-			break;
-		default:
-			// Do nothing, firing accuracy is already the default.
-			break;
-		}
-	}
-	// Adjust for health effects
-	accuracy *= (double)unit->getHealth() / unit->getBaseStats()->health;
-
-	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg((int)accuracy));
+	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg(_getItemAccuracy(item)));
 }
 
 /**
