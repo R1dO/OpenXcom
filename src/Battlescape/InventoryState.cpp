@@ -676,6 +676,7 @@ void InventoryState::_showItemStats(BattleItem *item)
 			_selAmmo->clear();
 			_updateTemplateButtons(!_tu);
 		}
+		// This one works for clips (`item->needsAmmo = true` in that case).
 		if (item->getAmmoQuantity() != 0 && item->needsAmmo())
 		{
 			s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
