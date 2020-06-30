@@ -665,10 +665,11 @@ void InventoryState::_showItemStats(BattleItem *item)
 			ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
 			break;
 		case BT_FIREARM:
-			ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoItem()->getAmmoQuantity());
-			// Draw ammo object.
+			// Weapon defined by it's clip.
 			if (item->getAmmoItem() != 0 && item->needsAmmo())
 			{
+				ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoItem()->getAmmoQuantity());
+				// Draw ammo object.
 				SDL_Rect r;
 				r.x = 0;
 				r.y = 0;
@@ -682,6 +683,11 @@ void InventoryState::_showItemStats(BattleItem *item)
 				_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
 				item->getAmmoItem()->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo);
 				_updateTemplateButtons(false);
+			}
+			// Do not show ammo on weapons with infinite shots, e.g. no clips (safety measure for lasers).
+			if (item->getAmmoQuantity() != 0 && item->needsAmmo())
+			{
+				ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
 			}
 			break;
 		default:
