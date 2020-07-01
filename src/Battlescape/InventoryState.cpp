@@ -685,7 +685,7 @@ void InventoryState::_showItemStats(BattleItem *item)
 			}
 			break;
 		default:
-			ssItemStats.clear();
+			ssItemStats.str("");
 			break;
 		}
 	}
