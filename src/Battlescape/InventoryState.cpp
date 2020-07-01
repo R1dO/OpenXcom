@@ -652,48 +652,45 @@ void InventoryState::_setTxtItem(BattleItem *item)
  */
 void InventoryState::_showItemStats(BattleItem *item)
 {
+	_selAmmo->clear();
+	_updateTemplateButtons(!_tu);
+	std::ostringstream ssItemStats;
 	if (item != 0)
 	{
-		std::string s;
-		if (item->getAmmoItem() != 0 && item->needsAmmo())
+		switch (item->getRules()->getBattleType())
 		{
-			s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoItem()->getAmmoQuantity());
-			SDL_Rect r;
-			r.x = 0;
-			r.y = 0;
-			r.w = RuleInventory::HAND_W * RuleInventory::SLOT_W;
-			r.h = RuleInventory::HAND_H * RuleInventory::SLOT_H;
-			_selAmmo->drawRect(&r, _game->getMod()->getInterface("inventory")->getElement("grid")->color);
-			r.x++;
-			r.y++;
-			r.w -= 2;
-			r.h -= 2;
-			_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
-			item->getAmmoItem()->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo);
-			_updateTemplateButtons(false);
+		case BT_MEDIKIT:
+			ssItemStats << tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
+			break;
+		case BT_AMMO:
+			ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
+			break;
+		case BT_FIREARM:
+			ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoItem()->getAmmoQuantity());
+			// Draw ammo object.
+			if (item->getAmmoItem() != 0 && item->needsAmmo())
+			{
+				SDL_Rect r;
+				r.x = 0;
+				r.y = 0;
+				r.w = RuleInventory::HAND_W * RuleInventory::SLOT_W;
+				r.h = RuleInventory::HAND_H * RuleInventory::SLOT_H;
+				_selAmmo->drawRect(&r, _game->getMod()->getInterface("inventory")->getElement("grid")->color);
+				r.x++;
+				r.y++;
+				r.w -= 2;
+				r.h -= 2;
+				_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
+				item->getAmmoItem()->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo);
+				_updateTemplateButtons(false);
+			}
+			break;
+		default:
+			ssItemStats.clear();
+			break;
 		}
-		else
-		{
-			_selAmmo->clear();
-			_updateTemplateButtons(!_tu);
-		}
-		// This one works for clips (`item->needsAmmo = true` in that case).
-		if (item->getAmmoQuantity() != 0 && item->needsAmmo())
-		{
-			s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
-		}
-		else if (item->getRules()->getBattleType() == BT_MEDIKIT)
-		{
-			s = tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
-		}
-		_txtAmmo->setText(s);
 	}
-	else
-	{
-		_txtAmmo->setText("");
-		_selAmmo->clear();
-		_updateTemplateButtons(!_tu);
-	}
+	_txtAmmo->setText(ssItemStats.str());
 }
 
 /**
