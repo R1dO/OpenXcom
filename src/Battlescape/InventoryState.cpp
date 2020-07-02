@@ -682,19 +682,26 @@ void InventoryState::_showItemStats(BattleItem *item)
 	std::ostringstream ssItemStats;
 	if (item != 0)
 	{
+		int power = 0;
+		int accuracy = 0; // Accuracy after applying 'all modifiers'.
+		int rounds = 0;
 		switch (item->getRules()->getBattleType())
 		{
 		case BT_MEDIKIT:
 			ssItemStats << tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
 			break;
 		case BT_AMMO:
-			ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
+			power = _getItemPower(item);
+			accuracy = _getItemAccuracy(item);
+			rounds = item->getAmmoQuantity();
 			break;
 		case BT_FIREARM:
+			power = _getItemPower(item);
+			accuracy = _getItemAccuracy(item);
 			// Weapon defined by it's clip.
 			if (item->getAmmoItem() != 0 && item->needsAmmo())
 			{
-				ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoItem()->getAmmoQuantity());
+				rounds = item->getAmmoItem()->getAmmoQuantity();
 				// Draw ammo object.
 				SDL_Rect r;
 				r.x = 0;
@@ -710,15 +717,43 @@ void InventoryState::_showItemStats(BattleItem *item)
 				item->getAmmoItem()->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo);
 				_updateTemplateButtons(false);
 			}
-			// Do not show ammo on weapons with infinite shots, e.g. no clips (safety measure for lasers).
-			if (item->getAmmoQuantity() != 0 && item->needsAmmo())
+			else
 			{
-				ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
+				rounds = item->getAmmoQuantity();
 			}
 			break;
 		default:
 			ssItemStats.str("");
 			break;
+		}
+
+		// If any of the throwaway variables != 0 construct a new text (using a fixed placement).
+		if (Options::showMoreStatsInInventoryView && power + accuracy + rounds > 0)
+		{
+			if (power != 0)
+			{
+				ssItemStats << tr("STR_POWER_SHORT").arg(power) << Unicode::TOK_COLOR_FLIP;
+			}
+			ssItemStats << std::endl;
+
+			if (accuracy != 0)
+			{
+				ssItemStats << tr("STR_ACCURACY_SHORT").arg(accuracy) << Unicode::TOK_COLOR_FLIP;
+			}
+			ssItemStats << std::endl;
+
+			if (rounds == 255)
+			{
+				ssItemStats << tr("STR_ROUNDS_").arg("∞");
+			}
+			else if (rounds != 0)
+			{
+				ssItemStats << tr("STR_ROUNDS_").arg(rounds);
+			}
+		}
+		else if (rounds != 0 && rounds != 255)
+		{
+			ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(rounds);
 		}
 	}
 	_txtAmmo->setText(ssItemStats.str());
