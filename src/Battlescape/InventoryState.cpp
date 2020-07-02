@@ -690,6 +690,10 @@ void InventoryState::_showItemStats(BattleItem *item)
 		case BT_MEDIKIT:
 			ssItemStats << tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
 			break;
+		case BT_MELEE:
+		case BT_FLARE:
+		case BT_GRENADE:
+		case BT_PROXIMITYGRENADE:
 		case BT_AMMO:
 			power = _getItemPower(item);
 			accuracy = _getItemAccuracy(item);
