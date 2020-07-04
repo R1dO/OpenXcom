@@ -455,14 +455,14 @@ int InventoryState::_getItemPower(BattleItem *item) const
 	int power = 0;
 	// Avoid showing power readings on looted but usable items (e.g. FMP STR_LASER_PISTOL_MIB).
 	// Lets assume we can only have power readings if a player can see it in the ufopaedia.
-	// To show power readings from installed ammo both the weapon and clip must be known.
 	bool showPower = false;
 	if (item->isResearched(_game->getSavedGame(), _game->getMod(), true))
 	{
+		power = item->getRules()->getPower();
 		showPower = true;
 	}
-
-	if (item->getAmmoItem() != 0 && item->needsAmmo())
+	// To show power readings from installed ammo both the weapon and clip must be known.
+	if (showPower && item->getAmmoItem() != 0 && item->needsAmmo())
 	{
 		// Ammo item defines weapon power. It can have it's own ufopaedia requirements.
 		if (item->getAmmoItem()->isResearched(_game->getSavedGame(), _game->getMod(), true))
@@ -474,11 +474,7 @@ int InventoryState::_getItemPower(BattleItem *item) const
 			showPower = false;
 		}
 	}
-	else
-	{
-		power = item->getRules()->getPower();
-	}
-
+	// Melee weapon
 	if (item->getRules()->isStrengthApplied())
 	{
 		BattleUnit *unit = _battleGame->getSelectedUnit();
