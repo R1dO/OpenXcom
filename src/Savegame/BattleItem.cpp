@@ -22,6 +22,8 @@
 #include "../Mod/Mod.h"
 #include "../Mod/RuleItem.h"
 #include "../Mod/RuleInventory.h"
+#include "SavedGame.h"
+#include "../Ufopaedia/Ufopaedia.h"
 
 namespace OpenXcom
 {
@@ -558,6 +560,32 @@ void BattleItem::setIsAmmo(bool ammo)
 bool BattleItem::isAmmo() const
 {
 	return _isAmmo;
+}
+
+/**
+ * Checks if this item is researched.
+ *
+ * @param save Pointer to saved game.
+ * @param mod Pointer to the mod.
+ * @param ufoPaedia Check if item is visible in ufopaedia
+ */
+bool BattleItem::isResearched(SavedGame *save ,Mod *mod, bool ufoPaedia) const
+{
+	// Check if we are allowed to use an item.
+	if (! save->isResearched(_rules->getRequirements()))
+	{
+		return false;
+	}
+	if (ufoPaedia)
+	{
+		ArticleDefinition *article = mod->getUfopaediaArticle(_rules->getType(), false);
+		if (article && Ufopaedia::isArticleAvailable(save, article))
+		{
+			return true;
+		}
+		return false;
+	}
+	return true;
 }
 
 }

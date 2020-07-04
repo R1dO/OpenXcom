@@ -46,7 +46,6 @@
 #include "BattlescapeGenerator.h"
 #include "TileEngine.h"
 #include "../Mod/RuleInterface.h"
-#include "../Ufopaedia/Ufopaedia.h"
 
 namespace OpenXcom
 {
@@ -458,8 +457,7 @@ int InventoryState::_getItemPower(BattleItem *item) const
 	// Lets assume we can only have power readings if a player can see it in the ufopaedia.
 	// To show power readings from installed ammo both the weapon and clip must be known.
 	bool showPower = false;
-	ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(item->getRules()->getType(), false);
-	if (article && Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
+	if (item->isResearched(_game->getSavedGame(), _game->getMod(), true))
 	{
 		showPower = true;
 	}
@@ -467,8 +465,7 @@ int InventoryState::_getItemPower(BattleItem *item) const
 	if (item->getAmmoItem() != 0 && item->needsAmmo())
 	{
 		// Ammo item defines weapon power. It can have it's own ufopaedia requirements.
-		ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(item->getAmmoItem()->getRules()->getType(), false);
-		if (article && Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
+		if (item->getAmmoItem()->isResearched(_game->getSavedGame(), _game->getMod(), true))
 		{
 			power = item->getAmmoItem()->getRules()->getPower();
 		}
