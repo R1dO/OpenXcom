@@ -448,7 +448,8 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
  *
  * Takes into account if item (ammo) has been researched.
  *
- * @return The power of the weapon (ammo)
+ * @param item Pointer to battle item.
+ * @return The power of the weapon (ammo).
  */
 int InventoryState::_getItemPower(BattleItem *item) const
 {
@@ -489,6 +490,63 @@ int InventoryState::_getItemPower(BattleItem *item) const
 	return power;
 	// Note: it is probably better to move logic to `Savegame::BattleItem` as preview argument.
 }
+
+/**
+ * Gets weapon (ammo) rounds left.
+ *
+ * When 'showMoreStatsInInventoryView' is in effect it takes into account if item (ammo) has been researched .
+ *
+ * @param item Pointer to battle item.
+ * @return The rounds left in the weapon (ammo).
+ */
+int InventoryState::_getItemRounds(BattleItem *item) const
+{
+	int rounds = 0;
+	bool returnRounds = false;
+	if (Options::showMoreStatsInInventoryView)
+	{
+		if (item->isResearched(_game->getSavedGame(), _game->getMod(), true))
+		{
+			returnRounds = true;
+		}
+		// To show rounds from installed ammo both the weapon and clip must be known.
+		if (returnRounds && item->getAmmoItem() != 0 && item->needsAmmo())
+		{
+			// Ammo item defines weapon rounds. It can have it's own ufopaedia requirements.
+			if (item->getAmmoItem()->isResearched(_game->getSavedGame(), _game->getMod(), true))
+			{
+				returnRounds = true;
+			}
+			else
+			{
+				returnRounds = false;
+			}
+		}
+	}
+	else
+	{
+		returnRounds = true;
+	}
+
+	if (item->getAmmoItem() != 0 && item->needsAmmo())
+	{
+		rounds = item->getAmmoItem()->getAmmoQuantity();
+	}
+	else
+	{
+		rounds = item->getAmmoQuantity();
+	}
+
+	if (returnRounds)
+	{
+		return rounds;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
 
 /**
  * Updates the soldier accuracy info text.
@@ -707,16 +765,15 @@ void InventoryState::_showItemStats(BattleItem *item)
 		case BT_AMMO:
 			power = _getItemPower(item);
 			accuracy = _getItemAccuracy(item);
-			rounds = item->getAmmoQuantity();
+			rounds = _getItemRounds(item);
 			break;
 		case BT_FIREARM:
 			power = _getItemPower(item);
 			accuracy = _getItemAccuracy(item);
-			// Weapon defined by it's clip.
+			rounds = _getItemRounds(item);
+			// Draw ammo object.
 			if (item->getAmmoItem() != 0 && item->needsAmmo())
 			{
-				rounds = item->getAmmoItem()->getAmmoQuantity();
-				// Draw ammo object.
 				SDL_Rect r;
 				r.x = 0;
 				r.y = 0;
@@ -730,10 +787,6 @@ void InventoryState::_showItemStats(BattleItem *item)
 				_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
 				item->getAmmoItem()->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo);
 				_updateTemplateButtons(false);
-			}
-			else
-			{
-				rounds = item->getAmmoQuantity();
 			}
 			break;
 		default:

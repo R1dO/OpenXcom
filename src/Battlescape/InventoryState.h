@@ -109,6 +109,8 @@ private:
 	int _getItemPower(BattleItem *item = 0) const;
 	/// Gets weapon type accuracy for selected unit.
 	int _getItemAccuracy(BattleItem *item = 0, bool useModifiers = false) const;
+	/// Gets weapon (ammo) rounds left.
+	int _getItemRounds(BattleItem *item = 0) const;
 	/// Updates the soldier accuracy info text.
 	void _setSoldierStatAccuracy(BattleItem *item);
 	/// Updates the soldier TU info text.
