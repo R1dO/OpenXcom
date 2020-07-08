@@ -399,8 +399,8 @@ void InventoryState::updateStats()
  * Our soldiers are smart enough to derive the type from size and geometry.
  *
  * @param item Pointer to battle item.
- * @param useModifiers Do we consider all modifiers (wounds, two-handed)?
- * @return The units accuracy for this weapon type.
+ * @param useModifiers Do we consider all modifiers (bodypart wounds, two-handed, melee skill applied)?
+ * @return The unit's accuracy for this item.
  */
 int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 {
@@ -413,11 +413,8 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 		{
 		case BT_MELEE:
 			accuracy = unit->getBaseStats()->melee;
-			if (item->getRules()->isSkillApplied())
-			{
-				accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
-			}
 			break;
+		//case BT_AMMO: // Not sure about this. You can only throw a clip but it is kinda confusing.
 		case BT_FLARE:
 		case BT_GRENADE:
 		case BT_PROXIMITYGRENADE:
@@ -429,13 +426,16 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 		}
 	}
 
-	// Adjust for health (modifier) effects
 	if (useModifiers)
 	{
-		// Fancy stuff here.
+		if (item->getRules()->isSkillApplied())
+		{
+			accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
+		}
 	}
 	else
 	{
+		// Make sure the value reflects the one visible on the stat screen.
 		accuracy *= (double)unit->getHealth() / unit->getBaseStats()->health;
 	}
 
