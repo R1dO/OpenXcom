@@ -534,6 +534,7 @@ int InventoryState::_getItemRounds(BattleItem *item) const
 	}
 	else
 	{
+		// Will return 255 for laser weapons. Take care when using it.
 		rounds = item->getAmmoQuantity();
 	}
 
@@ -726,10 +727,10 @@ void InventoryState::_setTxtItem(BattleItem *item)
  *
  * When 'showMoreStatsInInventoryView' is in effect the following can be expected:
  * + Display the following stats:
+ *   - Unit accuracy for the item type (if not equal to the unit's one)
  *   - Weapon power
- *   - Unit accuracy for the item type
  *   - Rounds left in clip/weapon
- * + Those stats are *only* shown if a player can see them in the ufopaedia
+ * + Those stats are *only* shown if a player can reasonably see them in the ufopaedia
  * + Accuracy is based on the shooting formula with the following adjustments:
  *   - Only adjust for fatal arm wounds when we hover over a hand slot
  *   - Only adjust for 2-handiness penalty when we hover over a hand slot
@@ -737,10 +738,7 @@ void InventoryState::_setTxtItem(BattleItem *item)
  * note:
  *   The research requirement is stricter than vanilla. Using the rationale that counting the
  *   number of shots (or relate power level left to shots) is research as well.
- * note2:
- *   Item accuracy is expected to deviate from unit accuracy (for the item type) since the latter
- *   one uses the same modifier formula as the statscreen.
- *
+
  * @param item Pointer to battle item.
  */
 void InventoryState::_showItemStats(BattleItem *item)
@@ -764,12 +762,12 @@ void InventoryState::_showItemStats(BattleItem *item)
 		case BT_PROXIMITYGRENADE:
 		case BT_AMMO:
 			power = _getItemPower(item);
-			accuracy = _getItemAccuracy(item);
+			accuracy = _getItemAccuracy(item, true);
 			rounds = _getItemRounds(item);
 			break;
 		case BT_FIREARM:
 			power = _getItemPower(item);
-			accuracy = _getItemAccuracy(item);
+			accuracy = _getItemAccuracy(item, true);
 			rounds = _getItemRounds(item);
 			// Draw ammo object.
 			if (item->getAmmoItem() != 0 && item->needsAmmo())
@@ -797,15 +795,16 @@ void InventoryState::_showItemStats(BattleItem *item)
 		// If any of the throwaway variables != 0 construct a new text (using a fixed placement).
 		if (Options::showMoreStatsInInventoryView && power + accuracy + rounds > 0)
 		{
-			if (power != 0)
+			// Only show accuracy if it is not equal to the one displayed on the unit.
+			if (accuracy != 0 && accuracy != _getItemAccuracy(item))
 			{
-				ssItemStats << tr("STR_POWER_SHORT").arg(power) << Unicode::TOK_COLOR_FLIP;
+				ssItemStats << tr("STR_ACCURACY_SHORT").arg(accuracy) << Unicode::TOK_COLOR_FLIP;
 			}
 			ssItemStats << std::endl;
 
-			if (accuracy != 0)
+			if (power != 0)
 			{
-				ssItemStats << tr("STR_ACCURACY_SHORT").arg(accuracy) << Unicode::TOK_COLOR_FLIP;
+				ssItemStats << tr("STR_POWER_SHORT").arg(power) << Unicode::TOK_COLOR_FLIP;
 			}
 			ssItemStats << std::endl;
 
