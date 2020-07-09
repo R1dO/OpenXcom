@@ -428,7 +428,7 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 
 	if (useModifiers)
 	{
-		if (item->getRules()->isSkillApplied())
+		if (item->getRules()->getBattleType() == BT_MELEE && item->getRules()->isSkillApplied())
 		{
 			accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
 		}
