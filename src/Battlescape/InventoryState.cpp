@@ -387,7 +387,14 @@ void InventoryState::updateStats()
 		_txtPStr->setText("");
 	}
 
-	_setSoldierStatAccuracy(_inv->getMouseOverItem());
+	if (_inv->getSelectedItem() != 0)
+	{
+		_setSoldierStatAccuracy(_inv->getSelectedItem());
+	}
+	else
+	{
+		_setSoldierStatAccuracy(_inv->getMouseOverItem());
+	}
 	_setSoldierStatTu();
 	_setSoldierStatWeight();
 }
