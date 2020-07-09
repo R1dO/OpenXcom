@@ -582,16 +582,8 @@ void InventoryState::_setSoldierStatTu(BattleItem *item, bool unloadWeapon)
 	{
 		RuleInventory *slotFrom = item->getSlot();
 		RuleInventory *slotTo = _inv->getMouseOverSlot();
-		if (unloadWeapon == true)
+		if (unloadWeapon == true && item->needsAmmo() && item->getAmmoItem() != 0)
 		{
-			// Only display cost if both hands are free
-			for (std::vector<BattleItem*>::iterator i = unit->getInventory()->begin(); i != unit->getInventory()->end(); ++i)
-			{
-				if ((*i)->getSlot()->getType() == INV_HAND && (*i) != item)
-				{
-					return;
-				}
-			}
 			tu -= 8;
 		}
 		else if (slotFrom != 0 && slotTo != 0 && slotFrom != slotTo)
