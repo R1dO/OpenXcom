@@ -555,6 +555,36 @@ int InventoryState::_getItemRounds(BattleItem *item) const
 	}
 }
 
+/**
+ * Check if item is researched
+ *
+ * Determine if we are allowed to see 'advanced' item values.
+ * Takes into account if an item depends on clips.
+ *
+ * @param item Pointer to battle item.
+ * @param ufopaedia Do we take ufopaedia visibility into account?
+ * @return The rounds left in the weapon (ammo).
+ */
+bool InventoryState::_isItemResearched(BattleItem *item, bool ufopaedia) const
+{
+	bool isResearched = item->isResearched(_game->getSavedGame(), _game->getMod(), ufopaedia);
+
+	// To show rounds from installed ammo both the weapon and clip must be known.
+	if (isResearched && item->getAmmoItem() != 0 && item->needsAmmo())
+	{
+		// Ammo item can have it's own ufopaedia requirements.
+		if (item->getAmmoItem()->isResearched(_game->getSavedGame(), _game->getMod(), ufopaedia))
+		{
+			isResearched = true;
+		}
+		else
+		{
+			isResearched = false;
+		}
+	}
+
+	return isResearched;
+}
 
 /**
  * Updates the soldier accuracy info text.

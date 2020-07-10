@@ -121,6 +121,8 @@ private:
 	void _setTxtItem(BattleItem *item = 0);
 	/// Display item stats.
 	void _showItemStats(BattleItem *item = 0);
+	/// Check if item is researched
+	bool _isItemResearched(BattleItem *item, bool ufopaedia = false) const;
 };
 
 }
