@@ -137,7 +137,7 @@ public:
 	/// Checks a flag on the item to see if it's a clip in a weapon or not.
 	bool isAmmo() const;
 	/// Checks if this item is researched.
-	bool isResearched(SavedGame *save ,Mod *mod, bool ufoPaedia = false) const;
+	bool isResearched(SavedGame *save ,Mod *mod = 0, bool ufoPaedia = false) const;
 };
 
 }

@@ -576,7 +576,7 @@ bool BattleItem::isResearched(SavedGame *save ,Mod *mod, bool ufoPaedia) const
 	{
 		return false;
 	}
-	if (ufoPaedia)
+	if (ufoPaedia && mod != 0)
 	{
 		ArticleDefinition *article = mod->getUfopaediaArticle(_rules->getType(), false);
 		if (article && Ufopaedia::isArticleAvailable(save, article))
