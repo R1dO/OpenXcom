@@ -402,9 +402,6 @@ void InventoryState::updateStats()
 /**
  * Gets weapon type accuracy for selected unit.
  *
- * Does *not* take into account if item (ammo) has been researched.
- * Our soldiers are smart enough to derive the type from size and geometry.
- *
  * @param item Pointer to battle item.
  * @param useModifiers Do we consider all modifiers (bodypart wounds, two-handed, melee skill applied)?
  * @return The unit's accuracy for this item.
@@ -433,11 +430,29 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 		}
 	}
 
-	if (useModifiers)
+	if (useModifiers && item != 0)
 	{
 		if (item->getRules()->getBattleType() == BT_MELEE && item->getRules()->isSkillApplied())
 		{
 			accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
+		}
+
+		// Only take injuries and 2-handed into account if we mouse over a hand slot.
+		if (_inv->getMouseOverSlot() != 0 && _inv->getMouseOverSlot()->getType() == INV_HAND)
+		{
+			if (item->getRules()->isTwoHanded())
+			{
+				if ( _inv->getMouseOverSlot()->getId() == "STR_RIGHT_HAND" && item->getSlot()->getId() != "STR_LEFT_HAND" && unit->getItem("STR_LEFT_HAND") != 0)
+				{
+					accuracy *= 80.0 / 100.0;
+				}
+				else if ( _inv->getMouseOverSlot()->getId() == "STR_LEFT_HAND" && item->getSlot()->getId() != "STR_RIGHT_HAND" && unit->getItem("STR_RIGHT_HAND") != 0)
+				{
+					accuracy *= 80.0 / 100.0;
+				}
+			}
+			// Health modifier.
+			accuracy *= unit->getAccuracyModifier(item, _inv->getMouseOverSlot()) / 100.0;
 		}
 	}
 	else
