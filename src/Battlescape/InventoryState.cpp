@@ -1324,18 +1324,17 @@ void InventoryState::invClick(Action *)
  */
 void InventoryState::invMouseOver(Action *)
 {
-
 	if (_inv->getSelectedItem() != 0)
 	{
+		_showItemStats(_inv->getSelectedItem());
 		_setSoldierStatWeight(_inv->getSelectedItem());
 		_setSoldierStatTu(_inv->getSelectedItem());
 		return;
 	}
 
-	BattleItem *item = _inv->getMouseOverItem();
-	_showItemStats(item);
-	_setSoldierStatAccuracy(item);
-	_setTxtItem(item);
+	_showItemStats(_inv->getMouseOverItem());
+	_setSoldierStatAccuracy(_inv->getMouseOverItem());
+	_setTxtItem(_inv->getMouseOverItem());
 }
 
 /**
