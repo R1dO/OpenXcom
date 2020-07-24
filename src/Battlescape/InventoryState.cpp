@@ -771,9 +771,9 @@ void InventoryState::_showItemStats(BattleItem *item)
 		case BT_FLARE:
 		case BT_GRENADE:
 		case BT_PROXIMITYGRENADE:
+			accuracy = _getItemAccuracy(item, true);
 		case BT_AMMO:
 			power = _getItemPower(item);
-			accuracy = _getItemAccuracy(item, true);
 			rounds = _getItemRounds(item);
 			break;
 		case BT_FIREARM:
