@@ -536,7 +536,7 @@ int InventoryState::_getItemPower(BattleItem *item) const
 /**
  * Gets weapon (ammo) rounds left.
  *
- * When 'showMoreStatsInInventoryView' is in effect it takes into account if item (ammo) has been researched .
+ * When 'showMoreStatsInInventoryView' is in effect it takes into account if item (ammo) has been researched.
  *
  * @param item Pointer to battle item.
  * @return The rounds left in the weapon (ammo).
@@ -791,7 +791,7 @@ void InventoryState::_setTxtItem(BattleItem *item)
  *
  * When 'showMoreStatsInInventoryView' is in effect the following can be expected:
  * + Display the following stats:
- *   - Unit accuracy for the item type (if not equal to the unit's one)
+ *   - Unit accuracy for the item type
  *   - Weapon power
  *   - Rounds left in clip/weapon
  * + Those stats are *only* shown if a player can reasonably see them in the ufopaedia
@@ -857,8 +857,7 @@ void InventoryState::_showItemStats(BattleItem *item)
 		// If any of the throwaway variables != 0 construct a new text (using a fixed placement).
 		if (Options::showMoreStatsInInventoryView && power + accuracy + rounds > 0)
 		{
-			// Only show accuracy if it is not equal to the one displayed on the unit.
-			if (accuracy != 0 && accuracy != _getItemAccuracy(item))
+			if (accuracy != 0)
 			{
 				ssItemStats << tr("STR_ACCURACY_SHORT").arg(accuracy) << Unicode::TOK_COLOR_FLIP;
 			}
