@@ -706,14 +706,6 @@ void InventoryState::_setTxtItem(BattleItem *item)
 		}
 		else if (_game->getSavedGame()->isResearched(item->getRules()->getRequirements()))
 		{
-			if (Options::showMoreStatsInInventoryView)
-			{
-				int power = _getItemPower(item);
-				if (power > 0)
-				{
-					ssTxtItem << tr("STR_POWER_SHORT").arg(power) << " " << Unicode::TOK_COLOR_FLIP ;
-				}
-			}
 			ssTxtItem << tr(item->getRules()->getName());
 		}
 		else
