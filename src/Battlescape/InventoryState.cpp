@@ -402,8 +402,6 @@ void InventoryState::updateStats()
 /**
  * Gets weapon type accuracy for selected unit.
  *
- * Takes into account if item (and ammo) has been researched.
- *
  * @param item Pointer to battle item.
  * @param useModifiers Do we consider all modifiers (wounds, two-handed, melee skill applied, etc)?
  * @return The unit's accuracy for this item.
@@ -432,7 +430,7 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 		}
 	}
 
-	if (item != 0 && useModifiers && _isItemResearched(item, true))
+	if (item != 0 && useModifiers)
 	{
 		if (item->getRules()->getBattleType() == BT_MELEE && item->getRules()->isSkillApplied())
 		{
@@ -488,33 +486,23 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 /**
  * Gets weapon (ammo) power.
  *
- * Takes into account if item (ammo) has been researched.
- *
  * @param item Pointer to battle item.
  * @return The power of the weapon (ammo).
  */
 int InventoryState::_getItemPower(BattleItem *item) const
 {
 	int power = 0;
-	// Avoid showing power readings on looted but usable items (e.g. FMP STR_LASER_PISTOL_MIB).
-	// Lets assume we can only have power readings if a player can see it in the ufopaedia.
-	bool showPower = false;
 	if (item->isResearched(_game->getSavedGame(), _game->getMod(), true))
 	{
 		power = item->getRules()->getPower();
-		showPower = true;
 	}
 	// To show power readings from installed ammo both the weapon and clip must be known.
-	if (showPower && item->getAmmoItem() != 0 && item->needsAmmo())
+	if (item->getAmmoItem() != 0 && item->needsAmmo())
 	{
 		// Ammo item defines weapon power. It can have it's own ufopaedia requirements.
 		if (item->getAmmoItem()->isResearched(_game->getSavedGame(), _game->getMod(), true))
 		{
 			power = item->getAmmoItem()->getRules()->getPower();
-		}
-		else
-		{
-			showPower = false;
 		}
 	}
 	// Melee weapon
@@ -524,11 +512,6 @@ int InventoryState::_getItemPower(BattleItem *item) const
 		power += unit->getBaseStats()->strength;
 	}
 
-	if (showPower == false)
-	{
-		power = 0;
-	}
-
 	return power;
 	// Note: it is probably better to move logic to `Savegame::BattleItem` as preview argument.
 }
@@ -536,39 +519,12 @@ int InventoryState::_getItemPower(BattleItem *item) const
 /**
  * Gets weapon (ammo) rounds left.
  *
- * When 'showMoreStatsInInventoryView' is in effect it takes into account if item (ammo) has been researched.
- *
  * @param item Pointer to battle item.
  * @return The rounds left in the weapon (ammo).
  */
 int InventoryState::_getItemRounds(BattleItem *item) const
 {
 	int rounds = 0;
-	bool returnRounds = false;
-	if (Options::showMoreStatsInInventoryView)
-	{
-		if (item->isResearched(_game->getSavedGame(), _game->getMod(), true))
-		{
-			returnRounds = true;
-		}
-		// To show rounds from installed ammo both the weapon and clip must be known.
-		if (returnRounds && item->getAmmoItem() != 0 && item->needsAmmo())
-		{
-			// Ammo item defines weapon rounds. It can have it's own ufopaedia requirements.
-			if (item->getAmmoItem()->isResearched(_game->getSavedGame(), _game->getMod(), true))
-			{
-				returnRounds = true;
-			}
-			else
-			{
-				returnRounds = false;
-			}
-		}
-	}
-	else
-	{
-		returnRounds = true;
-	}
 
 	if (item->getAmmoItem() != 0 && item->needsAmmo())
 	{
@@ -580,14 +536,7 @@ int InventoryState::_getItemRounds(BattleItem *item) const
 		rounds = item->getAmmoQuantity();
 	}
 
-	if (returnRounds)
-	{
-		return rounds;
-	}
-	else
-	{
-		return 0;
-	}
+	return rounds;
 }
 
 /**
@@ -604,7 +553,7 @@ bool InventoryState::_isItemResearched(BattleItem *item, bool ufopaedia) const
 {
 	bool isResearched = item->isResearched(_game->getSavedGame(), _game->getMod(), ufopaedia);
 
-	// To show rounds from installed ammo both the weapon and clip must be known.
+	// To show advanced values from installed ammo both the weapon and clip must be known.
 	if (isResearched && item->getAmmoItem() != 0 && item->needsAmmo())
 	{
 		// Ammo item can have it's own ufopaedia requirements.
@@ -854,8 +803,7 @@ void InventoryState::_showItemStats(BattleItem *item)
 			break;
 		}
 
-		// If any of the throwaway variables != 0 construct a new text (using a fixed placement).
-		if (Options::showMoreStatsInInventoryView && power + accuracy + rounds > 0)
+		if (Options::showMoreStatsInInventoryView && _isItemResearched(item, true) )
 		{
 			if (accuracy != 0)
 			{
@@ -878,7 +826,7 @@ void InventoryState::_showItemStats(BattleItem *item)
 				ssItemStats << tr("STR_ROUNDS_").arg(rounds);
 			}
 		}
-		else if (rounds != 0 && rounds != 255)
+		else if (!Options::showMoreStatsInInventoryView && rounds != 0 && rounds != 255)
 		{
 			ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(rounds);
 		}
