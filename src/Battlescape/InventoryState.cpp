@@ -402,8 +402,10 @@ void InventoryState::updateStats()
 /**
  * Gets weapon type accuracy for selected unit.
  *
+ * Takes into account if item (and ammo) has been researched.
+ *
  * @param item Pointer to battle item.
- * @param useModifiers Do we consider all modifiers (bodypart wounds, two-handed, melee skill applied)?
+ * @param useModifiers Do we consider all modifiers (wounds, two-handed, melee skill applied, etc)?
  * @return The unit's accuracy for this item.
  */
 int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
@@ -430,30 +432,48 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 		}
 	}
 
-	if (useModifiers && item != 0)
+	if (item != 0 && useModifiers && _isItemResearched(item, true))
 	{
 		if (item->getRules()->getBattleType() == BT_MELEE && item->getRules()->isSkillApplied())
 		{
 			accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
 		}
 
-		// Only take injuries and 2-handed into account if we mouse over a hand slot.
-		if (_inv->getMouseOverSlot() != 0 && _inv->getMouseOverSlot()->getType() == INV_HAND)
+		if (item->getRules()->isTwoHanded() && (unit->getItem("STR_RIGHT_HAND") != 0 || unit->getItem("STR_LEFT_HAND") != 0))
 		{
-			if (item->getRules()->isTwoHanded())
+			bool penalize = true;
+			// If item comes from a handslot discard that slot for 2-handiness checks.
+			// If we hover over a handslot only take 2-handiness into account if the other hand is not empty.
+			if (item->getSlot()->getId() == "STR_LEFT_HAND" && unit->getItem("STR_RIGHT_HAND") == 0)
 			{
-				if ( _inv->getMouseOverSlot()->getId() == "STR_RIGHT_HAND" && item->getSlot()->getId() != "STR_LEFT_HAND" && unit->getItem("STR_LEFT_HAND") != 0)
+				penalize = false;
+			}
+			if (item->getSlot()->getId() == "STR_RIGHT_HAND" && unit->getItem("STR_LEFT_HAND") == 0)
+			{
+				penalize = false;
+			}
+
+			if (_inv->getMouseOverSlot() != 0 && _inv->getMouseOverSlot()->getType() == INV_HAND)
+			{
+				if ( _inv->getMouseOverSlot()->getId() == "STR_RIGHT_HAND" && (item->getSlot()->getId() == "STR_LEFT_HAND" || unit->getItem("STR_LEFT_HAND") == 0))
 				{
-					accuracy *= 80.0 / 100.0;
+					penalize = false;
 				}
-				else if ( _inv->getMouseOverSlot()->getId() == "STR_LEFT_HAND" && item->getSlot()->getId() != "STR_RIGHT_HAND" && unit->getItem("STR_RIGHT_HAND") != 0)
+				if ( _inv->getMouseOverSlot()->getId() == "STR_LEFT_HAND" && (item->getSlot()->getId() == "STR_RIGHT_HAND" || unit->getItem("STR_RIGHT_HAND") == 0))
 				{
-					accuracy *= 80.0 / 100.0;
+					penalize = false;
 				}
 			}
-			// Health modifier.
-			accuracy *= unit->getAccuracyModifier(item, _inv->getMouseOverSlot()) / 100.0;
+
+			if (penalize)
+			{
+				accuracy *= 80.0 / 100.0;
+			}
 		}
+
+		// Health modifier.
+		// For wounded soldiers it will almost always be != to the unit accuracy (as visible on the stat screen).
+		accuracy *= unit->getAccuracyModifier(item, _inv->getMouseOverSlot()) / 100.0;
 	}
 	else
 	{
@@ -776,8 +796,6 @@ void InventoryState::_setTxtItem(BattleItem *item)
  *   - Rounds left in clip/weapon
  * + Those stats are *only* shown if a player can reasonably see them in the ufopaedia
  * + Accuracy is based on the shooting formula with the following adjustments:
- *   - Only adjust for fatal arm wounds when we hover over a hand slot
- *   - Only adjust for 2-handiness penalty when we hover over a hand slot
  *   - Do not take shot-type into account (we cannot predict it from this screen)
  * note:
  *   The research requirement is stricter than vanilla. Using the rationale that counting the
