@@ -471,10 +471,15 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 	}
 
 	// Health modifier.
-	if (Options::showMoreStatsInInventoryView)
+	if (useModifiers  && Options::showMoreStatsInInventoryView)
 	{
 		// Shooting formula version (takes into account wounds).
 		accuracy *= unit->getAccuracyModifier(item, _inv->getMouseOverSlot()) / 100.0;
+	}
+	else if (Options::showMoreStatsInInventoryView)
+	{
+		// Make sure unit stats does not accidentally take arm wounds into account.
+		accuracy *= unit->getAccuracyModifier() / 100.0;
 	}
 	else
 	{
