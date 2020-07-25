@@ -138,6 +138,8 @@ public:
 	bool isAmmo() const;
 	/// Checks if this item is researched.
 	bool isResearched(SavedGame *save ,Mod *mod = 0, bool ufoPaedia = false) const;
+	/// Checks if advanced stats are known.
+	bool isStatsKnown(SavedGame *save ,Mod *mod = 0, bool ufoPaedia = false) const;
 };
 
 }

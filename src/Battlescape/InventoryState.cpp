@@ -556,23 +556,7 @@ int InventoryState::_getItemRounds(BattleItem *item) const
  */
 bool InventoryState::_isItemResearched(BattleItem *item, bool ufopaedia) const
 {
-	bool isResearched = item->isResearched(_game->getSavedGame(), _game->getMod(), ufopaedia);
-
-	// To show advanced values from installed ammo both the weapon and clip must be known.
-	if (isResearched && item->getAmmoItem() != 0 && item->needsAmmo())
-	{
-		// Ammo item can have it's own ufopaedia requirements.
-		if (item->getAmmoItem()->isResearched(_game->getSavedGame(), _game->getMod(), ufopaedia))
-		{
-			isResearched = true;
-		}
-		else
-		{
-			isResearched = false;
-		}
-	}
-
-	return isResearched;
+	return item->isStatsKnown(_game->getSavedGame(), _game->getMod(), ufopaedia);
 }
 
 /**

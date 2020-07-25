@@ -588,4 +588,34 @@ bool BattleItem::isResearched(SavedGame *save ,Mod *mod, bool ufoPaedia) const
 	return true;
 }
 
+/**
+ * Checks if advanced stats are known.
+ *
+ * Takes into account if an item depends on clips.
+ *
+ * @param save Pointer to saved game.
+ * @param mod Pointer to the mod.
+ * @param ufoPaedia Check if item is visible in ufopaedia
+ */
+bool BattleItem::isStatsKnown(SavedGame *save ,Mod *mod, bool ufoPaedia) const
+{
+	bool researched = isResearched(save, mod, ufoPaedia);
+
+	// To show advanced values from installed ammo both the weapon and clip must be known.
+	if (researched && _ammoItem != 0 && needsAmmo())
+	{
+		// Ammo item can have it's own ufopaedia requirements.
+		if (_ammoItem->isResearched(save, mod, ufoPaedia))
+		{
+			researched = true;
+		}
+		else
+		{
+			researched = false;
+		}
+	}
+
+	return researched;
+}
+
 }
