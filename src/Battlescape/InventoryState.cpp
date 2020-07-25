@@ -468,14 +468,17 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 				accuracy *= 80.0 / 100.0;
 			}
 		}
+	}
 
-		// Health modifier.
-		// For wounded soldiers it will almost always be != to the unit accuracy (as visible on the stat screen).
+	// Health modifier.
+	if (Options::showMoreStatsInInventoryView)
+	{
+		// Shooting formula version (takes into account wounds).
 		accuracy *= unit->getAccuracyModifier(item, _inv->getMouseOverSlot()) / 100.0;
 	}
 	else
 	{
-		// Make sure the value reflects the one visible on the stat screen.
+		// Value as visible on the soldier stat screen.
 		accuracy *= (double)unit->getHealth() / unit->getBaseStats()->health;
 	}
 
@@ -674,7 +677,6 @@ void InventoryState::_setSoldierStatWeight(BattleItem *item)
 			// Do nothing, we are not dragging an item.
 			break;
 		}
-
 	}
 
 	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(unit->getBaseStats()->strength));
