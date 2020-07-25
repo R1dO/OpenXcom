@@ -500,19 +500,16 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 int InventoryState::_getItemPower(BattleItem *item) const
 {
 	int power = 0;
-	if (item->isResearched(_game->getSavedGame(), _game->getMod(), true))
+	// Is we have a clip it defines the item power.
+	if (item->getAmmoItem() != 0 && item->needsAmmo())
+	{
+		power = item->getAmmoItem()->getRules()->getPower();
+	}
+	else
 	{
 		power = item->getRules()->getPower();
 	}
-	// To show power readings from installed ammo both the weapon and clip must be known.
-	if (item->getAmmoItem() != 0 && item->needsAmmo())
-	{
-		// Ammo item defines weapon power. It can have it's own ufopaedia requirements.
-		if (item->getAmmoItem()->isResearched(_game->getSavedGame(), _game->getMod(), true))
-		{
-			power = item->getAmmoItem()->getRules()->getPower();
-		}
-	}
+
 	// Melee weapon
 	if (item->getRules()->isStrengthApplied())
 	{
