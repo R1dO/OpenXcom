@@ -27,6 +27,7 @@ class RuleInventory;
 class BattleUnit;
 class Tile;
 class Mod;
+class SavedGame;
 
 /**
  * Represents a single item in the battlescape.
@@ -135,6 +136,12 @@ public:
 	void setIsAmmo(bool ammo);
 	/// Checks a flag on the item to see if it's a clip in a weapon or not.
 	bool isAmmo() const;
+	/// Checks if this item is researched.
+	bool isResearched(SavedGame *save ,Mod *mod = 0, bool ufoPaedia = false) const;
+	/// Checks if advanced stats are known.
+	bool isStatsKnown(SavedGame *save ,Mod *mod = 0, bool ufoPaedia = false) const;
+	/// Get the shots left in the item (take clip into account).
+	int getItemRounds() const;
 };
 
 }

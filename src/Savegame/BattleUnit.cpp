@@ -1535,9 +1535,10 @@ int BattleUnit::getFiringAccuracy(BattleActionType actionType, BattleItem *item)
  * To calculate firing accuracy. Takes health and fatal wounds into account.
  * Formula = accuracyStat * woundsPenalty(% health) * critWoundsPenalty (-10%/wound)
  * @param item the item we are shooting right now.
+ * @param previewSlot override slot the item belongs to.
  * @return modifier
  */
-int BattleUnit::getAccuracyModifier(BattleItem *item)
+int BattleUnit::getAccuracyModifier(BattleItem *item, RuleInventory *previewSlot)
 {
 	int wounds = _fatalWounds[BODYPART_HEAD];
 
@@ -1549,11 +1550,17 @@ int BattleUnit::getAccuracyModifier(BattleItem *item)
 		}
 		else
 		{
-			if (getItem("STR_RIGHT_HAND") == item)
+			if (previewSlot == 0)
+			{
+				// Default behavior.
+				previewSlot = item->getSlot();
+			}
+
+			if (previewSlot->getId() == "STR_RIGHT_HAND")
 			{
 				wounds += _fatalWounds[BODYPART_RIGHTARM];
 			}
-			else
+			else if (previewSlot->getId() == "STR_LEFT_HAND")
 			{
 				wounds += _fatalWounds[BODYPART_LEFTARM];
 			}

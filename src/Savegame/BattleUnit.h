@@ -254,7 +254,7 @@ public:
 	/// Calculate firing accuracy.
 	int getFiringAccuracy(BattleActionType actionType, BattleItem *item);
 	/// Calculate accuracy modifier.
-	int getAccuracyModifier(BattleItem *item = 0);
+	int getAccuracyModifier(BattleItem *item = 0, RuleInventory *previewSlot = 0);
 	/// Calculate throwing accuracy.
 	double getThrowingAccuracy();
 	/// Set armor value.

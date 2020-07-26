@@ -158,7 +158,16 @@ void ActionMenuState::addItem(BattleActionType ba, const std::string &name, int 
 	int tu = _action->actor->getActionTUs(ba, _action->weapon);
 
 	if (ba == BA_THROW || ba == BA_AIMEDSHOT || ba == BA_SNAPSHOT || ba == BA_AUTOSHOT || ba == BA_LAUNCH || ba == BA_HIT)
-		s1 = tr("STR_ACCURACY_SHORT").arg(Unicode::formatPercentage(acc));
+	{
+		if (Options::showMoreStatsInInventoryView && ba != BA_THROW && ! _action->weapon->isStatsKnown(_game->getSavedGame(), _game->getMod(), true))
+		{
+			s1 = tr("STR_ACCURACY_SHORT").arg("?");
+		}
+		else
+		{
+			s1 = tr("STR_ACCURACY_SHORT").arg(Unicode::formatPercentage(acc));
+		}
+	}
 	s2 = tr("STR_TIME_UNITS_SHORT").arg(tu);
 	_actionMenu[*id]->setAction(ba, tr(name), s1, s2, tu);
 	_actionMenu[*id]->setVisible(true);

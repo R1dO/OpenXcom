@@ -18,6 +18,7 @@
  */
 #include "InventoryState.h"
 #include <algorithm>
+#include <climits>
 #include "Inventory.h"
 #include "../Engine/Game.h"
 #include "../Engine/FileMap.h"
@@ -128,10 +129,10 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent) : _tu(tu), _pa
 	add(_selAmmo);
 	add(_inv);
 
-	// move the TU display down to make room for the weight display
+	// move the TU display down to make room for the weight (and Accuracy) display
 	if (Options::showMoreStatsInInventoryView)
 	{
-		_txtTus->setY(_txtTus->getY() + 8);
+		_txtTus->setY(_txtTus->getY() + 2*8);
 	}
 
 	centerAllSurfaces();
@@ -179,6 +180,7 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent) : _tu(tu), _pa
 
 	_btnUnload->onMouseClick((ActionHandler)&InventoryState::btnUnloadClick);
 	_btnUnload->setTooltip("STR_UNLOAD_WEAPON");
+	_btnUnload->onMouseOver((ActionHandler)&InventoryState::btnUnloadMouseOver);
 	_btnUnload->onMouseIn((ActionHandler)&InventoryState::txtTooltipIn);
 	_btnUnload->onMouseOut((ActionHandler)&InventoryState::txtTooltipOut);
 
@@ -224,10 +226,11 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent) : _tu(tu), _pa
 	_inv->onMouseClick((ActionHandler)&InventoryState::invClick, 0);
 	_inv->onMouseOver((ActionHandler)&InventoryState::invMouseOver);
 	_inv->onMouseOut((ActionHandler)&InventoryState::invMouseOut);
+	_inv->onMouseIn((ActionHandler)&InventoryState::invMouseIn);
 
 	_txtTus->setVisible(_tu);
 	_txtWeight->setVisible(Options::showMoreStatsInInventoryView);
-	_txtFAcc->setVisible(Options::showMoreStatsInInventoryView && !_tu);
+	_txtFAcc->setVisible(Options::showMoreStatsInInventoryView);
 	_txtReact->setVisible(Options::showMoreStatsInInventoryView && !_tu);
 	_txtPSkill->setVisible(Options::showMoreStatsInInventoryView && !_tu);
 	_txtPStr->setVisible(Options::showMoreStatsInInventoryView && !_tu);
@@ -365,21 +368,6 @@ void InventoryState::updateStats()
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 
-	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(unit->getTimeUnits()));
-
-	int weight = unit->getCarriedWeight(_inv->getSelectedItem());
-	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(unit->getBaseStats()->strength));
-	if (weight > unit->getBaseStats()->strength)
-	{
-		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
-	}
-	else
-	{
-		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
-	}
-
-	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg((int)(unit->getBaseStats()->firing * unit->getHealth()) / unit->getBaseStats()->health));
-
 	_txtReact->setText(tr("STR_REACTIONS_SHORT").arg(unit->getBaseStats()->reactions));
 
 	if (unit->getBaseStats()->psiSkill > 0)
@@ -399,6 +387,409 @@ void InventoryState::updateStats()
 	{
 		_txtPStr->setText("");
 	}
+
+	if (_inv->getSelectedItem() != 0)
+	{
+		_setSoldierStatAccuracy(_inv->getSelectedItem());
+	}
+	else
+	{
+		_setSoldierStatAccuracy(_inv->getMouseOverItem());
+	}
+	_setSoldierStatTu();
+	_setSoldierStatWeight();
+}
+
+/**
+ * Gets weapon type accuracy for selected unit.
+ *
+ * @param item Pointer to battle item.
+ * @param useModifiers Do we consider all modifiers (wounds, two-handed, melee skill applied, etc)?
+ * @return The unit's accuracy for this item.
+ */
+int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
+{
+	BattleUnit *unit = _battleGame->getSelectedUnit();
+	double accuracy = unit->getBaseStats()->firing; // Default value even if no item is selected.
+
+	if (item != 0)
+	{
+		switch (item->getRules()->getBattleType())
+		{
+		case BT_MELEE:
+			accuracy = unit->getBaseStats()->melee;
+			break;
+		//case BT_AMMO: // Not sure about this. You can only throw a clip but it is kinda confusing.
+		case BT_FLARE:
+		case BT_GRENADE:
+		case BT_PROXIMITYGRENADE:
+			accuracy = unit->getBaseStats()->throwing;
+			break;
+		default:
+			// Do nothing, firing accuracy is already the default.
+			break;
+		}
+	}
+
+	if (item != 0 && useModifiers)
+	{
+		if (item->getRules()->getBattleType() == BT_MELEE && item->getRules()->isSkillApplied())
+		{
+			accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
+		}
+
+		if (item->getRules()->isTwoHanded() && (unit->getItem("STR_RIGHT_HAND") != 0 || unit->getItem("STR_LEFT_HAND") != 0))
+		{
+			bool penalize = true;
+			// If item comes from a handslot discard that slot for 2-handiness checks.
+			// If we hover over a handslot only take 2-handiness into account if the other hand is not empty.
+			if (item->getSlot()->getId() == "STR_LEFT_HAND" && unit->getItem("STR_RIGHT_HAND") == 0)
+			{
+				penalize = false;
+			}
+			if (item->getSlot()->getId() == "STR_RIGHT_HAND" && unit->getItem("STR_LEFT_HAND") == 0)
+			{
+				penalize = false;
+			}
+
+			if (_inv->getMouseOverSlot() != 0 && _inv->getMouseOverSlot()->getType() == INV_HAND)
+			{
+				if ( _inv->getMouseOverSlot()->getId() == "STR_RIGHT_HAND" && (item->getSlot()->getId() == "STR_LEFT_HAND" || unit->getItem("STR_LEFT_HAND") == 0))
+				{
+					penalize = false;
+				}
+				if ( _inv->getMouseOverSlot()->getId() == "STR_LEFT_HAND" && (item->getSlot()->getId() == "STR_RIGHT_HAND" || unit->getItem("STR_RIGHT_HAND") == 0))
+				{
+					penalize = false;
+				}
+			}
+
+			if (penalize)
+			{
+				accuracy *= 80.0 / 100.0;
+			}
+		}
+	}
+
+	// Health modifier.
+	if (useModifiers  && Options::showMoreStatsInInventoryView)
+	{
+		// Shooting formula version (takes into account wounds).
+		accuracy *= unit->getAccuracyModifier(item, _inv->getMouseOverSlot()) / 100.0;
+	}
+	else if (Options::showMoreStatsInInventoryView)
+	{
+		// Make sure unit stats does not accidentally take arm wounds into account.
+		accuracy *= unit->getAccuracyModifier() / 100.0;
+	}
+	else
+	{
+		// Value as visible on the soldier stat screen.
+		accuracy *= (double)unit->getHealth() / unit->getBaseStats()->health;
+	}
+
+	return accuracy;
+	// Note: it is probably better to move logic to `Savegame::BattleItem` as preview argument.
+}
+
+/**
+ * Gets weapon (ammo) power.
+ *
+ * @param item Pointer to battle item.
+ * @return The power of the weapon (ammo).
+ */
+int InventoryState::_getItemPower(BattleItem *item) const
+{
+	int power = 0;
+	// Is we have a clip it defines the item power.
+	if (item->getAmmoItem() != 0 && item->needsAmmo())
+	{
+		power = item->getAmmoItem()->getRules()->getPower();
+	}
+	else
+	{
+		power = item->getRules()->getPower();
+	}
+
+	// Melee weapon
+	if (item->getRules()->isStrengthApplied())
+	{
+		BattleUnit *unit = _battleGame->getSelectedUnit();
+		power += unit->getBaseStats()->strength;
+	}
+
+	return power;
+	// Note: it is probably better to move logic to `Savegame::BattleItem` as preview argument.
+}
+
+/**
+ * Check if item is researched
+ *
+ * Determine if we are allowed to see 'advanced' item values.
+ * Takes into account if an item depends on clips.
+ *
+ * @param item Pointer to battle item.
+ * @param ufopaedia Do we take ufopaedia visibility into account?
+ * @return The rounds left in the weapon (ammo).
+ */
+bool InventoryState::_isItemResearched(BattleItem *item, bool ufopaedia) const
+{
+	return item->isStatsKnown(_game->getSavedGame(), _game->getMod(), ufopaedia);
+}
+
+/**
+ * Updates the soldier accuracy info text.
+ *
+ * Based on the BattleType type of the item under the mouse (defaults to firing accuracy).
+ *
+ * @param item Pointer to battle item.
+ */
+void InventoryState::_setSoldierStatAccuracy(BattleItem *item)
+{
+	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg(_getItemAccuracy(item)));
+}
+
+/**
+ * Updates the soldier TU info text.
+ *
+ * Recognizes if we move an item between slots (for preview purposes).
+ *
+ * Taking special care for the following (edge) cases:
+ * * Unloading a weapon (using the appropriate button)
+ * * Loading a clip into a weapon
+ *
+ * @param item Pointer to battle item.
+ * @param unloadWeapon Are we hovering over the unload button?
+ */
+void InventoryState::_setSoldierStatTu(BattleItem *item, bool unloadWeapon)
+{
+	BattleUnit *unit = _battleGame->getSelectedUnit();
+	int tu = unit->getTimeUnits();
+
+	if (Options::showMoreStatsInInventoryView && item != 0)
+	{
+		RuleInventory *slotFrom = item->getSlot();
+		RuleInventory *slotTo = _inv->getMouseOverSlot();
+		if (unloadWeapon == true && item->needsAmmo() && item->getAmmoItem() != 0)
+		{
+			tu -= 8;
+		}
+		else if (slotFrom != 0 && slotTo != 0 && slotFrom != slotTo)
+		{
+			BattleItem *itemTo = _inv->getMouseOverItem();
+			if (itemTo != 0 && itemTo->needsAmmo() && itemTo->getAmmoItem() == 0)
+			{
+				tu -= 15;
+			}
+			else
+			{
+				tu -= slotFrom->getCost(slotTo);
+			}
+		}
+	}
+
+	// Misuse the color info from "weight" to show red negatives.
+	if (tu < 0)
+	{
+		_txtTus->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
+	}
+	else
+	{
+		_txtTus->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
+	}
+	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(tu));
+}
+
+/**
+ * Updates the soldier weight info text.
+ *
+ * Recognizes if we move a picked up item between a soldier and the ground (for preview purposes).
+ *
+ * Using the following decission tree:
+ *  * If item originates from a soldier slot (general or hand) do nothing unless we mouse-over the ground
+ *    + We cannot predict if player wants to put it in another soldier slot or the ground
+ *  * If item originates from the ground we can safely assume it will move to a soldier slot
+ */
+void InventoryState::_setSoldierStatWeight(BattleItem *item)
+{
+	BattleUnit *unit = _battleGame->getSelectedUnit();
+	int weight = unit->getCarriedWeight(); //Deliberately *not* discarding the item grabbed by the mouse.
+
+	if (item != 0)
+	{
+		int itemWeight = item->getRules()->getWeight();
+		if (item->getAmmoItem() != 0 && item->needsAmmo())
+		{
+			itemWeight += item->getAmmoItem()->getRules()->getWeight();
+		}
+
+		RuleInventory *slotTo = 0;
+		switch (item->getSlot()->getType())
+		{
+		case INV_GROUND:
+			weight += itemWeight;
+			break;
+		case INV_SLOT:
+		case INV_HAND:
+			slotTo = _inv->getMouseOverSlot();
+			if (slotTo != 0 && slotTo->getType() == INV_GROUND)
+			{
+				weight -= itemWeight;
+			}
+			break;
+		default:
+			// Do nothing, we are not dragging an item.
+			break;
+		}
+	}
+
+	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(unit->getBaseStats()->strength));
+	if (weight > unit->getBaseStats()->strength)
+	{
+		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
+	}
+	else
+	{
+		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
+	}
+}
+
+/**
+ * Updates the item info text.
+ *
+ * Will also handle the button tooltips.
+ *
+ * @param item Pointer to battle item.
+ */
+void InventoryState::_setTxtItem(BattleItem *item)
+{
+	std::ostringstream ssTxtItem;
+	if (item != 0)
+	{
+		if (item->getUnit() && item->getUnit()->getStatus() == STATUS_UNCONSCIOUS)
+		{
+			ssTxtItem << item->getUnit()->getName(_game->getLanguage());
+		}
+		else if (_game->getSavedGame()->isResearched(item->getRules()->getRequirements()))
+		{
+			ssTxtItem << tr(item->getRules()->getName());
+		}
+		else
+		{
+			ssTxtItem << tr("STR_ALIEN_ARTIFACT");
+		}
+	}
+	else if (_currentTooltip.empty())
+	{
+		// Do nothing string is empty by default.
+	}
+	else
+	{
+		ssTxtItem << tr(_currentTooltip);
+	}
+	_txtItem->setText(ssTxtItem.str());
+}
+
+/**
+ * Display item stats.
+ *
+ * Shows item stats (ammo, medikit) and handobj when appropriate.
+ * Hides template buttons when needed.
+ *
+ * When 'showMoreStatsInInventoryView' is in effect the following can be expected:
+ * + Display the following stats:
+ *   - Unit accuracy for the item type
+ *   - Weapon power
+ *   - Rounds left in clip/weapon
+ * + Those stats are *only* shown if a player can reasonably see them in the ufopaedia
+ * + Accuracy is based on the shooting formula with the following adjustments:
+ *   - Do not take shot-type into account (we cannot predict it from this screen)
+ * note:
+ *   The research requirement is stricter than vanilla. Using the rationale that counting the
+ *   number of shots (or relate power level left to shots) is research as well.
+
+ * @param item Pointer to battle item.
+ */
+void InventoryState::_showItemStats(BattleItem *item)
+{
+	_selAmmo->clear();
+	_updateTemplateButtons(!_tu);
+	std::ostringstream ssItemStats;
+	if (item != 0)
+	{
+		int power = 0;
+		int accuracy = 0;
+		int rounds = 0;
+		switch (item->getRules()->getBattleType())
+		{
+		case BT_MEDIKIT:
+			ssItemStats << tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
+			break;
+		case BT_MELEE:
+		case BT_FLARE:
+		case BT_GRENADE:
+		case BT_PROXIMITYGRENADE:
+			accuracy = _getItemAccuracy(item, true);
+		case BT_AMMO:
+			power = _getItemPower(item);
+			rounds = item->getItemRounds();
+			break;
+		case BT_FIREARM:
+			power = _getItemPower(item);
+			accuracy = _getItemAccuracy(item, true);
+			rounds = item->getItemRounds();
+			// Draw ammo object.
+			if (item->getAmmoItem() != 0 && item->needsAmmo())
+			{
+				SDL_Rect r;
+				r.x = 0;
+				r.y = 0;
+				r.w = RuleInventory::HAND_W * RuleInventory::SLOT_W;
+				r.h = RuleInventory::HAND_H * RuleInventory::SLOT_H;
+				_selAmmo->drawRect(&r, _game->getMod()->getInterface("inventory")->getElement("grid")->color);
+				r.x++;
+				r.y++;
+				r.w -= 2;
+				r.h -= 2;
+				_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
+				item->getAmmoItem()->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo);
+				_updateTemplateButtons(false);
+			}
+			break;
+		default:
+			ssItemStats.str("");
+			break;
+		}
+
+		if (Options::showMoreStatsInInventoryView && _isItemResearched(item, true) )
+		{
+			if (accuracy != 0)
+			{
+				ssItemStats << tr("STR_ACCURACY_SHORT").arg(accuracy) << Unicode::TOK_COLOR_FLIP;
+			}
+			ssItemStats << std::endl;
+
+			if (power != 0)
+			{
+				ssItemStats << tr("STR_POWER_SHORT").arg(power) << Unicode::TOK_COLOR_FLIP;
+			}
+			ssItemStats << std::endl;
+
+			if (rounds == INT_MAX)
+			{
+				ssItemStats << tr("STR_ROUNDS_").arg("∞");
+			}
+			else if (rounds != 0)
+			{
+				ssItemStats << tr("STR_ROUNDS_").arg(rounds);
+			}
+		}
+		else if (!Options::showMoreStatsInInventoryView && rounds != 0 && rounds != INT_MAX)
+		{
+			ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(rounds);
+		}
+	}
+	_txtAmmo->setText(ssItemStats.str());
 }
 
 /**
@@ -528,11 +919,22 @@ void InventoryState::btnUnloadClick(Action *)
 {
 	if (_inv->unload())
 	{
-		_txtItem->setText("");
-		_txtAmmo->setText("");
-		_selAmmo->clear();
+		_setTxtItem();
+		_showItemStats();
 		updateStats();
 		_game->getMod()->getSoundByDepth(0, Mod::ITEM_DROP)->play();
+	}
+}
+
+/**
+ * Preview TU cost Unload button.
+ * @param action Pointer to an action.
+ */
+void InventoryState::btnUnloadMouseOver(Action *action)
+{
+	if (_inv->getSelectedItem() != 0)
+	{
+		_setSoldierStatTu(_inv->getSelectedItem(), true);
 	}
 }
 
@@ -819,6 +1221,7 @@ void InventoryState::onAutoequip(Action *)
 void InventoryState::invClick(Action *)
 {
 	updateStats();
+	_refreshMouse();
 }
 
 /**
@@ -829,70 +1232,15 @@ void InventoryState::invMouseOver(Action *)
 {
 	if (_inv->getSelectedItem() != 0)
 	{
+		_showItemStats(_inv->getSelectedItem());
+		_setSoldierStatWeight(_inv->getSelectedItem());
+		_setSoldierStatTu(_inv->getSelectedItem());
 		return;
 	}
 
-	BattleItem *item = _inv->getMouseOverItem();
-	if (item != 0)
-	{
-		if (item->getUnit() && item->getUnit()->getStatus() == STATUS_UNCONSCIOUS)
-		{
-			_txtItem->setText(item->getUnit()->getName(_game->getLanguage()));
-		}
-		else
-		{
-			if (_game->getSavedGame()->isResearched(item->getRules()->getRequirements()))
-			{
-				_txtItem->setText(tr(item->getRules()->getName()));
-			}
-			else
-			{
-				_txtItem->setText(tr("STR_ALIEN_ARTIFACT"));
-			}
-		}
-		std::string s;
-		if (item->getAmmoItem() != 0 && item->needsAmmo())
-		{
-			s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoItem()->getAmmoQuantity());
-			SDL_Rect r;
-			r.x = 0;
-			r.y = 0;
-			r.w = RuleInventory::HAND_W * RuleInventory::SLOT_W;
-			r.h = RuleInventory::HAND_H * RuleInventory::SLOT_H;
-			_selAmmo->drawRect(&r, _game->getMod()->getInterface("inventory")->getElement("grid")->color);
-			r.x++;
-			r.y++;
-			r.w -= 2;
-			r.h -= 2;
-			_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
-			item->getAmmoItem()->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo);
-			_updateTemplateButtons(false);
-		}
-		else
-		{
-			_selAmmo->clear();
-			_updateTemplateButtons(!_tu);
-		}
-		if (item->getAmmoQuantity() != 0 && item->needsAmmo())
-		{
-			s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
-		}
-		else if (item->getRules()->getBattleType() == BT_MEDIKIT)
-		{
-			s = tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
-		}
-		_txtAmmo->setText(s);
-	}
-	else
-	{
-		if (_currentTooltip.empty())
-		{
-			_txtItem->setText("");
-		}
-		_txtAmmo->setText("");
-		_selAmmo->clear();
-		_updateTemplateButtons(!_tu);
-	}
+	_showItemStats(_inv->getMouseOverItem());
+	_setSoldierStatAccuracy(_inv->getMouseOverItem());
+	_setTxtItem(_inv->getMouseOverItem());
 }
 
 /**
@@ -901,10 +1249,18 @@ void InventoryState::invMouseOver(Action *)
  */
 void InventoryState::invMouseOut(Action *)
 {
-	_txtItem->setText("");
-	_txtAmmo->setText("");
-	_selAmmo->clear();
-	_updateTemplateButtons(!_tu);
+	_setTxtItem();
+	_showItemStats();
+}
+
+/**
+ * Un-Hide item info.
+ * @param action Pointer to an action.
+ */
+void InventoryState::invMouseIn(Action *)
+{
+	_setTxtItem(_inv->getSelectedItem());
+	_showItemStats(_inv->getSelectedItem());
 }
 
 /**
@@ -940,7 +1296,7 @@ void InventoryState::txtTooltipIn(Action *action)
 	if (_inv->getSelectedItem() == 0 && Options::battleTooltips)
 	{
 		_currentTooltip = action->getSender()->getTooltip();
-		_txtItem->setText(tr(_currentTooltip));
+		_setTxtItem();
 	}
 }
 
@@ -955,7 +1311,7 @@ void InventoryState::txtTooltipOut(Action *action)
 		if (_currentTooltip == action->getSender()->getTooltip())
 		{
 			_currentTooltip = "";
-			_txtItem->setText("");
+			_setTxtItem();
 		}
 	}
 }

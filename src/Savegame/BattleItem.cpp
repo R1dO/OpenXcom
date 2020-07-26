@@ -16,12 +16,15 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <climits>
 #include "BattleItem.h"
 #include "BattleUnit.h"
 #include "Tile.h"
 #include "../Mod/Mod.h"
 #include "../Mod/RuleItem.h"
 #include "../Mod/RuleInventory.h"
+#include "SavedGame.h"
+#include "../Ufopaedia/Ufopaedia.h"
 
 namespace OpenXcom
 {
@@ -180,6 +183,33 @@ int BattleItem::getAmmoQuantity() const
 void BattleItem::setAmmoQuantity(int qty)
 {
 	_ammoQuantity = qty;
+}
+
+/**
+ * Get the shots left in the item (take clip into account)
+ * @return Rounds left.
+ */
+int BattleItem::getItemRounds() const
+{
+	int rounds = 0;
+	if (_ammoItem != 0 && needsAmmo())
+	{
+		rounds = _ammoItem->getAmmoQuantity();
+	}
+	else
+	{
+		rounds = getAmmoQuantity();
+	}
+
+	// Infinite shots weapons return 255
+	if (rounds == 255)
+	{
+		return INT_MAX;
+	}
+	else
+	{
+		return rounds;
+	}
 }
 
 /**
@@ -558,6 +588,62 @@ void BattleItem::setIsAmmo(bool ammo)
 bool BattleItem::isAmmo() const
 {
 	return _isAmmo;
+}
+
+/**
+ * Checks if this item is researched.
+ *
+ * @param save Pointer to saved game.
+ * @param mod Pointer to the mod.
+ * @param ufoPaedia Check if item is visible in ufopaedia
+ */
+bool BattleItem::isResearched(SavedGame *save ,Mod *mod, bool ufoPaedia) const
+{
+	// Check if we are allowed to use an item.
+	if (! save->isResearched(_rules->getRequirements()))
+	{
+		return false;
+	}
+	if (ufoPaedia && mod != 0)
+	{
+		ArticleDefinition *article = mod->getUfopaediaArticle(_rules->getType(), false);
+		if (article && Ufopaedia::isArticleAvailable(save, article))
+		{
+			return true;
+		}
+		return false;
+	}
+	return true;
+}
+
+/**
+ * Checks if advanced stats are known.
+ *
+ * Takes into account if an item depends on clips.
+ *
+ * @param save Pointer to saved game.
+ * @param mod Pointer to the mod.
+ * @param ufoPaedia Check if item is visible in ufopaedia
+ */
+bool BattleItem::isStatsKnown(SavedGame *save ,Mod *mod, bool ufoPaedia) const
+{
+	bool researched = isResearched(save, mod, ufoPaedia);
+
+	// To show advanced values from installed ammo both the weapon and clip must be known.
+	if (researched && _ammoItem != 0 && needsAmmo())
+	{
+		// Ammo item can have it's own ufopaedia requirements.
+		if (_ammoItem->isResearched(save, mod, ufoPaedia))
+		{
+			researched = true;
+		}
+		else
+		{
+			researched = false;
+		}
+	}
+
+	return researched;
 }
 
 }

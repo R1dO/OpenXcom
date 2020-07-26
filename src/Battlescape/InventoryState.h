@@ -31,6 +31,7 @@ class InteractiveSurface;
 class Inventory;
 class SavedBattleGame;
 class BattlescapeState;
+class BattleItem;
 class BattleUnit;
 class BattlescapeButton;
 
@@ -70,6 +71,8 @@ public:
 	void btnNextClick(Action *action);
 	/// Handler for clicking the Unload button.
 	void btnUnloadClick(Action *action);
+	/// Handler for preview TU cost Unload button.
+	void btnUnloadMouseOver(Action *action);
 	/// Handler for clicking on the Ground -> button.
 	void btnGroundClick(Action *action);
 	/// Handler for clicking the Rank button.
@@ -86,6 +89,8 @@ public:
 	void invClick(Action *action);
 	/// Handler for showing item info.
 	void invMouseOver(Action *action);
+	/// Handler for un-hiding item info.
+	void invMouseIn(Action *action);
 	/// Handler for hiding item info.
 	void invMouseOut(Action *action);
 	/// Handles keypresses.
@@ -100,6 +105,22 @@ private:
 	void _updateTemplateButtons(bool isVisible);
 	/// Refresh the hover status of the mouse
 	void _refreshMouse();
+	/// Gets weapon (ammo) power.
+	int _getItemPower(BattleItem *item = 0) const;
+	/// Gets weapon type accuracy for selected unit.
+	int _getItemAccuracy(BattleItem *item = 0, bool useModifiers = false) const;
+	/// Updates the soldier accuracy info text.
+	void _setSoldierStatAccuracy(BattleItem *item);
+	/// Updates the soldier TU info text.
+	void _setSoldierStatTu(BattleItem *item = 0, bool unloadWeapon = false);
+	/// Updates the soldier weight info text.
+	void _setSoldierStatWeight(BattleItem *item = 0);
+	/// Updates the item info text.
+	void _setTxtItem(BattleItem *item = 0);
+	/// Display item stats.
+	void _showItemStats(BattleItem *item = 0);
+	/// Check if item is researched
+	bool _isItemResearched(BattleItem *item, bool ufopaedia = false) const;
 };
 
 }
