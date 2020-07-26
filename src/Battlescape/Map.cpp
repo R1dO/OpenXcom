@@ -1022,7 +1022,7 @@ void Map::drawTerrain(Surface *surface)
 								{
 									accuracy -= (lowerLimit - distance) * weapon->getDropoff();
 								}
-								else
+								else if (! Options::showMoreStatsInInventoryView || action->weapon->isStatsKnown(_game->getSavedGame(), _game->getMod(), true))
 								{
 									// no adjustment made? set it to green.
 									_txtAccuracy->setColor(Palette::blockOffset(Pathfinding::green - 1)-1);
@@ -1046,13 +1046,21 @@ void Map::drawTerrain(Surface *surface)
 										outOfRange = false;
 									}
 								}
-								// zero accuracy or out of range: set it red.
-								if (accuracy <= 0 || outOfRange)
+
+								if (! Options::showMoreStatsInInventoryView || action->weapon->isStatsKnown(_game->getSavedGame(), _game->getMod(), true))
 								{
-									accuracy = 0;
-									_txtAccuracy->setColor(Palette::blockOffset(Pathfinding::red - 1)-1);
+									// zero accuracy or out of range: set it red.
+									if (accuracy <= 0 || outOfRange)
+									{
+										accuracy = 0;
+										_txtAccuracy->setColor(Palette::blockOffset(Pathfinding::red - 1)-1);
+									}
+									_txtAccuracy->setText(Unicode::formatPercentage(accuracy));
 								}
-								_txtAccuracy->setText(Unicode::formatPercentage(accuracy));
+								else
+								{
+									_txtAccuracy->setText("?");
+								}
 								_txtAccuracy->draw();
 								_txtAccuracy->blitNShade(surface, screenPosition.x, screenPosition.y, 0);
 							}
