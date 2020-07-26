@@ -101,6 +101,8 @@ public:
 	std::vector<CraftWeapon*> *getWeapons();
 	/// Gets the craft's items.
 	ItemContainer *getItems();
+	/// Gets the items claimed by soldiers on the craft.
+	ItemContainer *getItemsClaimedBySoldiers() const;
 	/// Gets the craft's vehicles.
 	std::vector<Vehicle*> *getVehicles();
 	/// Gets the craft's amount of fuel.
@@ -159,12 +161,18 @@ public:
 	bool isInBattlescape() const;
 	/// Gets if craft is destroyed during dogfights.
 	bool isDestroyed() const;
-	/// Gets the amount of space available inside a craft.
+	/// Gets the amount of unused crew space inside a craft.
 	int getSpaceAvailable() const;
+	/// Gets the amount of space for soldiers and vehicles.
+	int getSpaceMax() const;
 	/// Gets the amount of space used inside a craft.
 	int getSpaceUsed() const;
 	/// Gets the craft's vehicles of a certain type.
 	int getVehicleCount(const std::string &vehicle) const;
+	/// Gets the craft's vehicle ammo of a certain type.
+	int getVehicleAmmoCount(const std::string &ammo, const Mod *mod) const;
+	/// Gets the Craft's armament (weapons & ammunition) of a certain type.
+	int getArmamentCount(const std::string &armament, const Mod *mod) const;
 	/// Sets the craft's dogfight status.
 	void setInDogfight(const bool inDogfight);
 	/// Gets if the craft is in dogfight.

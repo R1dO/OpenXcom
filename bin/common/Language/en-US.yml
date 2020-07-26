@@ -416,3 +416,7 @@ en-US:
   STR_THROWING_ACCURACY_ABBREVIATION: "THR"
   STR_STRENGTH_ABBREVIATION: "STR"
   STR_MELEE_ACCURACY_ABBREVIATION: "MEL"
+
+#R1dO
+  STR_ALTERNATE_BASE_SCREENS: "DEMO: Alternate Base Screens"
+  STR_ALTERNATE_BASE_SCREENS_DESC: "Screens dealing with item management only show total values and what is currently in use (those are protected, except for the craftEquipment screen)."
