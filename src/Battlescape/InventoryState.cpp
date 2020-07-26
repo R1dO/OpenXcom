@@ -18,6 +18,7 @@
  */
 #include "InventoryState.h"
 #include <algorithm>
+#include <climits>
 #include "Inventory.h"
 #include "../Engine/Game.h"
 #include "../Engine/FileMap.h"
@@ -522,29 +523,6 @@ int InventoryState::_getItemPower(BattleItem *item) const
 }
 
 /**
- * Gets weapon (ammo) rounds left.
- *
- * @param item Pointer to battle item.
- * @return The rounds left in the weapon (ammo).
- */
-int InventoryState::_getItemRounds(BattleItem *item) const
-{
-	int rounds = 0;
-
-	if (item->getAmmoItem() != 0 && item->needsAmmo())
-	{
-		rounds = item->getAmmoItem()->getAmmoQuantity();
-	}
-	else
-	{
-		// Will return 255 for laser weapons. Take care when using it.
-		rounds = item->getAmmoQuantity();
-	}
-
-	return rounds;
-}
-
-/**
  * Check if item is researched
  *
  * Determine if we are allowed to see 'advanced' item values.
@@ -754,12 +732,12 @@ void InventoryState::_showItemStats(BattleItem *item)
 			accuracy = _getItemAccuracy(item, true);
 		case BT_AMMO:
 			power = _getItemPower(item);
-			rounds = _getItemRounds(item);
+			rounds = item->getItemRounds();
 			break;
 		case BT_FIREARM:
 			power = _getItemPower(item);
 			accuracy = _getItemAccuracy(item, true);
-			rounds = _getItemRounds(item);
+			rounds = item->getItemRounds();
 			// Draw ammo object.
 			if (item->getAmmoItem() != 0 && item->needsAmmo())
 			{
@@ -797,7 +775,7 @@ void InventoryState::_showItemStats(BattleItem *item)
 			}
 			ssItemStats << std::endl;
 
-			if (rounds == 255)
+			if (rounds == INT_MAX)
 			{
 				ssItemStats << tr("STR_ROUNDS_").arg("∞");
 			}
@@ -806,7 +784,7 @@ void InventoryState::_showItemStats(BattleItem *item)
 				ssItemStats << tr("STR_ROUNDS_").arg(rounds);
 			}
 		}
-		else if (!Options::showMoreStatsInInventoryView && rounds != 0 && rounds != 255)
+		else if (!Options::showMoreStatsInInventoryView && rounds != 0 && rounds != INT_MAX)
 		{
 			ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(rounds);
 		}

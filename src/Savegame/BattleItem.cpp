@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <climits>
 #include "BattleItem.h"
 #include "BattleUnit.h"
 #include "Tile.h"
@@ -182,6 +183,33 @@ int BattleItem::getAmmoQuantity() const
 void BattleItem::setAmmoQuantity(int qty)
 {
 	_ammoQuantity = qty;
+}
+
+/**
+ * Get the shots left in the item (take clip into account)
+ * @return Rounds left.
+ */
+int BattleItem::getItemRounds() const
+{
+	int rounds = 0;
+	if (_ammoItem != 0 && needsAmmo())
+	{
+		rounds = _ammoItem->getAmmoQuantity();
+	}
+	else
+	{
+		rounds = getAmmoQuantity();
+	}
+
+	// Infinite shots weapons return 255
+	if (rounds == 255)
+	{
+		return INT_MAX;
+	}
+	else
+	{
+		return rounds;
+	}
 }
 
 /**

@@ -140,6 +140,8 @@ public:
 	bool isResearched(SavedGame *save ,Mod *mod = 0, bool ufoPaedia = false) const;
 	/// Checks if advanced stats are known.
 	bool isStatsKnown(SavedGame *save ,Mod *mod = 0, bool ufoPaedia = false) const;
+	/// Get the shots left in the item (take clip into account).
+	int getItemRounds() const;
 };
 
 }
