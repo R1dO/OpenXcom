@@ -17,6 +17,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include <algorithm>
+#include <climits>
 #include <sstream>
 #include <iomanip>
 #include <SDL_gfxPrimitives.h>
@@ -1343,7 +1344,16 @@ void BattlescapeState::updateSoldierInfo(bool checkFOV)
 	if (leftHandItem)
 	{
 		leftHandItem->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _btnLeftHandItem);
-		if (leftHandItem->getRules()->getBattleType() == BT_FIREARM && (leftHandItem->needsAmmo() || leftHandItem->getRules()->getClipSize() > 0))
+		if (Options::showMoreStatsInInventoryView && leftHandItem->getRules()->getBattleType() == BT_FIREARM)
+		{
+			// 'NumberText' cannot draw "∞", let player derive from inventory (and actions) that shots are infinite.
+			if (leftHandItem->getItemRounds() < INT_MAX && leftHandItem->isStatsKnown(_game->getSavedGame(), _game->getMod(), true))
+			{
+				_numAmmoLeft->setVisible(true);
+				_numAmmoLeft->setValue(leftHandItem->getItemRounds());
+			}
+		}
+		else if (leftHandItem->getRules()->getBattleType() == BT_FIREARM && (leftHandItem->needsAmmo() || leftHandItem->getRules()->getClipSize() > 0))
 		{
 			_numAmmoLeft->setVisible(true);
 			if (leftHandItem->getAmmoItem())
@@ -1358,7 +1368,16 @@ void BattlescapeState::updateSoldierInfo(bool checkFOV)
 	if (rightHandItem)
 	{
 		rightHandItem->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _btnRightHandItem);
-		if (rightHandItem->getRules()->getBattleType() == BT_FIREARM && (rightHandItem->needsAmmo() || rightHandItem->getRules()->getClipSize() > 0))
+		if (Options::showMoreStatsInInventoryView && rightHandItem->getRules()->getBattleType() == BT_FIREARM)
+		{
+			// 'NumberText' cannot draw "∞", let player derive from inventory (and actions) that shots are infinite.
+			if (rightHandItem->getItemRounds() < INT_MAX && rightHandItem->isStatsKnown(_game->getSavedGame(), _game->getMod(), true))
+			{
+				_numAmmoRight->setVisible(true);
+				_numAmmoRight->setValue(rightHandItem->getItemRounds());
+			}
+		}
+		else if (rightHandItem->getRules()->getBattleType() == BT_FIREARM && (rightHandItem->needsAmmo() || rightHandItem->getRules()->getClipSize() > 0))
 		{
 			_numAmmoRight->setVisible(true);
 			if (rightHandItem->getAmmoItem())
