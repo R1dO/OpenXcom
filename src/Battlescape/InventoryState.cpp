@@ -404,10 +404,9 @@ void InventoryState::updateStats()
  * Gets weapon type accuracy for selected unit.
  *
  * @param item Pointer to battle item.
- * @param useModifiers Do we consider all modifiers (wounds, two-handed, melee skill applied, etc)?
  * @return The unit's accuracy for this item.
  */
-int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
+int InventoryState::_getItemAccuracy(BattleItem *item) const
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 	double accuracy = unit->getBaseStats()->firing; // Default value even if no item is selected.
@@ -418,6 +417,10 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 		{
 		case BT_MELEE:
 			accuracy = unit->getBaseStats()->melee;
+			if (item->getRules()->isSkillApplied())
+			{
+				accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
+			}
 			break;
 		//case BT_AMMO: // Not sure about this. You can only throw a clip but it is kinda confusing.
 		case BT_FLARE:
@@ -429,20 +432,11 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 			// Do nothing, firing accuracy is already the default.
 			break;
 		}
-	}
-
-	if (item != 0 && useModifiers)
-	{
-		if (item->getRules()->getBattleType() == BT_MELEE && item->getRules()->isSkillApplied())
-		{
-			accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
-		}
 
 		if (item->getRules()->isTwoHanded() && (unit->getItem("STR_RIGHT_HAND") != 0 || unit->getItem("STR_LEFT_HAND") != 0))
 		{
 			bool penalize = true;
 			// If item comes from a handslot discard that slot for 2-handiness checks.
-			// If we hover over a handslot only take 2-handiness into account if the other hand is not empty.
 			if (item->getSlot()->getId() == "STR_LEFT_HAND" && unit->getItem("STR_RIGHT_HAND") == 0)
 			{
 				penalize = false;
@@ -452,6 +446,7 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 				penalize = false;
 			}
 
+			// If we hover over a handslot only take 2-handiness into account if the other hand is not empty.
 			if (_inv->getMouseOverSlot() != 0 && _inv->getMouseOverSlot()->getType() == INV_HAND)
 			{
 				if ( _inv->getMouseOverSlot()->getId() == "STR_RIGHT_HAND" && (item->getSlot()->getId() == "STR_LEFT_HAND" || unit->getItem("STR_LEFT_HAND") == 0))
@@ -472,15 +467,10 @@ int InventoryState::_getItemAccuracy(BattleItem *item, bool useModifiers) const
 	}
 
 	// Health modifier.
-	if (useModifiers  && Options::showMoreStatsInInventoryView)
+	if (Options::showMoreStatsInInventoryView)
 	{
 		// Shooting formula version (takes into account wounds).
 		accuracy *= unit->getAccuracyModifier(item, _inv->getMouseOverSlot()) / 100.0;
-	}
-	else if (Options::showMoreStatsInInventoryView)
-	{
-		// Make sure unit stats does not accidentally take arm wounds into account.
-		accuracy *= unit->getAccuracyModifier() / 100.0;
 	}
 	else
 	{
@@ -718,7 +708,6 @@ void InventoryState::_showItemStats(BattleItem *item)
 	if (item != 0)
 	{
 		int power = 0;
-		int accuracy = 0;
 		int rounds = 0;
 		switch (item->getRules()->getBattleType())
 		{
@@ -729,14 +718,12 @@ void InventoryState::_showItemStats(BattleItem *item)
 		case BT_FLARE:
 		case BT_GRENADE:
 		case BT_PROXIMITYGRENADE:
-			accuracy = _getItemAccuracy(item, true);
 		case BT_AMMO:
 			power = _getItemPower(item);
 			rounds = item->getItemRounds();
 			break;
 		case BT_FIREARM:
 			power = _getItemPower(item);
-			accuracy = _getItemAccuracy(item, true);
 			rounds = item->getItemRounds();
 			// Draw ammo object.
 			if (item->getAmmoItem() != 0 && item->needsAmmo())
@@ -763,10 +750,9 @@ void InventoryState::_showItemStats(BattleItem *item)
 
 		if (Options::showMoreStatsInInventoryView && _isItemResearched(item, true) )
 		{
-			if (accuracy != 0)
-			{
-				ssItemStats << tr("STR_ACCURACY_SHORT").arg(accuracy) << Unicode::TOK_COLOR_FLIP;
-			}
+			// We have 3 lines but are only using 2. Make sure text is
+			// pushed to the bottom.
+			// Feel free to add some other fancy stat here.
 			ssItemStats << std::endl;
 
 			if (power != 0)
@@ -1232,14 +1218,15 @@ void InventoryState::invMouseOver(Action *)
 {
 	if (_inv->getSelectedItem() != 0)
 	{
-		_showItemStats(_inv->getSelectedItem());
 		_setSoldierStatWeight(_inv->getSelectedItem());
 		_setSoldierStatTu(_inv->getSelectedItem());
+		_setSoldierStatAccuracy(_inv->getSelectedItem());
+		_showItemStats(_inv->getSelectedItem());
 		return;
 	}
 
-	_showItemStats(_inv->getMouseOverItem());
 	_setSoldierStatAccuracy(_inv->getMouseOverItem());
+	_showItemStats(_inv->getMouseOverItem());
 	_setTxtItem(_inv->getMouseOverItem());
 }
 
