@@ -1022,7 +1022,7 @@ void Map::drawTerrain(Surface *surface)
 								{
 									accuracy -= (lowerLimit - distance) * weapon->getDropoff();
 								}
-								else if (! Options::showMoreStatsInInventoryView || action->weapon->isStatsKnown(_game->getSavedGame(), _game->getMod(), true))
+								else if (! Options::showMoreStatsInInventoryView || action->weapon->isStatsKnown(_game->getSavedGame()))
 								{
 									// no adjustment made? set it to green.
 									_txtAccuracy->setColor(Palette::blockOffset(Pathfinding::green - 1)-1);
@@ -1047,7 +1047,7 @@ void Map::drawTerrain(Surface *surface)
 									}
 								}
 
-								if (! Options::showMoreStatsInInventoryView || action->weapon->isStatsKnown(_game->getSavedGame(), _game->getMod(), true))
+								if (! Options::showMoreStatsInInventoryView || action->weapon->isStatsKnown(_game->getSavedGame()))
 								{
 									// zero accuracy or out of range: set it red.
 									if (accuracy <= 0 || outOfRange)

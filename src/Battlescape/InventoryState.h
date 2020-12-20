@@ -120,7 +120,7 @@ private:
 	/// Display item stats.
 	void _showItemStats(BattleItem *item = 0);
 	/// Check if item is researched
-	bool _isItemResearched(BattleItem *item, bool ufopaedia = false) const;
+	bool _isItemResearched(BattleItem *item) const;
 };
 
 }

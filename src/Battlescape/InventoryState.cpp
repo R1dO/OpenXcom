@@ -519,12 +519,11 @@ int InventoryState::_getItemPower(BattleItem *item) const
  * Takes into account if an item depends on clips.
  *
  * @param item Pointer to battle item.
- * @param ufopaedia Do we take ufopaedia visibility into account?
- * @return The rounds left in the weapon (ammo).
+ * @return If we are allowed to see item stats.
  */
-bool InventoryState::_isItemResearched(BattleItem *item, bool ufopaedia) const
+bool InventoryState::_isItemResearched(BattleItem *item) const
 {
-	return item->isStatsKnown(_game->getSavedGame(), _game->getMod(), ufopaedia);
+	return item->isStatsKnown(_game->getSavedGame());
 }
 
 /**
@@ -756,7 +755,7 @@ void InventoryState::_showItemStats(BattleItem *item)
 			break;
 		}
 
-		if (Options::showMoreStatsInInventoryView && _isItemResearched(item, true) )
+		if (Options::showMoreStatsInInventoryView && _isItemResearched(item) )
 		{
 			// We have 3 lines but are only using 2. Make sure text is
 			// pushed to the bottom.

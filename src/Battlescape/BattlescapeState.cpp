@@ -1347,7 +1347,7 @@ void BattlescapeState::updateSoldierInfo(bool checkFOV)
 		if (Options::showMoreStatsInInventoryView && leftHandItem->getRules()->getBattleType() == BT_FIREARM)
 		{
 			// 'NumberText' cannot draw "∞", let player derive from inventory (and actions) that shots are infinite.
-			if (leftHandItem->getItemRounds() < INT_MAX && leftHandItem->isStatsKnown(_game->getSavedGame(), _game->getMod(), true))
+			if (leftHandItem->getItemRounds() < INT_MAX && leftHandItem->isStatsKnown(_game->getSavedGame()))
 			{
 				_numAmmoLeft->setVisible(true);
 				_numAmmoLeft->setValue(leftHandItem->getItemRounds());
@@ -1371,7 +1371,7 @@ void BattlescapeState::updateSoldierInfo(bool checkFOV)
 		if (Options::showMoreStatsInInventoryView && rightHandItem->getRules()->getBattleType() == BT_FIREARM)
 		{
 			// 'NumberText' cannot draw "∞", let player derive from inventory (and actions) that shots are infinite.
-			if (rightHandItem->getItemRounds() < INT_MAX && rightHandItem->isStatsKnown(_game->getSavedGame(), _game->getMod(), true))
+			if (rightHandItem->getItemRounds() < INT_MAX && rightHandItem->isStatsKnown(_game->getSavedGame()))
 			{
 				_numAmmoRight->setVisible(true);
 				_numAmmoRight->setValue(rightHandItem->getItemRounds());
