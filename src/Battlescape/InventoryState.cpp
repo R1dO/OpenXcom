@@ -566,14 +566,22 @@ void InventoryState::_setSoldierStatTu(BattleItem *item, bool unloadWeapon)
 		}
 		else if (slotFrom != 0 && slotTo != 0 && slotFrom != slotTo)
 		{
+			tu -= slotFrom->getCost(slotTo);
+
+			// Unless it is an ammoitem in that case we want to preview
+			// the cost of reloading upon matching weapon.
 			BattleItem *itemTo = _inv->getMouseOverItem();
-			if (itemTo != 0 && itemTo->needsAmmo() && itemTo->getAmmoItem() == 0)
+			if (itemTo != 0 && !itemTo->getRules()->getCompatibleAmmo()->empty())
 			{
-				tu -= 15;
-			}
-			else
-			{
-				tu -= slotFrom->getCost(slotTo);
+				for (std::vector<std::string>::iterator i = itemTo->getRules()->getCompatibleAmmo()->begin(); i != itemTo->getRules()->getCompatibleAmmo()->end(); ++i)
+				{
+					if ((*i) == item->getRules()->getType())
+					{
+						tu += slotFrom->getCost(slotTo);
+						tu -= 15;
+						break;
+					}
+				}
 			}
 		}
 	}
