@@ -564,7 +564,7 @@ void InventoryState::_setSoldierStatTu(BattleItem *item, bool unloadWeapon)
 		{
 			tu -= 8;
 		}
-		else if (slotFrom != 0 && slotTo != 0 && slotFrom != slotTo)
+		else if (slotFrom != 0 && slotTo != 0)
 		{
 			tu -= slotFrom->getCost(slotTo);
 
