@@ -108,7 +108,7 @@ private:
 	/// Gets weapon (ammo) power.
 	int _getItemPower(BattleItem *item = 0) const;
 	/// Gets weapon type accuracy for selected unit.
-	int _getItemAccuracy(BattleItem *item = 0, bool useModifiers = false) const;
+	int _getItemAccuracy(BattleItem *item = 0) const;
 	/// Updates the soldier accuracy info text.
 	void _setSoldierStatAccuracy(BattleItem *item);
 	/// Updates the soldier TU info text.
@@ -120,7 +120,7 @@ private:
 	/// Display item stats.
 	void _showItemStats(BattleItem *item = 0);
 	/// Check if item is researched
-	bool _isItemResearched(BattleItem *item, bool ufopaedia = false) const;
+	bool _isItemResearched(BattleItem *item) const;
 };
 
 }
