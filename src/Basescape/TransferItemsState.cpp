@@ -144,6 +144,7 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	_distance = getDistance();
 
 	_cats.push_back("STR_ALL_ITEMS");
+	_cats.push_back("STR_NO_NAMED_ITEMS");
 
 	const std::vector<std::string> &cw = _game->getMod()->getCraftWeaponsList();
 	for (std::vector<std::string>::const_iterator i = cw.begin(); i != cw.end(); ++i)
@@ -339,10 +340,15 @@ void TransferItemsState::updateList()
 	for (size_t i = 0; i < _items.size(); ++i)
 	{
 		std::string cat = _cats[_cbxCategory->getSelected()];
-		if (cat != "STR_ALL_ITEMS" && cat != getCategory(i))
+		if (cat != "STR_ALL_ITEMS" && cat != "STR_NO_NAMED_ITEMS" && cat != getCategory(i))
 		{
 			continue;
 		}
+		if (cat == "STR_NO_NAMED_ITEMS" && (_items[i].type == TRANSFER_SOLDIER || _items[i].type == TRANSFER_CRAFT))
+		{
+			continue;
+		}
+
 		std::string name = _items[i].name;
 		bool ammo = false;
 		if (_items[i].type == TRANSFER_ITEM)
