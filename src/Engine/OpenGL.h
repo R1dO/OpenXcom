@@ -11,7 +11,10 @@
 
 #ifndef __NO_OPENGL
 
-#define NO_SDL_GLEXT
+#ifdef __APPLE__
+#define GL_SILENCE_DEPRECATION
+#endif
+
 #include <SDL_opengl.h>
 #include <string>
 
