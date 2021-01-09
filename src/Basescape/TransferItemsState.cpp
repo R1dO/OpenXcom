@@ -900,16 +900,18 @@ void TransferItemsState::increaseByValue(int change)
 		case TRANSFER_ENGINEER:
 			change = std::min(std::min(freeQuarters, getRow().qtySrc - getRow().reservedSrc - getRow().amount), change);
 			_pQty += change;
+			// Bookkeeping :(
+			_total -= getRow().cost * abs(getRow().amount);
 			getRow().amount += change;
-			_total += getRow().cost * change;
+			_total += getRow().cost * abs(getRow().amount);
 			break;
 		case TRANSFER_CRAFT:
 			_cQty++;
 			_pQty += craft->getNumSoldiers();
 			_iQty += craft->getItems()->getTotalSize(_game->getMod());
-			getRow().amount++;
 			if (!Options::canTransferCraftsWhileAirborne || craft->getStatus() != "STR_OUT")
-				_total += getRow().cost;
+				_total += getRow().cost * (1 + 2 * getRow().amount);;
+			getRow().amount++;
 			break;
 		case TRANSFER_ITEM:
 			if (!selItem->isAlien())
@@ -923,16 +925,20 @@ void TransferItemsState::increaseByValue(int change)
 				}
 				change = std::min(std::min((int)freeStoresForItem, getRow().qtySrc - getRow().reservedSrc - getRow().amount), change);
 				_iQty += change * storesNeededPerItem;
+				// Bookkeeping :(
+				_total -= getRow().cost * abs(getRow().amount);
 				getRow().amount += change;
-				_total += getRow().cost * change;
+				_total += getRow().cost * abs(getRow().amount);
 			}
 			else
 			{
 				int freeContainment = Options::storageLimitsEnforced ? _baseTo->getAvailableContainment() - _baseTo->getUsedContainment() - _aQty : INT_MAX;
 				change = std::min(std::min(freeContainment, getRow().qtySrc - getRow().reservedSrc - getRow().amount), change);
 				_aQty += change;
+				// Bookkeeping :(
+				_total -= getRow().cost * abs(getRow().amount);
 				getRow().amount += change;
-				_total += getRow().cost * change;
+				_total += getRow().cost * abs(getRow().amount);
 			}
 			break;
 		}
@@ -962,39 +968,110 @@ void TransferItemsState::decrease()
  */
 void TransferItemsState::decreaseByValue(int change)
 {
-	if (0 >= change || 0 >= getRow().amount) return;
+	if (0 >= change || getRow().qtyDst - getRow().reservedDst <= abs(getRow().amount)) return;
+	std::string errorMessage;
+	RuleItem *selItem = 0;
 	Craft *craft = 0;
-	change = std::min(getRow().amount, change);
+//	change = std::min(getRow().amount, change);
 
 	switch (getRow().type)
 	{
 	case TRANSFER_SOLDIER:
 	case TRANSFER_SCIENTIST:
 	case TRANSFER_ENGINEER:
-		_pQty -= change;
+		if (-1 * _pQty + 1 > _baseFrom->getAvailableQuarters() - _baseFrom->getUsedQuarters())
+		{
+			errorMessage = tr("STR_NO_FREE_ACCOMODATION");
+		}
 		break;
 	case TRANSFER_CRAFT:
 		craft = (Craft*)getRow().rule;
-		_cQty--;
-		_pQty -= craft->getNumSoldiers();
-		_iQty -= craft->getItems()->getTotalSize(_game->getMod());
+		if (-1 * _cQty + 1 > _baseFrom->getAvailableHangars() - _baseFrom->getUsedHangars())
+		{
+			errorMessage = tr("STR_NO_FREE_HANGARS_FOR_TRANSFER");
+		}
+		else if (-1 * _pQty + craft->getNumSoldiers() > _baseFrom->getAvailableQuarters() - _baseFrom->getUsedQuarters())
+		{
+			errorMessage = tr("STR_NO_FREE_ACCOMODATION_CREW");
+		}
+		else if (Options::storageLimitsEnforced && _baseFrom->storesOverfull(-1 * _iQty + craft->getItems()->getTotalSize(_game->getMod())))
+		{
+			errorMessage = tr("STR_NOT_ENOUGH_STORE_SPACE_FOR_CRAFT");
+		}
 		break;
 	case TRANSFER_ITEM:
-		const RuleItem *selItem = (RuleItem*)getRow().rule;
-		if (!selItem->isAlien())
+		selItem = (RuleItem*)getRow().rule;
+		if (!selItem->isAlien() && _baseFrom->storesOverfull(selItem->getSize() + -1 * _iQty))
 		{
-			_iQty -= selItem->getSize() * change;
+			errorMessage = tr("STR_NOT_ENOUGH_STORE_SPACE");
 		}
-		else
+		else if (selItem->isAlien() && Options::storageLimitsEnforced * -1 * _aQty + 1 > _baseFrom->getAvailableContainment() - Options::storageLimitsEnforced * _baseFrom->getUsedContainment())
 		{
-			_aQty -= change;
+			errorMessage = tr("STR_NO_ALIEN_CONTAINMENT_FOR_TRANSFER");
 		}
 		break;
 	}
-	getRow().amount -= change;
-	if (!Options::canTransferCraftsWhileAirborne || 0 == craft || craft->getStatus() != "STR_OUT")
-		_total -= getRow().cost * change;
-	updateItemStrings();
+
+	if (errorMessage.empty())
+	{
+		int freeQuarters = _baseFrom->getAvailableQuarters() - _baseFrom->getUsedQuarters() + _pQty;
+		switch (getRow().type)
+		{
+		case TRANSFER_SOLDIER:
+		case TRANSFER_SCIENTIST:
+		case TRANSFER_ENGINEER:
+			change = std::min(std::min(freeQuarters, getRow().qtyDst - getRow().reservedDst + getRow().amount), change);
+			_pQty -= change;
+			// Bookkeeping :(
+			_total -= getRow().cost * abs(getRow().amount);
+			getRow().amount -= change;
+			_total += getRow().cost * abs(getRow().amount);
+			break;
+		case TRANSFER_CRAFT:
+			_cQty--;
+			_pQty -= craft->getNumSoldiers();
+			_iQty -= craft->getItems()->getTotalSize(_game->getMod());
+			if (!Options::canTransferCraftsWhileAirborne || craft->getStatus() != "STR_OUT")
+				_total += getRow().cost * (1 - 2 * getRow().amount);
+			getRow().amount--;
+			break;
+		case TRANSFER_ITEM:
+			if (!selItem->isAlien())
+			{
+				double storesNeededPerItem = ((RuleItem*)getRow().rule)->getSize();
+				double freeStores = _baseFrom->getAvailableStores() - _baseFrom->getUsedStores() + _iQty;
+				double freeStoresForItem = (double)(INT_MAX);
+				if (!AreSame(storesNeededPerItem, 0.0))
+				{
+					freeStoresForItem = (freeStores + 0.05) / storesNeededPerItem;
+				}
+				change = std::min(std::min((int)freeStoresForItem, getRow().qtyDst - getRow().reservedDst + getRow().amount), change);
+				_iQty -= change * storesNeededPerItem;
+				// Bookkeeping :(
+				_total -= getRow().cost * abs(getRow().amount);
+				getRow().amount -= change;
+				_total += getRow().cost * abs(getRow().amount);
+			}
+			else
+			{
+				int freeContainment = Options::storageLimitsEnforced ? _baseFrom->getAvailableContainment() - _baseFrom->getUsedContainment() + _aQty : INT_MAX;
+				change = std::min(std::min(freeContainment, getRow().qtyDst - getRow().reservedDst + getRow().amount), change);
+				_aQty -= change;
+				// Bookkeeping :(
+				_total -= getRow().cost * abs(getRow().amount);
+				getRow().amount -= change;
+				_total += getRow().cost * abs(getRow().amount);
+			}
+			break;
+		}
+		updateItemStrings();
+	}
+	else
+	{
+		_timerInc->stop();
+		RuleInterface *menuInterface = _game->getMod()->getInterface("transferMenu");
+		_game->pushState(new ErrorMessageState(errorMessage, _palette, menuInterface->getElement("errorMessage")->color, "BACK13.SCR", menuInterface->getElement("errorPalette")->color));
+	}
 }
 
 /**
