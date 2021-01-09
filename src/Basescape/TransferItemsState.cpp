@@ -1096,11 +1096,11 @@ void TransferItemsState::updateItemStrings()
 
 		if (getRow().amount > 0)
 		{
-			ss2 << ">" << getRow().amount;
+			ss2 << "> " << getRow().amount;
 		}
 		else if (getRow().amount < 0)
 		{
-			ss2 << "<" << getRow().amount;
+			ss2 << "< " << abs(getRow().amount);
 		}
 		_lstItems->setCellText(_sel, 4, ss2.str());
 	}
