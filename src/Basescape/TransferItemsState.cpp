@@ -973,7 +973,7 @@ void TransferItemsState::decrease()
  */
 void TransferItemsState::decreaseByValue(int change)
 {
-	if (0 >= change || getRow().qtyDst - getRow().reservedDst <= abs(getRow().amount)) return;
+	if (0 >= change || getRow().qtyDst - getRow().reservedDst <= -1 * getRow().amount) return;
 	// First RMB click resets existing change
 	if (change == INT_MAX && getRow().amount > 0)
 	{
