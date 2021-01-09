@@ -848,6 +848,11 @@ void TransferItemsState::increase()
 void TransferItemsState::increaseByValue(int change)
 {
 	if (0 >= change || getRow().qtySrc - getRow().reservedSrc <= getRow().amount) return;
+	// First RMB click resets existing change
+	if (change == INT_MAX && getRow().amount < 0)
+	{
+		change = abs(getRow().amount);
+	}
 	std::string errorMessage;
 	RuleItem *selItem = 0;
 	Craft *craft = 0;
@@ -969,10 +974,14 @@ void TransferItemsState::decrease()
 void TransferItemsState::decreaseByValue(int change)
 {
 	if (0 >= change || getRow().qtyDst - getRow().reservedDst <= abs(getRow().amount)) return;
+	// First RMB click resets existing change
+	if (change == INT_MAX && getRow().amount > 0)
+	{
+		change = getRow().amount;
+	}
 	std::string errorMessage;
 	RuleItem *selItem = 0;
 	Craft *craft = 0;
-//	change = std::min(getRow().amount, change);
 
 	switch (getRow().type)
 	{
