@@ -66,7 +66,7 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	_txtTitle = new Text(310, 17, 5, 8);
 	if (_alternateScreen)
 	{
-		_txtFunds = new Text(150, 9, 10, 24);
+		_txtFunds = new Text(150, 9, 160, 24);
 		_txtQuantity = new Text(50, 17, 147, 36);
 		_txtAmountTransfer = new Text(54, 17, 197, 36);
 		_txtAmountDestination = new Text(60, 17, 251, 36);
@@ -367,6 +367,7 @@ std::string TransferItemsState::getCategory(int sel) const
 */
 void TransferItemsState::updateList()
 {
+	size_t oldSelection = _sel;
 	_lstItems->clearList();
 	_rows.clear();
 	for (size_t i = 0; i < _items.size(); ++i)
@@ -392,47 +393,23 @@ void TransferItemsState::updateList()
 				name.insert(0, "  ");
 			}
 		}
-		std::ostringstream ssQtySrc, ssQtyDst, ssAmount;
-		ssQtySrc << _items[i].qtySrc - _items[i].amount;
-		ssQtyDst << _items[i].qtyDst;
+
 		if (_alternateScreen)
 		{
-			std::ostringstream ssReservedSrc, ssReservedDst;
-			if (_items[i].reservedSrc != 0)
-			{
-				ssReservedSrc << "(" << _items[i].reservedSrc << ")";
-			}
-			if (_items[i].reservedDst != 0)
-			{
-				ssReservedDst << "(" << _items[i].reservedDst << ")";
-			}
-
-			if (_items[i].amount > 0)
-			{
-				ssAmount << ">" << _items[i].amount;
-			}
-			else if (_items[i].amount < 0)
-			{
-				ssAmount << "<" << _items[i].amount;
-			}
-			_lstItems->addRow(7, name.c_str(), ssQtySrc.str().c_str(), ssReservedSrc.str().c_str(), "", ssAmount.str().c_str(), ssQtyDst.str().c_str(), ssReservedDst.str().c_str());
+			_lstItems->addRow(7, name.c_str(), "QtySrc", "ReservedSrc", "", "Amount", "QtyDst", "ReservedDst");
 		}
 		else
 		{
-			ssAmount << _items[i].amount;
-			_lstItems->addRow(4, name.c_str(), ssQtySrc.str().c_str(), ssAmount.str().c_str(), ssQtyDst.str().c_str());
+			_lstItems->addRow(4, name.c_str(), "QtySrc", "Amount", "QtyDst");
 		}
 		_rows.push_back(i);
 
-		if (_items[i].amount > 0)
-		{
-			_lstItems->setRowColor(_rows.size() - 1, _lstItems->getSecondaryColor());
-		}
-		else if (ammo)
-		{
-			_lstItems->setRowColor(_rows.size() - 1, _ammoColor);
-		}
+		_sel = _rows.size() - 1;
+		updateItemStrings();
 	}
+	updateSubtitleLine();
+	updateSpreadsheetHeader();
+	_sel = oldSelection;
 }
 
 /**
@@ -948,6 +925,8 @@ void TransferItemsState::increaseByValue(int change)
 			break;
 		}
 		updateItemStrings();
+		updateSubtitleLine();
+		updateSpreadsheetHeader();
 	}
 	else
 	{
@@ -1074,6 +1053,8 @@ void TransferItemsState::decreaseByValue(int change)
 			break;
 		}
 		updateItemStrings();
+		updateSubtitleLine();
+		updateSpreadsheetHeader();
 	}
 	else
 	{
@@ -1088,27 +1069,44 @@ void TransferItemsState::decreaseByValue(int change)
  */
 void TransferItemsState::updateItemStrings()
 {
-	std::ostringstream ss1, ss2;
-	ss1 << getRow().qtySrc - getRow().amount;
+	std::ostringstream ssQtySrc, ssQtyDst, ssAmount;
+	ssQtySrc << getRow().qtySrc - getRow().amount;
+
 	if (_alternateScreen)
 	{
-		_lstItems->setCellText(_sel, 1, ss1.str());
-
+		ssQtyDst << getRow().qtyDst + getRow().amount;
 		if (getRow().amount > 0)
 		{
-			ss2 << "> " << getRow().amount;
+			ssAmount << "> " << getRow().amount;
 		}
 		else if (getRow().amount < 0)
 		{
-			ss2 << "< " << abs(getRow().amount);
+			ssAmount << "< " << abs(getRow().amount);
 		}
-		_lstItems->setCellText(_sel, 4, ss2.str());
+
+		std::ostringstream ssReservedSrc, ssReservedDst;
+		if (getRow().reservedSrc != 0)
+		{
+			ssReservedSrc << "(" << getRow().reservedSrc << ")";
+		}
+		if (getRow().reservedDst != 0)
+		{
+			ssReservedDst << "(" << getRow().reservedDst << ")";
+		}
+
+		_lstItems->setCellText(_sel, 1, ssQtySrc.str());
+		_lstItems->setCellText(_sel, 2, ssReservedSrc.str());
+		_lstItems->setCellText(_sel, 4, ssAmount.str());
+		_lstItems->setCellText(_sel, 5, ssQtyDst.str());
+		_lstItems->setCellText(_sel, 6, ssReservedDst.str());
 	}
 	else
 	{
-		ss2 << getRow().amount;
-		_lstItems->setCellText(_sel, 1, ss1.str());
-		_lstItems->setCellText(_sel, 2, ss2.str());
+		ssQtyDst << getRow().qtyDst;
+		ssAmount << getRow().amount;
+		_lstItems->setCellText(_sel, 1, ssQtySrc.str());
+		_lstItems->setCellText(_sel, 2, ssAmount.str());
+		_lstItems->setCellText(_sel, 3, ssQtyDst.str());
 	}
 
 	if (getRow().amount != 0)
@@ -1127,8 +1125,6 @@ void TransferItemsState::updateItemStrings()
 			}
 		}
 	}
-	updateSubtitleLine();
-	updateSpreadsheetHeader();
 }
 
 /**
