@@ -66,7 +66,7 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo) : _baseFrom
 	_txtTitle = new Text(310, 17, 5, 8);
 	if (_alternateScreen)
 	{
-		_txtFunds = new Text(150, 9, 10, 24);
+		_txtFunds = new Text(150, 9, 160, 24);
 		_txtQuantity = new Text(50, 17, 147, 36);
 		_txtAmountTransfer = new Text(54, 17, 197, 36);
 		_txtAmountDestination = new Text(60, 17, 251, 36);
