@@ -1074,7 +1074,7 @@ void TransferItemsState::updateItemStrings()
 
 	if (_alternateScreen)
 	{
-		ssQtyDst << getRow().qtyDst;
+		ssQtyDst << getRow().qtyDst + getRow().amount;
 		if (getRow().amount > 0)
 		{
 			ssAmount << "> " << getRow().amount;
