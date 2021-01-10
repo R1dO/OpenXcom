@@ -409,11 +409,11 @@ void TransferItemsState::updateList()
 
 			if (_items[i].amount > 0)
 			{
-				ssAmount << ">" << _items[i].amount;
+				ssAmount << "> " << _items[i].amount;
 			}
 			else if (_items[i].amount < 0)
 			{
-				ssAmount << "<" << _items[i].amount;
+				ssAmount << "< " << abs(_items[i].amount);
 			}
 			_lstItems->addRow(7, name.c_str(), ssQtySrc.str().c_str(), ssReservedSrc.str().c_str(), "", ssAmount.str().c_str(), ssQtyDst.str().c_str(), ssReservedDst.str().c_str());
 		}
@@ -424,7 +424,7 @@ void TransferItemsState::updateList()
 		}
 		_rows.push_back(i);
 
-		if (_items[i].amount > 0)
+		if (_items[i].amount != 0)
 		{
 			_lstItems->setRowColor(_rows.size() - 1, _lstItems->getSecondaryColor());
 		}
