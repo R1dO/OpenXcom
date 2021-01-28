@@ -3130,7 +3130,7 @@ void BattleUnit::recoverTimeUnits()
 {
 	// recover TUs
 	int TURecovery = getBaseStats()->tu;
-	float encumbrance = (float)getBaseStats()->strength / (float)getCarriedWeight();
+	float encumbrance = (float)getBaseStats()->strength / std::max(0.1,(double)getCarriedWeight());
 	if (encumbrance < 1)
 	{
 		TURecovery = int(encumbrance * TURecovery);
