@@ -1070,11 +1070,27 @@ void TransferItemsState::decreaseByValue(int change)
 void TransferItemsState::updateItemStrings()
 {
 	std::ostringstream ssQtySrc, ssQtyDst, ssAmount;
-	ssQtySrc << getRow().qtySrc - getRow().amount;
 
 	if (_alternateScreen)
 	{
-		ssQtyDst << getRow().qtyDst + getRow().amount;
+		if (getRow().qtySrc - getRow().amount > 0)
+		{
+			ssQtySrc << getRow().qtySrc - getRow().amount;
+		}
+		else
+		{
+			ssQtySrc << "";
+		}
+
+		if (getRow().qtyDst + getRow().amount > 0)
+		{
+			ssQtyDst << getRow().qtyDst + getRow().amount;
+		}
+		else
+		{
+			ssQtyDst << "";
+		}
+
 		if (getRow().amount > 0)
 		{
 			ssAmount << "> " << getRow().amount;
@@ -1102,6 +1118,7 @@ void TransferItemsState::updateItemStrings()
 	}
 	else
 	{
+		ssQtySrc << getRow().qtySrc - getRow().amount;
 		ssQtyDst << getRow().qtyDst;
 		ssAmount << getRow().amount;
 		_lstItems->setCellText(_sel, 1, ssQtySrc.str());
