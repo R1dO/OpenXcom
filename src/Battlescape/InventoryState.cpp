@@ -417,10 +417,14 @@ int InventoryState::_getItemAccuracy(BattleItem *item) const
 			// Do nothing, firing accuracy is already the default.
 			break;
 		case BT_MELEE:
-			accuracy = unit->getBaseStats()->melee;
 			if (item->getRules()->isSkillApplied())
 			{
-				accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
+				accuracy = unit->getBaseStats()->melee;
+			}
+			else
+			{
+				// Alternative: Show `accuracyMelee` for item, even though it is not technically a unit stat.
+				accuracy = 0;
 			}
 			break;
 		case BT_FLARE:
