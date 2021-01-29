@@ -401,17 +401,21 @@ void InventoryState::updateStats()
  * Gets weapon type accuracy for selected unit.
  *
  * @param item Pointer to battle item.
- * @return The unit's accuracy for this item.
+ * @return The unit's accuracy for this item. Zero if item does not depend on unit accuracy.
  */
 int InventoryState::_getItemAccuracy(BattleItem *item) const
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 	double accuracy = unit->getBaseStats()->firing; // Default value even if no item is selected.
 
-	if (item != 0)
+	if (item != 0 && Options::showMoreStatsInInventoryView)
 	{
 		switch (item->getRules()->getBattleType())
 		{
+		//case BT_AMMO: // Not sure about this, kinda confusing.
+		case BT_FIREARM:
+			// Do nothing, firing accuracy is already the default.
+			break;
 		case BT_MELEE:
 			accuracy = unit->getBaseStats()->melee;
 			if (item->getRules()->isSkillApplied())
@@ -419,14 +423,14 @@ int InventoryState::_getItemAccuracy(BattleItem *item) const
 				accuracy *=  item->getRules()->getAccuracyMelee() / 100.0;
 			}
 			break;
-		//case BT_AMMO: // Not sure about this. You can only throw a clip but it is kinda confusing.
 		case BT_FLARE:
 		case BT_GRENADE:
 		case BT_PROXIMITYGRENADE:
 			accuracy = unit->getBaseStats()->throwing;
 			break;
 		default:
-			// Do nothing, firing accuracy is already the default.
+			// Other battletypes have nothing to do with accuracy.
+			accuracy = 0;
 			break;
 		}
 
@@ -538,7 +542,17 @@ bool InventoryState::_isItemResearched(BattleItem *item) const
  */
 void InventoryState::_setSoldierStatAccuracy(BattleItem *item)
 {
-	_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg(_getItemAccuracy(item)));
+	if (_getItemAccuracy(item) > 0)
+	{
+		_txtFAcc->setText(tr("STR_ACCURACY_SHORT").arg(_getItemAccuracy(item)));
+	}
+	else
+	{
+		// TODO: Make translateable, STR_ACCURACY_SHORT only accepts integer input.
+		std::ostringstream ss;
+		ss << "Acc>" << Unicode::TOK_COLOR_FLIP << "-";
+		_txtFAcc->setText(ss.str());
+	}
 }
 
 /**
