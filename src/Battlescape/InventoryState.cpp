@@ -456,6 +456,12 @@ int InventoryState::_getItemAccuracy(BattleItem *item) const
 				}
 			}
 
+			// Do not check for 2-handiness when item is on the ground, too noisy.
+			if (_inv->getMouseOverSlot() != 0 && _inv->getMouseOverSlot()->getType() == INV_GROUND)
+			{
+				penalize = false;
+			}
+
 			if (penalize)
 			{
 				accuracy *= 80.0 / 100.0;
