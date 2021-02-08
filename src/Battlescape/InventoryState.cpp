@@ -631,7 +631,7 @@ void InventoryState::_setSoldierStatTu(BattleItem *item, bool unloadWeapon)
 void InventoryState::_setSoldierStatWeight(BattleItem *item)
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
-	int weight = unit->getCarriedWeight(); // Deliberately *not* discarding the item grabbed by the mouse.
+	int weight = unit->getCarriedWeight(0, true); // Deliberately *not* discarding the item grabbed by the mouse.
 
 	if (item != 0)
 	{
@@ -651,7 +651,7 @@ void InventoryState::_setSoldierStatWeight(BattleItem *item)
 			slotTo = _inv->getMouseOverSlot();
 			if (slotTo != 0 && slotTo->getType() == INV_GROUND)
 			{
-				weight = unit->getCarriedWeight(item); // Discard dragging item
+				weight = unit->getCarriedWeight(item, true); // Discard dragging item
 			}
 			break;
 		default:

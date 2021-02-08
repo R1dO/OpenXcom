@@ -1372,7 +1372,7 @@ static bool _addItem(BattleItem *item, BattleUnit *unit, Mod *mod, SavedBattleGa
 	// their loadouts are defined in the rulesets and more or less set in stone.
 	if (unit->getFaction() == FACTION_PLAYER && unit->hasInventory())
 	{
-		weight = unit->getCarriedWeight() + item->getRules()->getWeight();
+		weight = unit->getCarriedWeight(0, true) + item->getRules()->getWeight();
 		if (item->getAmmoItem() && item->getAmmoItem() != item)
 		{
 			weight += item->getAmmoItem()->getRules()->getWeight();

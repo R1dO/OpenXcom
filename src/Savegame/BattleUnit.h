@@ -412,7 +412,7 @@ public:
 	/// Get the units we are charging towards.
 	BattleUnit *getCharging();
 	/// Get the carried weight in strength units.
-	int getCarriedWeight(BattleItem *draggingItem = 0) const;
+	int getCarriedWeight(BattleItem *draggingItem = 0, bool allowNegative = false) const;
 	/// Set how many turns this unit will be exposed for.
 	void setTurnsSinceSpotted (int turns);
 	/// Set how many turns this unit will be exposed for.

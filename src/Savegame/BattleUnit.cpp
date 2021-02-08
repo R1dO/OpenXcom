@@ -2746,9 +2746,10 @@ BattleUnit *BattleUnit::getCharging()
 /**
  * Get the units carried weight in strength units.
  * @param draggingItem item to ignore
+ * @param allowNegative return negative values (if applicable).
  * @return weight
  */
-int BattleUnit::getCarriedWeight(BattleItem *draggingItem) const
+int BattleUnit::getCarriedWeight(BattleItem *draggingItem, bool allowNegative) const
 {
 	int weight = _armor->getWeight();
 	for (std::vector<BattleItem*>::const_iterator i = _inventory.begin(); i != _inventory.end(); ++i)
@@ -2757,7 +2758,15 @@ int BattleUnit::getCarriedWeight(BattleItem *draggingItem) const
 		weight += (*i)->getRules()->getWeight();
 		if ((*i)->getAmmoItem() != (*i) && (*i)->getAmmoItem()) weight += (*i)->getAmmoItem()->getRules()->getWeight();
 	}
-	return weight;
+
+	if (allowNegative)
+	{
+		return weight;
+	}
+	else
+	{
+		return std::max(0,weight);
+	}
 }
 
 /**
