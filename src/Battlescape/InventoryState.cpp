@@ -406,7 +406,7 @@ void InventoryState::updateStats()
 int InventoryState::_getItemAccuracy(BattleItem *item) const
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
-	double accuracy = unit->getBaseStats()->firing; // Default value even if no item is selected.
+	double accuracy = unit->getBaseStats()->firing;
 
 	if (item != 0 && Options::showMoreStatsInInventoryView)
 	{
@@ -423,7 +423,8 @@ int InventoryState::_getItemAccuracy(BattleItem *item) const
 			}
 			else
 			{
-				// Alternative: Show `accuracyMelee` for item, even though it is not technically a unit stat.
+				// Attack with this weapon does not depend on a unit stat.
+				// Alternative: show the item's `accuracyMelee`, even though it is technically not a unit stat.
 				accuracy = 0;
 			}
 			break;
@@ -438,36 +439,19 @@ int InventoryState::_getItemAccuracy(BattleItem *item) const
 			break;
 		}
 
-		if (item->getRules()->isTwoHanded() && (unit->getItem("STR_RIGHT_HAND") != 0 || unit->getItem("STR_LEFT_HAND") != 0))
+		// Check 2-handiness when hovering over a hand slot (other slots create too much noise).
+		if (item->getRules()->isTwoHanded() && _inv->getMouseOverSlot() != 0 && _inv->getMouseOverSlot()->getType() == INV_HAND)
 		{
-			bool penalize = true;
-			// If item comes from a handslot discard that slot for 2-handiness checks.
-			if (item->getSlot()->getId() == "STR_LEFT_HAND" && unit->getItem("STR_RIGHT_HAND") == 0)
-			{
-				penalize = false;
-			}
-			if (item->getSlot()->getId() == "STR_RIGHT_HAND" && unit->getItem("STR_LEFT_HAND") == 0)
-			{
-				penalize = false;
-			}
+			bool penalize = false;
 
-			// If we hover over a handslot only take 2-handiness into account if the other hand is not empty.
-			if (_inv->getMouseOverSlot() != 0 && _inv->getMouseOverSlot()->getType() == INV_HAND)
+			// When grabbing an item from a hand, discard that one for the checks.
+			if ( _inv->getMouseOverSlot()->getId() == "STR_RIGHT_HAND" && item->getSlot()->getId() != "STR_LEFT_HAND" && unit->getItem("STR_LEFT_HAND") != 0)
 			{
-				if ( _inv->getMouseOverSlot()->getId() == "STR_RIGHT_HAND" && (item->getSlot()->getId() == "STR_LEFT_HAND" || unit->getItem("STR_LEFT_HAND") == 0))
-				{
-					penalize = false;
-				}
-				if ( _inv->getMouseOverSlot()->getId() == "STR_LEFT_HAND" && (item->getSlot()->getId() == "STR_RIGHT_HAND" || unit->getItem("STR_RIGHT_HAND") == 0))
-				{
-					penalize = false;
-				}
+				penalize = true;
 			}
-
-			// Do not check for 2-handiness when item is on the ground, too noisy.
-			if (_inv->getMouseOverSlot() != 0 && _inv->getMouseOverSlot()->getType() == INV_GROUND)
+			if ( _inv->getMouseOverSlot()->getId() == "STR_LEFT_HAND" && item->getSlot()->getId() != "STR_RIGHT_HAND" && unit->getItem("STR_RIGHT_HAND") != 0)
 			{
-				penalize = false;
+				penalize = true;
 			}
 
 			if (penalize)
