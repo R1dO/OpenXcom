@@ -1,7 +1,5 @@
-# OpenXcom [![Build Status][travis-badge]][travis-url] [![Workflow Status][workflow-badge]][actions-url]
+# OpenXcom [![Workflow Status][workflow-badge]][actions-url]
 
-[travis-badge]: https://travis-ci.org/OpenXcom/OpenXcom.svg
-[travis-url]: https://travis-ci.org/OpenXcom/OpenXcom
 [workflow-badge]: https://github.com/OpenXcom/OpenXcom/workflows/ci/badge.svg
 [actions-url]: https://github.com/OpenXcom/OpenXcom/actions
 
@@ -167,9 +165,8 @@ The source code includes files for the following build tools:
 
 - Microsoft Visual C++ 2010 or newer
 - Xcode
-- Makefile
+- Make (see Makefile.simple)
 - CMake
-- Autotools
 
 It's also been tested on a variety of other tools on Windows/Mac/Linux. More
 detailed compiling instructions are available at the

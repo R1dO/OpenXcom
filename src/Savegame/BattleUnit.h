@@ -93,7 +93,6 @@ private:
 	int _faceDirection; // used only during strafeing moves
 	bool _hitByFire, _hitByAnything;
 	int _moraleRestored;
-	int _coverReserve;
 	BattleUnit *_charging;
 	int _turnsSinceSpotted;
 	std::string _spawnUnit;
@@ -192,8 +191,10 @@ public:
 	UnitFaction getFaction() const;
 	/// Set the cached flag.
 	void setCache(Surface *cache, int part = 0);
+	/// Get the cached data.
+	Surface *getCache(int part = 0) const;
 	/// If this unit is cached on the battlescape.
-	Surface *getCache(bool *invalid, int part = 0) const;
+	bool isCacheInvalid() const;
 	/// Gets unit sprite recolors values.
 	const std::vector<std::pair<Uint8, Uint8> > &getRecolor() const;
 	/// Kneel down.
@@ -402,8 +403,6 @@ public:
 	void setSpawnUnit(const std::string &spawnUnit);
 	/// Gets the unit's aggro sound.
 	int getAggroSound() const;
-	/// Sets the unit's energy level.
-	void setEnergy(int energy);
 	/// Get the faction that killed this unit.
 	UnitFaction killedBy() const;
 	/// Set the faction that killed this unit.
@@ -442,8 +441,6 @@ public:
 	bool tookFireDamage() const;
 	/// switch the state of the fire damage tracker.
 	void toggleFireDamage();
-	void setCoverReserve(int reserve);
-	int getCoverReserve() const;
 	/// Is this unit selectable?
 	bool isSelectable(UnitFaction faction, bool checkReselect, bool checkInventory) const;
 	/// Does this unit have an inventory?
