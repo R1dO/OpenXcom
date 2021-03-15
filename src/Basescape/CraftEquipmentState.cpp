@@ -606,7 +606,18 @@ void CraftEquipmentState::moveLeftByValue(int change)
 	if (item->isFixed()) cQty = _currentCraft->getVehicleCount(_items[_sel]);
 	else cQty = _currentCraft->getItems()->getItem(_items[_sel]);
 	if (change <= 0 || cQty <= 0) return;
-	change = std::min(cQty, change);
+
+	int rQty = _reservedItems->getItem(_items[_sel]);
+	if (cQty > rQty)
+	{
+		// Only move non claimed items
+		change = std::min(cQty-rQty, change);
+	}
+	else
+	{
+		change = std::min(cQty, change);
+	}
+
 	// Convert vehicle to item
 	if (item->isFixed())
 	{
@@ -719,6 +730,18 @@ void CraftEquipmentState::moveRightByValue(int change)
 		bqty = change;
 	}
 	if (0 >= change || 0 >= bqty) return;
+
+	int cQty = 0;
+	if (item->isFixed()) cQty = _currentCraft->getVehicleCount(_items[_sel]);
+	else cQty = _currentCraft->getItems()->getItem(_items[_sel]);
+
+	int rQty = _reservedItems->getItem(_items[_sel]);
+	if (rQty > cQty)
+	{
+		// Satisfy soldier demand, but not more than that
+		change = std::min(rQty-cQty, change);
+	}
+
 	change = std::min(bqty, change);
 	// Do we need to convert item to vehicle?
 	if (item->isFixed())
