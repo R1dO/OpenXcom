@@ -62,6 +62,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	bool isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
 	_alternateScreen = Options::alternateBaseScreens;
 	_reservedItems = _currentCraft->getItemsClaimedBySoldiers();
+	_totalClaimedBySoldiers = _reservedItems->getTotalQuantity();
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -245,6 +246,7 @@ void CraftEquipmentState::init()
 
 	// Inventory visit might have changed item claims.
 	_reservedItems = _currentCraft->getItemsClaimedBySoldiers();
+	_totalClaimedBySoldiers = _reservedItems->getTotalQuantity();
 	updateEquipmentList();
 }
 

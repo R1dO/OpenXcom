@@ -50,7 +50,7 @@ private:
 	Craft *_currentCraft;
 	std::vector<std::string> _items;
 	ItemContainer *_reservedItems;
-	int _totalItems;
+	int _totalItems, _totalClaimedBySoldiers;
 	Uint8 _ammoColor;
 	/// Do we use the alternate base screen option?
 	bool _alternateScreen;
