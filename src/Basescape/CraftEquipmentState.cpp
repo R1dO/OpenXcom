@@ -61,7 +61,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _sel(0), _c
 	bool craftHasACrew = _currentCraft->getNumSoldiers() > 0;
 	bool isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
 	_alternateScreen = Options::alternateBaseScreens;
-	_reservedItems = _currentCraft->getItemsClaimedBySoldiers()->getContents();
+	_reservedItems = _currentCraft->getItemsClaimedBySoldiers();
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -244,7 +244,7 @@ void CraftEquipmentState::init()
 	_currentCraft->setInBattlescape(false);
 
 	// Inventory visit might have changed item claims.
-	_reservedItems = _currentCraft->getItemsClaimedBySoldiers()->getContents();
+	_reservedItems = _currentCraft->getItemsClaimedBySoldiers();
 	updateEquipmentList();
 }
 
@@ -561,10 +561,9 @@ void CraftEquipmentState::updateQuantity()
 	if (_alternateScreen)
 	{
 		std::string ssClaimed;
-		std::map<std::string, int>::const_iterator search = _reservedItems->find(_items[_sel]);
-		if (search != _reservedItems->end())
+		int rQty = _reservedItems->getItem(_items[_sel]);
+		if (rQty > 0)
 		{
-			int rQty = search->second;
 			ssClaimed = createAssignedToSoldiersString(cQty, rQty);
 		}
 		_lstEquipment->setCellText(_sel, 3, ssClaimed);

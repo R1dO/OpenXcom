@@ -31,6 +31,7 @@ class TextList;
 class Timer;
 class Base;
 class ArrowButton;
+class ItemContainer;
 
 /**
  * Equipment screen that lets the player
@@ -48,7 +49,7 @@ private:
 	Base *_base;
 	Craft *_currentCraft;
 	std::vector<std::string> _items;
-	std::map<std::string, int> *_reservedItems;
+	ItemContainer *_reservedItems;
 	int _totalItems;
 	Uint8 _ammoColor;
 	/// Do we use the alternate base screen option?
