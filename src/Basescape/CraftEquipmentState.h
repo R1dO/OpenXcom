@@ -115,10 +115,14 @@ public:
 	/// Moves the given number of items to the craft.
 	void moveRightByValue(int change);
 
-	/// Moves all item types item to the craft.
+	/// Moves all item types to the craft.
 	void moveAllItemsRight();
+	/// Moves the given number of all items to the craft.
+	void moveAllItemsRightByValue(int change);
 	/// Moves all item types to the base.
 	void moveAllItemsLeft();
+	/// Moves the given number of all items to the base.
+	void moveAllItemsLeftByValue(int change);
 
 	/// Empties the contents of the craft, moving all of the items back to the base.
 	void btnClearClick(Action *action);

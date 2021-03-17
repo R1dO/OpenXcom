@@ -392,19 +392,13 @@ void CraftEquipmentState::allItemsLeftArrowPress(Action *action)
 	{
 		_timerAllItemsRight->stop();
 		_timerAllItemsLeft->stop();
-		for (_sel = 0; _sel != _items.size(); ++_sel)
-		{
-			moveRightByValue(Options::changeValueByMouseWheel);
-		}
+		moveAllItemsRightByValue(Options::changeValueByMouseWheel);
 	}
 	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
 	{
 		_timerAllItemsRight->stop();
 		_timerAllItemsLeft->stop();
-		for (_sel = 0; _sel != _items.size(); ++_sel)
-		{
-			moveLeftByValue(Options::changeValueByMouseWheel);
-		}
+		moveAllItemsLeftByValue(Options::changeValueByMouseWheel);
 	}
 }
 
@@ -428,17 +422,11 @@ void CraftEquipmentState::allItemsLeftArrowClick(Action *action)
 {
 	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
 	{
-		for (_sel = 0; _sel != _items.size(); ++_sel)
-		{
-			moveLeftByValue(INT_MAX);
-		}
+		moveAllItemsLeftByValue(INT_MAX);
 	}
 	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
 	{
-		for (_sel = 0; _sel != _items.size(); ++_sel)
-		{
-			moveLeftByValue(1);
-		}
+		moveAllItemsLeftByValue(1);
 		_timerAllItemsRight->setInterval(250);
 		_timerAllItemsLeft->setInterval(250);
 	}
@@ -456,19 +444,13 @@ void CraftEquipmentState::allItemsRightArrowPress(Action *action)
 	{
 		_timerAllItemsRight->stop();
 		_timerAllItemsLeft->stop();
-		for (_sel = 0; _sel != _items.size(); ++_sel)
-		{
-			moveRightByValue(Options::changeValueByMouseWheel);
-		}
+		moveAllItemsRightByValue(Options::changeValueByMouseWheel);
 	}
 	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
 	{
 		_timerAllItemsRight->stop();
 		_timerAllItemsLeft->stop();
-		for (_sel = 0; _sel != _items.size(); ++_sel)
-		{
-			moveLeftByValue(Options::changeValueByMouseWheel);
-		}
+		moveAllItemsLeftByValue(Options::changeValueByMouseWheel);
 	}
 }
 
@@ -493,17 +475,11 @@ void CraftEquipmentState::allItemsRightArrowClick(Action *action)
 
 	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
 	{
-		for (_sel = 0; _sel != _items.size(); ++_sel)
-		{
-			moveRightByValue(INT_MAX);
-		}
+		moveAllItemsRightByValue(INT_MAX);
 	}
 	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
 	{
-		for (_sel = 0; _sel != _items.size(); ++_sel)
-		{
-			moveRightByValue(1);
-		}
+		moveAllItemsRightByValue(1);
 		_timerAllItemsRight->setInterval(250);
 		_timerAllItemsLeft->setInterval(250);
 	}
@@ -589,9 +565,39 @@ void CraftEquipmentState::moveAllItemsLeft()
 {
 	_timerAllItemsLeft->setInterval(50);
 	_timerAllItemsRight->setInterval(50);
+	moveAllItemsLeftByValue(1);
+}
+
+/**
+ * Moves the given number of all item types to the base.
+ */
+void CraftEquipmentState::moveAllItemsLeftByValue(int change)
+{
+	// First check if we are in balancing mode (e.g. only remove excess items).
+	bool balancing = false;
+	for (std::vector<std::string>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	{
+		// Quantity in craft should return zero for HWP's, which is ok here.
+		if (_currentCraft->getItems()->getItem(*i) > _reservedItems->getItem(*i))
+		{
+			balancing = true;
+			break;
+		}
+	}
+
+	// Update list.
 	for (_sel = 0; _sel != _items.size(); ++_sel)
 	{
-		moveLeftByValue(1);
+		// Quantity in craft should return zero for HWP's, which is ok here.
+		int cQty = _currentCraft->getItems()->getItem(_items[_sel]);
+		int rQty = _reservedItems->getItem(_items[_sel]);
+
+		if (balancing && cQty <= rQty)
+		{
+			// In "balancing" mode, skip this item.
+			continue;
+		}
+		moveLeftByValue(change);
 	}
 }
 
@@ -708,10 +714,42 @@ void CraftEquipmentState::moveAllItemsRight()
 	_timerAllItemsLeft->setInterval(50);
 	_timerAllItemsRight->setInterval(50);
 	for (_sel = 0; _sel != _items.size(); ++_sel)
+	moveAllItemsRightByValue(1);
+}
+
+/**
+ * Moves the given number of all item types to the craft.
+ */
+void CraftEquipmentState::moveAllItemsRightByValue(int change)
+{
+	// First check if we are in balancing mode (e.g. only add missing items).
+	bool balancing = false;
+	for (std::vector<std::string>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
-		moveRightByValue(1);
+		// Quantity in craft should return zero for HWP's, which is ok here.
+		if (_currentCraft->getItems()->getItem(*i) < _reservedItems->getItem(*i))
+		{
+			balancing = true;
+			break;
+		}
+	}
+
+	// Update list.
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	{
+		// Quantity in craft should return zero for HWP's, which is ok here.
+		int cQty = _currentCraft->getItems()->getItem(_items[_sel]);
+		int rQty = _reservedItems->getItem(_items[_sel]);
+
+		if (balancing && cQty >= rQty)
+		{
+			// In "balancing" mode, skip this item.
+			continue;
+		}
+		moveRightByValue(change);
 	}
 }
+
 
 /**
  * Moves the given number of items (selected) to the craft.
