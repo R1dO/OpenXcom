@@ -571,12 +571,14 @@ void CraftEquipmentState::moveAllItemsLeft()
  */
 void CraftEquipmentState::moveAllItemsLeftByValue(int change)
 {
-	// First check if we are in balancing mode (e.g. only remove excess items).
+	// Are we in balancing mode (e.g. only remove excess items).
 	bool balancing = false;
 	for (std::vector<std::string>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
-		// Quantity in craft should return zero for HWP's, which is ok here.
-		if (_currentCraft->getItems()->getItem(*i) > _reservedItems->getItem(*i))
+		int cQty = _currentCraft->getItems()->getItem(*i); // Returns zero for HWP's, which is ok here.
+		int rQty = _reservedItems->getItem(*i);
+
+		if (cQty > rQty)
 		{
 			balancing = true;
 			break;
@@ -586,8 +588,7 @@ void CraftEquipmentState::moveAllItemsLeftByValue(int change)
 	// Update list.
 	for (_sel = 0; _sel != _items.size(); ++_sel)
 	{
-		// Quantity in craft should return zero for HWP's, which is ok here.
-		int cQty = _currentCraft->getItems()->getItem(_items[_sel]);
+		int cQty = _currentCraft->getItems()->getItem(_items[_sel]); // Returns zero for HWP's, which is ok here.
 		int rQty = _reservedItems->getItem(_items[_sel]);
 
 		if (balancing && cQty <= rQty)
@@ -720,12 +721,15 @@ void CraftEquipmentState::moveAllItemsRight()
  */
 void CraftEquipmentState::moveAllItemsRightByValue(int change)
 {
-	// First check if we are in balancing mode (e.g. only add missing items).
+	// Are we in balancing mode (e.g. only add missing items).
 	bool balancing = false;
 	for (std::vector<std::string>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
-		// Quantity in craft should return zero for HWP's, which is ok here.
-		if (_currentCraft->getItems()->getItem(*i) < _reservedItems->getItem(*i))
+		int bqty = _base->getStorageItems()->getItem(*i);
+		int cQty = _currentCraft->getItems()->getItem(*i); // Returns zero for HWP's, which is ok here.
+		int rQty = _reservedItems->getItem(*i);
+
+		if (cQty < rQty && bqty + cQty >= rQty)
 		{
 			balancing = true;
 			break;
@@ -735,8 +739,7 @@ void CraftEquipmentState::moveAllItemsRightByValue(int change)
 	// Update list.
 	for (_sel = 0; _sel != _items.size(); ++_sel)
 	{
-		// Quantity in craft should return zero for HWP's, which is ok here.
-		int cQty = _currentCraft->getItems()->getItem(_items[_sel]);
+		int cQty = _currentCraft->getItems()->getItem(_items[_sel]); // Returns zero for HWP's, which is ok here.
 		int rQty = _reservedItems->getItem(_items[_sel]);
 
 		if (balancing && cQty >= rQty)
