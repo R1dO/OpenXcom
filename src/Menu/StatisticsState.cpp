@@ -171,8 +171,9 @@ void StatisticsState::listStats()
 		allSoldiers.insert(allSoldiers.end(), (*i)->getSoldiers()->begin(), (*i)->getSoldiers()->end());
 	}
 	allSoldiers.insert(allSoldiers.end(), save->getDeadSoldiers()->begin(), save->getDeadSoldiers()->end());
-	int soldiersRecruited = allSoldiers.size();
+	int soldiersRecruited = save->getId("STR_SOLDIER") - 1;
 	int soldiersLost = save->getDeadSoldiers()->size();
+	int soldiersSacked = soldiersRecruited - allSoldiers.size();
 
 	int aliensKilled = 0, aliensCaptured = 0, friendlyKills = 0;
 	int daysWounded = 0, longestMonths = 0;
@@ -296,6 +297,7 @@ void StatisticsState::listStats()
 	_lstStats->addRow(2, tr("STR_WORST_RATING").c_str(), Unicode::formatNumber(worstScore).c_str());
 	_lstStats->addRow(2, tr("STR_SOLDIERS_RECRUITED").c_str(), Unicode::formatNumber(soldiersRecruited).c_str());
 	_lstStats->addRow(2, tr("STR_SOLDIERS_LOST").c_str(), Unicode::formatNumber(soldiersLost).c_str());
+	_lstStats->addRow(2, tr("STR_SOLDIERS_SACKED").c_str(), Unicode::formatNumber(soldiersSacked).c_str());
 	_lstStats->addRow(2, tr("STR_ALIEN_KILLS").c_str(), Unicode::formatNumber(aliensKilled).c_str());
 	_lstStats->addRow(2, tr("STR_ALIEN_CAPTURES").c_str(), Unicode::formatNumber(aliensCaptured).c_str());
 	_lstStats->addRow(2, tr("STR_FRIENDLY_KILLS").c_str(), Unicode::formatNumber(friendlyKills).c_str());

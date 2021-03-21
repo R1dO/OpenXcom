@@ -1210,6 +1210,7 @@ en-US:
   STR_COMPONENTS: "Components"
   STR_SOLDIERS_RECRUITED: "Aquanauts recruited"
   STR_SOLDIERS_LOST: "Aquanauts lost"
+  STR_SOLDIERS_SACKED: "Aquanauts sacked"
   STR_TOTAL_UFOS: "Flying subs detected"
   STR_TOTAL_ALIEN_BASES: "Alien colonies discovered"
   STR_PSIONIC_STRENGTH_ABBREVIATION: "MST"

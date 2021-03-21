@@ -1074,6 +1074,7 @@ en-US:
   STR_COMPONENTS: "Components"
   STR_SOLDIERS_RECRUITED: "Soldiers recruited"
   STR_SOLDIERS_LOST: "Soldiers lost"
+  STR_SOLDIERS_SACKED: "Soldiers sacked"
   STR_TOTAL_UFOS: "UFOs detected"
   STR_TOTAL_ALIEN_BASES: "Alien bases discovered"
   STR_PSIONIC_STRENGTH_ABBREVIATION: "PST"
