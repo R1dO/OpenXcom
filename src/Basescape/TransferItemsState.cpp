@@ -578,7 +578,7 @@ void TransferItemsState::completeTransfer()
 				// Redirect on-route first (protect against negative amounts on base).
 				if (toOriginTransfers)
 				{
-					for (std::vector<Transfer*>::iterator s = origin->getTransfers()->begin(); s != origin->getTransfers()->end();)
+					for (std::vector<Transfer*>::iterator s = origin->getTransfers()->begin(); s != origin->getTransfers()->end() && change;)
 					{
 						if ((*s)->getType() == TRANSFER_SCIENTIST && (*s)->getQuantity() <= change)
 						{
@@ -596,7 +596,6 @@ void TransferItemsState::completeTransfer()
 
 							(*s)->setScientists((*s)->getQuantity() - change);
 							change = 0;
-							break;
 						}
 						else
 						{
@@ -616,7 +615,7 @@ void TransferItemsState::completeTransfer()
 				// Redirect on-route first (protect against negative amounts on base).
 				if (toOriginTransfers)
 				{
-					for (std::vector<Transfer*>::iterator s = origin->getTransfers()->begin(); s != origin->getTransfers()->end();)
+					for (std::vector<Transfer*>::iterator s = origin->getTransfers()->begin(); s != origin->getTransfers()->end() && change;)
 					{
 						if ((*s)->getType() == TRANSFER_ENGINEER && (*s)->getQuantity() <= change)
 						{
@@ -634,7 +633,6 @@ void TransferItemsState::completeTransfer()
 
 							(*s)->setEngineers((*s)->getQuantity() - change);
 							change = 0;
-							break;
 						}
 						else
 						{
@@ -654,7 +652,7 @@ void TransferItemsState::completeTransfer()
 				// Redirect on-route first (protect against negative amounts on base).
 				if (toOriginTransfers)
 				{
-					for (std::vector<Transfer*>::iterator s = origin->getTransfers()->begin(); s != origin->getTransfers()->end();)
+					for (std::vector<Transfer*>::iterator s = origin->getTransfers()->begin(); s != origin->getTransfers()->end() && change;)
 					{
 						if ((*s)->getItems() == ((RuleItem*)i->rule)->getType() && (*s)->getQuantity() <= change)
 						{
@@ -672,7 +670,6 @@ void TransferItemsState::completeTransfer()
 
 							(*s)->setItems(((RuleItem*)i->rule)->getType(), (*s)->getQuantity() - change);
 							change = 0;
-							break;
 						}
 						else
 						{
