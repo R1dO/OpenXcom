@@ -586,6 +586,7 @@ void TransferItemsState::completeTransfer()
 							t->setScientists((*s)->getQuantity());
 							destination->getTransfers()->push_back(t);
 							change -= (*s)->getQuantity();
+							delete *s;
 							s = origin->getTransfers()->erase(s);
 						}
 						else if ((*s)->getType() == TRANSFER_SCIENTIST && (*s)->getQuantity() > change)
@@ -623,6 +624,7 @@ void TransferItemsState::completeTransfer()
 							t->setEngineers((*s)->getQuantity());
 							destination->getTransfers()->push_back(t);
 							change -= (*s)->getQuantity();
+							delete *s;
 							s = origin->getTransfers()->erase(s);
 						}
 						else if ((*s)->getType() == TRANSFER_ENGINEER && (*s)->getQuantity() > change)
@@ -660,6 +662,7 @@ void TransferItemsState::completeTransfer()
 							t->setItems(((RuleItem*)i->rule)->getType(), (*s)->getQuantity());
 							destination->getTransfers()->push_back(t);
 							change -= (*s)->getQuantity();
+							delete *s;
 							s = origin->getTransfers()->erase(s);
 						}
 						else if ((*s)->getItems() == ((RuleItem*)i->rule)->getType() && (*s)->getQuantity() > change)
