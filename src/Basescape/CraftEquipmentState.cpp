@@ -65,11 +65,12 @@ namespace OpenXcom
  * @param base Pointer to the base to get info from.
  * @param craft ID of the selected craft.
  */
-CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(0), _sel(0), _craft(craft), _base(base), _totalItems(0), _totalItemStorageSize(0.0), _ammoColor(0), _reload(true)
+CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(0), _sel(0), _craft(craft), _base(base), _totalItems(0), _totalItemStorageSize(0.0), _ammoColor(0), _reload(true), _showClaimedItems(false)
 {
 	Craft *c = _base->getCrafts()->at(_craft);
 	bool craftHasACrew = c->getNumTotalSoldiers() > 0;
 	bool isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
+	_showClaimedItems = Options::reservedAmountBehavior > 0;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -85,6 +86,11 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	_txtCrew = new Text(71, 9, 244, 24);
 	_lstEquipment = new TextList(288, 128, 8, 40);
 	_cbxFilterBy = new ComboBox(this, 140, 16, 16, 176, true);
+	if (_showClaimedItems)
+	{
+		_txtItemLimitAmount = new Text(76, 9, 160, 24);
+		_txtItemLimitSize = new Text(76, 9, 236, 24);
+	}
 
 	// Set palette
 	setInterface("craftEquipment");
@@ -104,6 +110,25 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	add(_txtCrew, "text", "craftEquipment");
 	add(_lstEquipment, "list", "craftEquipment");
 	add(_cbxFilterBy, "button", "craftEquipment");
+	if (_showClaimedItems)
+	{
+		// Increase visual spacing between 'subtitle' area and spreadsheet header.
+		_txtItem->setY(_txtItem->getY() + 2);
+		_txtStores->setY(_txtStores->getY() + 2);
+		_lstEquipment->setY(_lstEquipment->getY() + 2);
+
+		// Redefine subtitle area
+		// * Move Soldiers to left side (static part of screen).
+		// * Merge 2 space texts into one, keep at middle of screen.
+		// * Add 2 texts for running numbers of item size and item amount.
+		_txtCrew->setX(_txtAvailable->getX() - 8);
+		_txtCrew->setWidth(76);
+		_txtUsed->setX(84);
+		_txtUsed->setWidth(76);
+		_txtAvailable->setVisible(false);
+		add(_txtItemLimitSize, "text", "craftEquipment");
+		add(_txtItemLimitAmount, "text", "craftEquipment");
+	}
 
 	centerAllSurfaces();
 
@@ -132,10 +157,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	_txtItem->setText(tr("STR_ITEM"));
 
 	_txtStores->setText(tr("STR_STORES"));
-
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
 
 	std::ostringstream ss3;
 	ss3 << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << c->getNumTotalSoldiers();
@@ -433,6 +454,7 @@ void CraftEquipmentState::initList()
 			++row;
 		}
 	}
+	updateSubtitleArea();
 
 	_lstEquipment->draw();
 	if (_lstScroll > 0)
@@ -622,8 +644,7 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setCellText(_sel, 1, ss.str());
 	_lstEquipment->setCellText(_sel, 2, ss2.str());
 
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+	updateSubtitleArea();
 }
 
 /**
@@ -826,6 +847,40 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 		}
 	}
 	updateQuantity();
+}
+
+/**
+ * Updates variable texts between screen title and spreadsheet.
+ */
+void CraftEquipmentState::updateSubtitleArea()
+{
+	Craft *c = _base->getCrafts()->at(_craft);
+
+	if (_showClaimedItems)
+	{
+		std::ostringstream ssSpaceUsage, ssItemAmount, ssItemSize;
+		ssSpaceUsage << tr("STR_SPACE_UC") << ">" << Unicode::TOK_COLOR_FLIP;
+		ssSpaceUsage << c->getSpaceUsed() << ":" << c->getRules()->getMaxUnits();
+
+		ssItemSize << tr("STR_SIZE_UC") << ">" << Unicode::TOK_COLOR_FLIP << _totalItemStorageSize;
+		ssItemAmount << tr("STR_ITEMS_UC") << ">" << Unicode::TOK_COLOR_FLIP << _totalItems;
+		if (c->getRules()->getMaxStorageSpace() > 0.0)
+		{
+			ssItemSize << ":" << c->getRules()->getMaxStorageSpace();
+		}
+		if (c->getRules()->getMaxItems() > 0)
+		{
+			ssItemAmount << ":" << c->getRules()->getMaxItems();
+		}
+		_txtUsed->setText(ssSpaceUsage.str().c_str());
+		_txtItemLimitSize->setText(ssItemSize.str().c_str());
+		_txtItemLimitAmount->setText(ssItemAmount.str().c_str());
+	}
+	else
+	{
+		_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
+		_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+	}
 }
 
 /**
