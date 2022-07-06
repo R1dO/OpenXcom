@@ -513,7 +513,7 @@ set ( install_dest RUNTIME )
 set ( set_exec_path ON )
 set ( install_dest_dir bin )
 if ( UNIX AND NOT APPLE )
-  set ( data_install_dir "${CMAKE_INSTALL_FULL_DATADIR}/openxcom" )
+  set ( data_install_dir "${CMAKE_INSTALL_FULL_DATADIR}/openxcom.extended" )
   set_property ( SOURCE main.cpp APPEND PROPERTY COMPILE_DEFINITIONS DATADIR="${data_install_dir}/" )
 endif ()
 if ( APPLE )
@@ -556,13 +556,13 @@ if (( APPLE AND CREATE_BUNDLE ) OR CPACK_GENERATOR STREQUAL "7Z" )
   set ( CMAKE_INSTALL_BINDIR "." )
 endif ()
 
-add_executable ( openxcom  ${application_type} ${openxcom_src} ${openxcom_icon} )
+add_executable ( openxcom.extended  ${application_type} ${openxcom_src} ${openxcom_icon} )
 
 if ( EMBED_ASSETS )
-  add_dependencies(openxcom zips)
+  add_dependencies(openxcom.extended zips)
 endif ()
 
-install ( TARGETS openxcom ${install_dest} DESTINATION ${CMAKE_INSTALL_BINDIR} )
+install ( TARGETS openxcom.extended ${install_dest} DESTINATION ${CMAKE_INSTALL_BINDIR} )
 # Extra link flags for Windows. They need to be set before the SDL/YAML link flags, otherwise you will get strange link errors ('Undefined reference to WinMain@16')
 if ( WIN32 )
   set ( basic_windows_libs advapi32.lib shell32.lib shlwapi.lib wininet.lib urlmon.lib )
@@ -584,12 +584,12 @@ if (WIN32)
   set(WIN32_LIBS imagehlp dbghelp)
 endif(WIN32)
 
-target_link_libraries ( openxcom ${system_libs} ${PKG_DEPS_LDFLAGS} ${WIN32_LIBS} )
+target_link_libraries ( openxcom.extended ${system_libs} ${PKG_DEPS_LDFLAGS} ${WIN32_LIBS} )
 
 # Pack libraries into bundle and link executable appropriately
 if ( APPLE AND CREATE_BUNDLE )
   include ( PostprocessBundle )
-  postprocess_bundle ( openxcom ${bundle_path} )
+  postprocess_bundle ( openxcom.extended ${bundle_path} )
 endif ()
 
 if ( NOT EMBED_ASSETS )
@@ -601,7 +601,7 @@ if ( NOT EMBED_ASSETS )
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bin/${binpath} ${bundle_path}/Contents/Resources/${binpath}
 	    VERBATIM )
     else ()
-      add_custom_command ( TARGET openxcom
+      add_custom_command ( TARGET openxcom.extended
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bin/${binpath} ${EXECUTABLE_OUTPUT_PATH}/${binpath}
 	    VERBATIM )

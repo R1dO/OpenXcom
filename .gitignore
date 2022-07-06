@@ -68,6 +68,7 @@ bin/TFTD
 deps/
 docs/html/
 build/
+build.*/
 Dependencies/
 *.*.user
 #Ignore Vim swap files
