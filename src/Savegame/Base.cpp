@@ -614,16 +614,20 @@ int Base::getAvailableScientists() const
 /**
  * Returns the total amount of scientists contained
  * in the base.
+ * @param includeTransfers Whether to include scientists currently en-route (default=true)
  * @return Number of scientists.
  */
-int Base::getTotalScientists() const
+int Base::getTotalScientists(bool includeTransfers) const
 {
 	int total = _scientists;
-	for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
+	if (includeTransfers)
 	{
-		if ((*i)->getType() == TRANSFER_SCIENTIST)
+		for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
 		{
-			total += (*i)->getQuantity();
+			if ((*i)->getType() == TRANSFER_SCIENTIST)
+			{
+				total += (*i)->getQuantity();
+			}
 		}
 	}
 	const std::vector<ResearchProject *> & research (getResearch());
@@ -649,16 +653,20 @@ int Base::getAvailableEngineers() const
 /**
  * Returns the total amount of engineers contained
  * in the base.
+ * @param includeTransfers Whether to include engineers currently en-route (default=true)
  * @return Number of engineers.
  */
-int Base::getTotalEngineers() const
+int Base::getTotalEngineers(bool includeTransfers) const
 {
 	int total = _engineers;
-	for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
+	if (includeTransfers)
 	{
-		if ((*i)->getType() == TRANSFER_ENGINEER)
+		for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
 		{
-			total += (*i)->getQuantity();
+			if ((*i)->getType() == TRANSFER_ENGINEER)
+			{
+				total += (*i)->getQuantity();
+			}
 		}
 	}
 	for (std::vector<Production *>::const_iterator iter = _productions.begin(); iter != _productions.end(); ++iter)
@@ -879,6 +887,37 @@ int Base::getAvailableStores() const
 		}
 	}
 	return total;
+}
+
+
+/**
+ * Return the amount of a storage item en-route to this base.
+ *
+ * @param item              Pointer to item ruleset.
+ * @param includeCraftItems Whether to include items from in-transfer craft(s).
+ * @return Amount of a specific item en-route.
+ */
+int Base::getItemCountTransfers(const RuleItem* item, bool includeCraftItems) const
+{
+	if (!item) return 0;
+	int qtyClaimed = 0;
+
+	for (const auto transfer : _transfers)
+	{
+		if (transfer->getType() == TRANSFER_ITEM && transfer->getItems() == item->getType())
+		{
+			qtyClaimed += transfer->getQuantity();
+		}
+
+		if (includeCraftItems && transfer->getType() == TRANSFER_CRAFT)
+		{
+			// Fuel is only cosmetic, hence not included.
+			qtyClaimed += transfer->getCraft()->getItemClaimByCraft(item);
+		}
+		// Soldiers do not carry items during transfer, no need to check that category.
+	}
+
+	return qtyClaimed;
 }
 
 /**
@@ -1124,16 +1163,20 @@ int Base::getLongRangeDetection() const
  * Returns the total amount of craft of
  * a certain type stored in the base.
  * @param craft Craft type.
+ * @param includeTransfers Whether to include craft currently en-route (default=true)
  * @return Number of craft.
  */
-int Base::getCraftCount(const RuleCraft *craft) const
+int Base::getCraftCount(const RuleCraft *craft, bool includeTransfers) const
 {
 	int total = 0;
-	for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
+	if (includeTransfers)
 	{
-		if ((*i)->getType() == TRANSFER_CRAFT && (*i)->getCraft()->getRules() == craft)
+		for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
 		{
-			total++;
+			if ((*i)->getType() == TRANSFER_CRAFT && (*i)->getCraft()->getRules() == craft)
+			{
+				total++;
+			}
 		}
 	}
 	for (std::vector<Craft*>::const_iterator i = _crafts.begin(); i != _crafts.end(); ++i)
@@ -1188,18 +1231,22 @@ int Base::getCraftMaintenance() const
  * Returns the total count and total salary of soldiers of
  * a certain type stored in the base.
  * @param soldier Soldier type.
+ * @param includeTransfers Whether to include soldiers currently en-route (default=true)
  * @return Number of soldiers and their salary.
  */
-std::pair<int, int> Base::getSoldierCountAndSalary(const std::string &soldier) const
+std::pair<int, int> Base::getSoldierCountAndSalary(const std::string &soldier, bool includeTransfers) const
 {
 	int total = 0;
 	int totalSalary = 0;
-	for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
+	if (includeTransfers)
 	{
-		if ((*i)->getType() == TRANSFER_SOLDIER && (*i)->getSoldier()->getRules()->getType() == soldier)
+		for (std::vector<Transfer*>::const_iterator i = _transfers.begin(); i != _transfers.end(); ++i)
 		{
-			total++;
-			totalSalary += (*i)->getSoldier()->getRules()->getSalaryCost((*i)->getSoldier()->getRank());
+			if ((*i)->getType() == TRANSFER_SOLDIER && (*i)->getSoldier()->getRules()->getType() == soldier)
+			{
+				total++;
+				totalSalary += (*i)->getSoldier()->getRules()->getSalaryCost((*i)->getSoldier()->getRank());
+			}
 		}
 	}
 	for (std::vector<Soldier*>::const_iterator i = _soldiers.begin(); i != _soldiers.end(); ++i)

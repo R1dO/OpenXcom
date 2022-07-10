@@ -42,6 +42,7 @@ class Production;
 class Vehicle;
 class Ufo;
 class AlienMission;
+class RuleItem;
 
 enum UfoDetection : int;
 enum BasePlacementErrors : int
@@ -161,11 +162,11 @@ public:
 	/// Gets the base's available scientists.
 	int getAvailableScientists() const;
 	/// Gets the base's total scientists.
-	int getTotalScientists() const;
+	int getTotalScientists(bool includeTransfers = true) const;
 	/// Gets the base's available engineers.
 	int getAvailableEngineers() const;
 	/// Gets the base's total engineers.
-	int getTotalEngineers() const;
+	int getTotalEngineers(bool includeTransfers = true) const;
 	/// Gets the base's total number and cost of other staff & inventory.
 	int getTotalOtherStaffAndInventoryCost(int& staffCount, int& inventoryCount) const;
 	/// Gets the base's used living quarters.
@@ -207,13 +208,13 @@ public:
 	/// Gets the base's long range detection.
 	int getLongRangeDetection() const;
 	/// Gets the base's crafts of a certain type.
-	int getCraftCount(const RuleCraft *craft) const;
+	int getCraftCount(const RuleCraft *craft, bool includeTransfers = true) const;
 	/// Gets the base's crafts of a certain type.
 	int getCraftCountForProduction(const RuleCraft *craft) const;
 	/// Gets the base's craft maintenance.
 	int getCraftMaintenance() const;
 	/// Gets the total count and total salary of soldiers of a certain type stored in the base.
-	std::pair<int, int> getSoldierCountAndSalary(const std::string &soldier) const;
+	std::pair<int, int> getSoldierCountAndSalary(const std::string &soldier, bool includeTransfers = true) const;
 	/// Gets the base's personnel maintenance.
 	int getPersonnelMaintenance() const;
 	/// Gets the base's facility maintenance.
@@ -311,6 +312,9 @@ public:
 	std::vector<Craft*>::iterator removeCraft(Craft *craft, bool unload);
 
 	int getSoldierAllocatedCount(const std::string &soldier) const;
+	int getItemCountTransfers(
+		const RuleItem* item,
+		bool includeCraftItems = true) const;
 };
 
 }
