@@ -148,14 +148,7 @@ void SellState::delayedInit()
 	_txtTitle->setAlign(ALIGN_CENTER);
 	_txtTitle->setText(tr("STR_SELL_ITEMS_SACK_PERSONNEL"));
 
-	_txtFunds->setText(tr("STR_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
-
 	_txtSpaceUsed->setVisible(Options::storageLimitsEnforced);
-
-	std::ostringstream ss;
-	ss << _base->getUsedStores() << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(ss.str());
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
 
 	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
 
@@ -319,9 +312,6 @@ void SellState::delayedInit()
 		}
 	}
 
-	int64_t adjustedTotal = _total * _game->getSavedGame()->getSellPriceCoefficient() / 100;
-	_txtSales->setText(tr("STR_VALUE_OF_SALES").arg(Unicode::formatFunding(adjustedTotal)));
-
 	_cbxCategory->setOptions(_cats, true);
 	_cbxCategory->onChange((ActionHandler)&SellState::cbxCategoryChange);
 	_cbxCategory->onKeyboardPress((ActionHandler)&SellState::btnSellAllClick, Options::keySellAll);
@@ -335,6 +325,8 @@ void SellState::delayedInit()
 	_cbxCategory->onKeyboardRelease((ActionHandler)&SellState::btnQuickSearchToggle, Options::keyToggleQuickSearch);
 
 	updateList();
+	updateSubtitleLine();
+	updateOkButton();
 }
 
 /**
@@ -1048,6 +1040,8 @@ void SellState::changeByValue(int change, int dir)
 	}
 
 	updateItemStrings();
+	updateSubtitleLine();
+	updateOkButton();
 }
 
 /**
@@ -1070,8 +1064,6 @@ void SellState::updateItemStrings()
 	_lstItems->setCellText(_sel, 2, ss.str());
 	ss2 << getRow().qtySrc - getRow().amount;
 	_lstItems->setCellText(_sel, 1, ss2.str());
-	int64_t adjustedTotal = _total * _game->getSavedGame()->getSellPriceCoefficient() / 100;
-	_txtSales->setText(tr("STR_VALUE_OF_SALES").arg(Unicode::formatFunding(adjustedTotal)));
 
 	if (getRow().amount > 0)
 	{
@@ -1088,21 +1080,6 @@ void SellState::updateItemStrings()
 				_lstItems->setRowColor(_sel, _ammoColor);
 			}
 		}
-	}
-
-	ss3 << _base->getUsedStores();
-	if (std::abs(_spaceChange) > 0.05)
-	{
-		ss3 << "(";
-		if (_spaceChange > 0.05)
-			ss3 << "+";
-		ss3 << std::fixed << std::setprecision(1) << _spaceChange << ")";
-	}
-	ss3 << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss3.str()));
-	if (_debriefingState == 0 && Options::storageLimitsEnforced)
-	{
-		_btnOk->setVisible(!_base->storesOverfull(_spaceChange));
 	}
 }
 
@@ -1127,6 +1104,45 @@ void SellState::cbxCategoryChange(Action *)
 	}
 
 	updateList();
+}
+
+/**
+ * Updates variable texts between screen title and spreadsheet.
+ */
+void SellState::updateSubtitleLine()
+{
+	_txtFunds->setText(tr("STR_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
+
+	int64_t adjustedTotal = _total * _game->getSavedGame()->getSellPriceCoefficient() / 100;
+	_txtSales->setText(tr("STR_VALUE_OF_SALES").arg(Unicode::formatFunding(adjustedTotal)));
+
+	if (_txtSpaceUsed->getVisible())
+	{
+		std::ostringstream ss;
+		ss << _base->getUsedStores();
+		if (std::abs(_spaceChange) > 0.05)
+		{
+			ss << "(";
+			if (_spaceChange > 0.05)
+				ss << "+";
+			ss << std::fixed << std::setprecision(1) << _spaceChange << ")";
+		}
+		ss << ":" << _base->getAvailableStores();
+		_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
+	}
+}
+
+/**
+ * Enables or disables the OK button based.
+ *
+ * Based on wether or not base stores are overflowing.
+ */
+void SellState::updateOkButton()
+{
+	if (_debriefingState == 0 && Options::storageLimitsEnforced)
+	{
+		_btnOk->setVisible(!_base->storesOverfull(_spaceChange));
+	}
 }
 
 }
