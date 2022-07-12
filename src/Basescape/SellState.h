@@ -45,6 +45,33 @@ class RuleItem;
 class SellState : public State
 {
 private:
+	/**
+	 * Tailored struct for the spreadsheet.
+	 */
+	struct SellRow
+	{
+		TransferType type;              ///< Item category.
+		const void *rule;               ///< Pointer to ruleset of item.
+		std::string name;               ///< Translated name of item.
+		int cost;                       ///< Sell value of item.
+		int qtySrc, qtyDst;             /**< Starting amounts (anything that is allowed to be changed)
+		                                 *
+		                                 * + Src: On base (by default: in stores only)
+		                                 * + Dst: On market (not used in this screen)
+		                                */
+		int amount;                     /**< Requested change.
+		                                 *
+		                                 * + Positive values moves an item away from base stores (e.g. SELL).
+		                                 * + Negative values moves an item towards base stores (e.g undo).
+		                                 */
+		int listOrder;                  /// Sorting: By original order?
+		double size, totalSize;         /// Sorting: By (combined) item sizes?
+		int64_t totalCost;              /// Sorting: By combined item cost?
+		int allocatedSrc, allocatedDst; ///< Display only: Item(s) allocated amount (resDst is not used in this screen).
+		int transferSrc, transferDst;   ///< Display only: Amount currently on route to Src/Dst. (Both not used in this screen)
+		int protectedSrc, protectedDst; ///< Amount of allocated not allowed to be changed (value =< allocated)
+	};
+
 	Base *_base;
 	DebriefingState *_debriefingState;
 	TextButton *_btnOk, *_btnCancel, *_btnTransfer;
@@ -53,7 +80,7 @@ private:
 	Text *_txtTitle, *_txtSales, *_txtFunds, *_txtQuantity, *_txtSell, *_txtValue, *_txtSpaceUsed;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
-	std::vector<TransferRow> _items;
+	std::vector<SellRow> _items;
 	std::vector<int> _rows;
 	std::vector<std::string> _cats;
 	size_t _vanillaCategories;
@@ -73,7 +100,7 @@ private:
 	/// Determines if the current selection belongs to a given category.
 	bool belongsToCategory(int sel, const std::string &cat) const;
 	/// Gets the row of the current selection.
-	TransferRow &getRow() { return _items[_rows[_sel]]; }
+	SellRow &getRow() { return _items[_rows[_sel]]; }
 	/// Do we use the alternate base screen option?
 	bool _alternateScreen;
 	void updateSubtitleLine();
