@@ -661,17 +661,29 @@ void SellState::updateList()
 			}
 		}
 		std::ostringstream ssQty, ssAmount;
-		ssQty << _items[i].qtySrc - _items[i].amount;
-		ssAmount << _items[i].amount;
 		int64_t adjustedCost = _items[i].cost;
 		adjustedCost = adjustedCost * sellPriceCoefficient / 100;
 
 		if (_alternateScreen)
 		{
-			_lstItems->addRow(6, name.c_str(), ssQty.str().c_str(), "(999)", "", ssAmount.str().c_str(), Unicode::formatFunding(adjustedCost).c_str());
+			ssQty << _items[i].qtySrc - _items[i].amount + _items[i].protectedSrc;
+			std::ostringstream ssReserved;
+			if (_items[i].allocatedSrc != 0)
+			{
+				ssReserved << "(" << _items[i].allocatedSrc << ")";
+			}
+			if (_items[i].amount != 0)
+			{
+				ssAmount << _items[i].amount;
+			}
+			//_lstItems->addRow(6, name.c_str(), "9999", "(999)", "", "9999", Unicode::formatFunding(99999999).c_str());
+			_lstItems->addRow(6, name.c_str(), ssQty.str().c_str(), ssReserved.str().c_str(), "", ssAmount.str().c_str(), Unicode::formatFunding(adjustedCost).c_str());
 		}
 		else
 		{
+			ssQty << _items[i].qtySrc - _items[i].amount;
+			ssAmount << _items[i].amount;
+			//_lstItems->addRow(4, name.c_str(), "9999", "9999", Unicode::formatFunding(99999999).c_str());
 			_lstItems->addRow(4, name.c_str(), ssQty.str().c_str(), ssAmount.str().c_str(), Unicode::formatFunding(adjustedCost).c_str());
 		}
 		_rows.push_back(i);
@@ -1182,15 +1194,23 @@ void SellState::decrease()
 void SellState::updateItemStrings()
 {
 	std::ostringstream ss, ss2, ss3;
-	ss << getRow().amount;
-	ss2 << getRow().qtySrc - getRow().amount;
-	_lstItems->setCellText(_sel, 1, ss2.str());
 	if (_alternateScreen)
 	{
+		ss2 << getRow().qtySrc - getRow().amount + getRow().protectedSrc;
+		_lstItems->setCellText(_sel, 1, ss2.str());
+
+		if (getRow().amount != 0)
+		{
+			ss << getRow().amount;
+		}
 		_lstItems->setCellText(_sel, 4, ss.str());
 	}
 	else
 	{
+		ss2 << getRow().qtySrc - getRow().amount;
+		_lstItems->setCellText(_sel, 1, ss2.str());
+
+		ss << getRow().amount;
 		_lstItems->setCellText(_sel, 2, ss.str());
 	}
 
