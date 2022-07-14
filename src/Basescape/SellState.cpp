@@ -678,7 +678,15 @@ void SellState::updateList()
 			std::ostringstream ssReserved;
 			if (_items[i].allocatedSrc != 0)
 			{
-				ssReserved << "(" << _items[i].allocatedSrc << ")";
+				if (_debriefingState != 0)
+				{
+					// Subtle indicator that qty and reserved are not correlated on this screen
+					ssReserved << _items[i].allocatedSrc;
+				}
+				else
+				{
+					ssReserved << "(" << _items[i].allocatedSrc << ")";
+				}
 			}
 			if (_items[i].amount != 0)
 			{
