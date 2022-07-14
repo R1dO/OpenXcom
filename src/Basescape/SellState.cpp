@@ -104,7 +104,14 @@ void SellState::delayedInit()
 	_txtSell = new Text(96, 9, 190, 44);
 	_txtValue = new Text(40, 9, 270, 44);
 	_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
-	_lstItems = new TextList(287, 120, 8, 54);
+	if (_alternateScreen)
+	{
+		_lstItems = new TextList(290, 120, 8, 54);
+	}
+	else
+	{
+		_lstItems = new TextList(287, 120, 8, 54);
+	}
 
 	// Set palette
 	setInterface("sellMenu");
@@ -162,7 +169,8 @@ void SellState::delayedInit()
 	{
 		_lstItems->setArrowColumn(189, ARROW_VERTICAL);
 		// Use an empty column to reserve space (28) for the arrows. To allow for arbitrary cell text alignment.
-		_lstItems->setColumns(6, 140, 22, 22, 28, 18, 55);
+		_lstItems->setColumns(6, 140, 23, 23, 26, 23, 53);
+		_lstItems->setScrolling(true,1); // default = 4
 	}
 	else
 	{
