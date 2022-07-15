@@ -271,21 +271,22 @@ void SellState::delayedInit()
 			// Only allowed to sell recovered items.
 			qty = _debriefingState->getRecoveredItemCount(rule);
 
-			// Let 'allocatedSrc' represent what is currently on base.
+			// Let 'allocatedSrc' represent what is currently on base for the recovered items.
 			// So player has an easier time figuring out if something is worth keeping.
-			// Virtual items are not included (no value for this scenario).
-			qtyAllocated = _base->getStorageItems()->getItem(rule)
+			if (qty > 0 && _alternateScreen)
+			{
+				qtyAllocated = _base->getStorageItems()->getItem(rule)
 				+ _base->getItemCountTransfers(rule, false)
 				+ _base->getItemClaimByResearch(rule)
 				+ _base->getItemClaimByManufacture(rule)
 				+ _base->getItemClaimByCrafts(rule, true);
-
-			// DebriefingState already added recovered items to base store, correct for that.
-			// init() >>> prepareDebriefing() >>> recoverItems()
-			qtyAllocated -= qty;
-			// Display trickery.
-			// Normally 'protectedSrc' is added to 'qtySrc' at display time, not what we want in this scenario.
-			qtyProtected = 0;
+				// DebriefingState already added recovered items to base store, correct for that.
+				// init() >>> prepareDebriefing() >>> recoverItems()
+				qtyAllocated -= qty;
+				// By design 'qtyProtected' stays zero in this specific scenario.
+				// To prevent adding 'protectedSrc' to 'qtySrc' at display time.
+				//qtyProtected = 0;
+			}
 		}
 		else
 		{
