@@ -375,8 +375,6 @@ void SellState::delayedInit()
 			}
 		}
 
-		if (qty > 0 && (Options::canSellLiveAliens || !rule->isAlien()))
-		{
 			SellRow row = { TRANSFER_ITEM, rule, tr(*i), rule->getSellCost(), 0, 0, 0, rule->getListOrder(), 0, 0, 0, 0, 0, 0, 0, 0, 0};
 			row.qtySrc = qty;
 			row.size = rule->getSize();
@@ -388,6 +386,8 @@ void SellState::delayedInit()
 				row.protectedSrc = qtyProtected;
 			}
 
+		if (row.qtySrc + row.allocatedSrc > 0 && (Options::canSellLiveAliens || !rule->isAlien()))
+		{
 			if ((_debriefingState != 0) && (_game->getSavedGame()->getAutosell(rule)))
 			{
 				row.amount = row.qtySrc;
