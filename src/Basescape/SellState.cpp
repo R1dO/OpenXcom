@@ -307,8 +307,9 @@ void SellState::delayedInit()
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
 		const RuleItem *rule = _game->getMod()->getItem(*i, true);
-		row = {};
+		if (rule->isAlien() == true && Options::canSellLiveAliens == false) continue;
 
+		row = {};
 		if (_debriefingState != 0)
 		{
 			// Only allowed to sell recovered items.
@@ -388,7 +389,7 @@ void SellState::delayedInit()
 			}
 		}
 
-		if ((row.qtySrc > 0 || row.allocatedSrc > 0) && (Options::canSellLiveAliens || !rule->isAlien()))
+		if (row.qtySrc > 0 || row.allocatedSrc > 0)
 		{
 			row.type = TRANSFER_ITEM;
 			row.rule = rule;
