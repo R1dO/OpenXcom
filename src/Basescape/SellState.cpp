@@ -832,6 +832,7 @@ void SellState::btnOkClick(Action *)
 	{
 		if (i->amount > 0)
 		{
+			int qtyToRemove = i->amount;
 			switch (i->type)
 			{
 			case TRANSFER_SOLDIER:
@@ -856,15 +857,64 @@ void SellState::btnOkClick(Action *)
 				delete craft;
 				break;
 			case TRANSFER_SCIENTIST:
-				_base->setScientists(_base->getScientists() - i->amount);
+				// Well ... if the player is that bend on burning cash ...
+				if (_reservedAmountBehavior > 0 && i->transferSrc > 0)
+				{
+					for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && qtyToRemove;)
+					{
+						if ((*j)->getType() == TRANSFER_SCIENTIST)
+						{
+							if ((*j)->getQuantity() <= qtyToRemove)
+							{
+								qtyToRemove -= (*j)->getQuantity();
+								delete *j;
+								j = _base->getTransfers()->erase(j);
+							}
+							else
+							{
+								(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - qtyToRemove);
+								qtyToRemove = 0;
+							}
+						}
+						else
+						{
+							++j;
+						}
+					}
+				}
+				_base->setScientists(_base->getScientists() - qtyToRemove);
 				break;
 			case TRANSFER_ENGINEER:
-				_base->setEngineers(_base->getEngineers() - i->amount);
+				// Perhaps better to reach out to this player and give "the (profit) talk"?
+				if (_reservedAmountBehavior > 0 && i->transferSrc > 0)
+				{
+					for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && qtyToRemove;)
+					{
+						if ((*j)->getType() == TRANSFER_ENGINEER)
+						{
+							if ((*j)->getQuantity() <= qtyToRemove)
+							{
+								qtyToRemove -= (*j)->getQuantity();
+								delete *j;
+								j = _base->getTransfers()->erase(j);
+							}
+							else
+							{
+								(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - qtyToRemove);
+								qtyToRemove = 0;
+							}
+						}
+						else
+						{
+							++j;
+						}
+					}
+				}
+				_base->setEngineers(_base->getEngineers() - qtyToRemove);
 				break;
 			case TRANSFER_ITEM:
 				RuleItem *item = (RuleItem*)i->rule;
 				{
-					int qtyToRemove = i->amount;
 					// Non-vanilla, use following remove order:
 					// * direct transfers
 					// * from base stores
