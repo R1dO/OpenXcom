@@ -830,189 +830,188 @@ void SellState::btnOkClick(Action *)
 
 	for (std::vector<SellRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
-		if (i->amount > 0)
-		{
-			int qtyToRemove = i->amount;
-			switch (i->type)
-			{
-			case TRANSFER_SOLDIER:
-				soldier = (Soldier*)i->rule;
-				for (std::vector<Soldier*>::iterator s = _base->getSoldiers()->begin(); s != _base->getSoldiers()->end(); ++s)
-				{
-					if (*s == soldier)
-					{
-						if ((*s)->getArmor()->getStoreItem())
-						{
-							_base->getStorageItems()->addItem((*s)->getArmor()->getStoreItem()->getType());
-						}
-						_base->getSoldiers()->erase(s);
-						break;
-					}
-				}
-				delete soldier;
-				break;
-			case TRANSFER_CRAFT:
-				craft = (Craft*)i->rule;
-				_base->removeCraft(craft, true);
-				delete craft;
-				break;
-			case TRANSFER_SCIENTIST:
-				// Well ... if the player is that bend on burning cash ...
-				if (_reservedAmountBehavior > 0 && i->transferSrc > 0)
-				{
-					for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && qtyToRemove;)
-					{
-						if ((*j)->getType() == TRANSFER_SCIENTIST)
-						{
-							if ((*j)->getQuantity() <= qtyToRemove)
-							{
-								qtyToRemove -= (*j)->getQuantity();
-								delete *j;
-								j = _base->getTransfers()->erase(j);
-							}
-							else
-							{
-								(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - qtyToRemove);
-								qtyToRemove = 0;
-							}
-						}
-						else
-						{
-							++j;
-						}
-					}
-				}
-				_base->setScientists(_base->getScientists() - qtyToRemove);
-				break;
-			case TRANSFER_ENGINEER:
-				// Perhaps better to reach out to this player and give "the (profit) talk"?
-				if (_reservedAmountBehavior > 0 && i->transferSrc > 0)
-				{
-					for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && qtyToRemove;)
-					{
-						if ((*j)->getType() == TRANSFER_ENGINEER)
-						{
-							if ((*j)->getQuantity() <= qtyToRemove)
-							{
-								qtyToRemove -= (*j)->getQuantity();
-								delete *j;
-								j = _base->getTransfers()->erase(j);
-							}
-							else
-							{
-								(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - qtyToRemove);
-								qtyToRemove = 0;
-							}
-						}
-						else
-						{
-							++j;
-						}
-					}
-				}
-				_base->setEngineers(_base->getEngineers() - qtyToRemove);
-				break;
-			case TRANSFER_ITEM:
-				RuleItem *item = (RuleItem*)i->rule;
-				{
-					// Non-vanilla, use following remove order:
-					// * direct transfers
-					// * from base stores
-					// * from base craft
-					// * from craft in transfer
-					// * from the abyss ?
-					// This way we can keep old logic intact (for vanilla) while
-					// protecting on base items a bit longer (less accidental craft unloads)
-					if (_reservedAmountBehavior > 0 && i->transferSrc > 0)
-					{
-						for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && qtyToRemove;)
-						{
-							if ((*j)->getItems() == item->getType())
-							{
-								if ((*j)->getQuantity() <= qtyToRemove)
-								{
-									qtyToRemove -= (*j)->getQuantity();
-									delete *j;
-									j = _base->getTransfers()->erase(j);
-								}
-								else
-								{
-									(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - qtyToRemove);
-									qtyToRemove = 0;
-								}
-							}
-							else
-							{
-								++j;
-							}
-						}
-					}
-
-					// remove all of said items from base
-					int toRemove = cleanUpContainer(_base->getStorageItems(), item, qtyToRemove);
-
-					// if we still need to remove any, remove them from the crafts first, and keep a running tally
-					for (std::vector<Craft*>::iterator j = _base->getCrafts()->begin(); j != _base->getCrafts()->end() && toRemove; ++j)
-					{
-						toRemove = cleanUpContainer((*j)->getItems(), item, toRemove);
-						if (toRemove > 0)
-						{
-							toRemove = cleanUpCraft((*j), item, toRemove);
-						}
-					}
-
-					// if there are STILL any left to remove, take them from the transfers, and if necessary, delete it.
-					for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && toRemove;)
-					{
-						if ((*j)->getItems() == item->getType() && _reservedAmountBehavior == 0) // No need to run twice
-						{
-							if ((*j)->getQuantity() <= toRemove)
-							{
-								toRemove -= (*j)->getQuantity();
-								delete *j;
-								j = _base->getTransfers()->erase(j);
-							}
-							else
-							{
-								(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - toRemove);
-								toRemove = 0;
-							}
-						}
-						else
-						{
-							if ((*j)->getCraft())
-							{
-								toRemove = cleanUpContainer((*j)->getCraft()->getItems(), item, toRemove);
-								if (toRemove > 0)
-								{
-									toRemove = cleanUpCraft((*j)->getCraft(), item, toRemove);
-								}
-							}
-							++j;
-						}
-					}
-				}
-
-				// Note: this only updates a helper map, it doesn't affect real item recovery (that has already happened and all items are already in the base)
-				if (_debriefingState != 0)
-				{
-					// remember the decreased amount for next sell/transfer
-					_debriefingState->decreaseRecoveredItemCount(item, i->amount);
-
-					// set autosell status if we sold all of the item
-					_game->getSavedGame()->setAutosell(item, (i->qtySrc == i->amount));
-				}
-
-				break;
-			}
-		}
-		else
+		if (i->amount <= 0)
 		{
 			if (_debriefingState != 0 && i->type == TRANSFER_ITEM)
 			{
 				// disable autosell since we haven't sold any of the item.
 				_game->getSavedGame()->setAutosell((RuleItem*)i->rule, false);
 			}
+			continue;
+		}
+
+		int qtyToRemove = i->amount;
+		switch (i->type)
+		{
+		case TRANSFER_SOLDIER:
+			soldier = (Soldier*)i->rule;
+			for (std::vector<Soldier*>::iterator s = _base->getSoldiers()->begin(); s != _base->getSoldiers()->end(); ++s)
+			{
+				if (*s == soldier)
+				{
+					if ((*s)->getArmor()->getStoreItem())
+					{
+						_base->getStorageItems()->addItem((*s)->getArmor()->getStoreItem()->getType());
+					}
+					_base->getSoldiers()->erase(s);
+					break;
+				}
+			}
+			delete soldier;
+			break;
+		case TRANSFER_CRAFT:
+			craft = (Craft*)i->rule;
+			_base->removeCraft(craft, true);
+			delete craft;
+			break;
+		case TRANSFER_SCIENTIST:
+			// Well ... if the player is that bend on burning cash ...
+			if (_reservedAmountBehavior > 0 && i->transferSrc > 0)
+			{
+				for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && qtyToRemove;)
+				{
+					if ((*j)->getType() == TRANSFER_SCIENTIST)
+					{
+						if ((*j)->getQuantity() <= qtyToRemove)
+						{
+							qtyToRemove -= (*j)->getQuantity();
+							delete *j;
+							j = _base->getTransfers()->erase(j);
+						}
+						else
+						{
+							(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - qtyToRemove);
+							qtyToRemove = 0;
+						}
+					}
+					else
+					{
+						++j;
+					}
+				}
+			}
+			_base->setScientists(_base->getScientists() - qtyToRemove);
+			break;
+		case TRANSFER_ENGINEER:
+			// Perhaps better to reach out to this player and give "the (profit) talk"?
+			if (_reservedAmountBehavior > 0 && i->transferSrc > 0)
+			{
+				for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && qtyToRemove;)
+				{
+					if ((*j)->getType() == TRANSFER_ENGINEER)
+					{
+						if ((*j)->getQuantity() <= qtyToRemove)
+						{
+							qtyToRemove -= (*j)->getQuantity();
+							delete *j;
+							j = _base->getTransfers()->erase(j);
+						}
+						else
+						{
+							(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - qtyToRemove);
+							qtyToRemove = 0;
+						}
+					}
+					else
+					{
+						++j;
+					}
+				}
+			}
+			_base->setEngineers(_base->getEngineers() - qtyToRemove);
+			break;
+		case TRANSFER_ITEM:
+			RuleItem *item = (RuleItem*)i->rule;
+			{
+				// Non-vanilla, use following remove order:
+				// * direct transfers
+				// * from base stores
+				// * from base craft
+				// * from craft in transfer
+				// * from the abyss ?
+				// This way we can keep old logic intact (for vanilla) while
+				// protecting on base items a bit longer (less accidental craft unloads)
+				if (_reservedAmountBehavior > 0 && i->transferSrc > 0)
+				{
+					for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && qtyToRemove;)
+					{
+						if ((*j)->getItems() == item->getType())
+						{
+							if ((*j)->getQuantity() <= qtyToRemove)
+							{
+								qtyToRemove -= (*j)->getQuantity();
+								delete *j;
+								j = _base->getTransfers()->erase(j);
+							}
+							else
+							{
+								(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - qtyToRemove);
+								qtyToRemove = 0;
+							}
+						}
+						else
+						{
+							++j;
+						}
+					}
+				}
+
+				// remove all of said items from base
+				int toRemove = cleanUpContainer(_base->getStorageItems(), item, qtyToRemove);
+
+				// if we still need to remove any, remove them from the crafts first, and keep a running tally
+				for (std::vector<Craft*>::iterator j = _base->getCrafts()->begin(); j != _base->getCrafts()->end() && toRemove; ++j)
+				{
+					toRemove = cleanUpContainer((*j)->getItems(), item, toRemove);
+					if (toRemove > 0)
+					{
+						toRemove = cleanUpCraft((*j), item, toRemove);
+					}
+				}
+
+				// if there are STILL any left to remove, take them from the transfers, and if necessary, delete it.
+				for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && toRemove;)
+				{
+					if ((*j)->getItems() == item->getType() && _reservedAmountBehavior == 0) // No need to run twice
+					{
+						if ((*j)->getQuantity() <= toRemove)
+						{
+							toRemove -= (*j)->getQuantity();
+							delete *j;
+							j = _base->getTransfers()->erase(j);
+						}
+						else
+						{
+							(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - toRemove);
+							toRemove = 0;
+						}
+					}
+					else
+					{
+						if ((*j)->getCraft())
+						{
+							toRemove = cleanUpContainer((*j)->getCraft()->getItems(), item, toRemove);
+							if (toRemove > 0)
+							{
+								toRemove = cleanUpCraft((*j)->getCraft(), item, toRemove);
+							}
+						}
+						++j;
+					}
+				}
+			}
+
+			// Note: this only updates a helper map, it doesn't affect real item recovery (that has already happened and all items are already in the base)
+			if (_debriefingState != 0)
+			{
+				// remember the decreased amount for next sell/transfer
+				_debriefingState->decreaseRecoveredItemCount(item, i->amount);
+
+				// set autosell status if we sold all of the item
+				_game->getSavedGame()->setAutosell(item, (i->qtySrc == i->amount));
+			}
+
+			break;
 		}
 	}
 	if (_debriefingState != 0 && _debriefingState->getTotalRecoveredItemCount() <= 0)
