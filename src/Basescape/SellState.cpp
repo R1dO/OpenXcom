@@ -383,8 +383,9 @@ void SellState::delayedInit()
 				// Non-vanilla already included in-transfer amounts.
 				if (_reservedAmountBehavior == 0)
 				{
-					row.transferSrc = _base->getItemCountTransfers(rule, false);
-					row.qtySrc += row.transferSrc;
+					row.qtySrc += _base->getItemCountTransfers(rule, false);
+					// Prepare for adapted btnOKClick logic, to keep vanilla behavior set field to zero.
+					row.transferSrc = 0;
 				}
 			}
 		}
@@ -863,8 +864,42 @@ void SellState::btnOkClick(Action *)
 			case TRANSFER_ITEM:
 				RuleItem *item = (RuleItem*)i->rule;
 				{
+					int qtyToRemove = i->amount;
+					// Non-vanilla, use following remove order:
+					// * direct transfers
+					// * from base stores
+					// * from base craft
+					// * from craft in transfer
+					// * from the abyss ?
+					// This way we can keep old logic intact (for vanilla) while
+					// protecting on base items a bit longer (less accidental craft unloads)
+					if (_reservedAmountBehavior > 0 && i->transferSrc > 0)
+					{
+						for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && qtyToRemove;)
+						{
+							if ((*j)->getItems() == item->getType())
+							{
+								if ((*j)->getQuantity() <= qtyToRemove)
+								{
+									qtyToRemove -= (*j)->getQuantity();
+									delete *j;
+									j = _base->getTransfers()->erase(j);
+								}
+								else
+								{
+									(*j)->setItems((*j)->getItems(), (*j)->getQuantity() - qtyToRemove);
+									qtyToRemove = 0;
+								}
+							}
+							else
+							{
+								++j;
+							}
+						}
+					}
+
 					// remove all of said items from base
-					int toRemove = cleanUpContainer(_base->getStorageItems(), item, i->amount);
+					int toRemove = cleanUpContainer(_base->getStorageItems(), item, qtyToRemove);
 
 					// if we still need to remove any, remove them from the crafts first, and keep a running tally
 					for (std::vector<Craft*>::iterator j = _base->getCrafts()->begin(); j != _base->getCrafts()->end() && toRemove; ++j)
@@ -879,7 +914,7 @@ void SellState::btnOkClick(Action *)
 					// if there are STILL any left to remove, take them from the transfers, and if necessary, delete it.
 					for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end() && toRemove;)
 					{
-						if ((*j)->getItems() == item->getType())
+						if ((*j)->getItems() == item->getType() && _reservedAmountBehavior == 0) // No need to run twice
 						{
 							if ((*j)->getQuantity() <= toRemove)
 							{
