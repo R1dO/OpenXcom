@@ -167,7 +167,7 @@ void SellState::delayedInit()
 		_lstItems->setArrowColumn(189, ARROW_VERTICAL);
 		// Use an empty column to reserve space (28) for the arrows. To allow for arbitrary cell text alignment.
 		_lstItems->setColumns(6, 140, 23, 23, 26, 23, 53);
-		_lstItems->setScrolling(true,1); // default = 4
+		_lstItems->setScrolling(true, 1); // default = 4
 	}
 	else
 	{
@@ -345,7 +345,7 @@ void SellState::delayedInit()
 				int soldierArmor = _base->getItemClaimBySoldiers(rule, true, false)
 					- _base->getItemClaimBySoldiers(rule, true, true);
 
-				// Display of reserved amounts (includes non-refundable and future production).
+				// Display of reserved amounts (includes non-refundable, future production and craft fuel).
 				row.allocatedSrc = _base->getItemClaimByResearch(rule, false)
 					+ _base->getItemClaimByManufacture(rule, false, false)
 					+ _base->getItemClaimByCrafts(rule, true, true, false)
@@ -687,7 +687,8 @@ void SellState::updateList()
 
 		if (_reservedAmountBehavior > 0)
 		{
-			ssQty << _items[i].qtySrc - _items[i].amount + _items[i].protectedSrc;
+			// 3rd column: Anything that (eventually) exist on the base (even purely virtual).
+			ssQty << _items[i].qtySrc + _items[i].protectedSrc - _items[i].amount;
 			std::ostringstream ssReserved;
 			if (_items[i].allocatedSrc != 0)
 			{
@@ -698,6 +699,7 @@ void SellState::updateList()
 				}
 				else
 				{
+					// 4th column: Show which part of 3rd column is currently allocated (hence the brackets).
 					ssReserved << "(" << _items[i].allocatedSrc << ")";
 				}
 			}
