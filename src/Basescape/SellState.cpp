@@ -341,18 +341,25 @@ void SellState::delayedInit()
 				// Always allow sale of in-transfer items, unless part of a craft.
 				row.transferSrc = _base->getItemCountTransfers(rule, false);
 
-				// Worn armor (virtual item).
+				// Worn armor, can (theoretically) return to base stores.
 				int soldierArmor = _base->getItemClaimBySoldiers(rule, true, false)
 					- _base->getItemClaimBySoldiers(rule, true, true);
 
-				// Display of reserved amounts (includes non-refundable, future production and craft fuel).
+				// Reserved amounts (includes non-refundable, future production and craft fuel).
 				row.allocatedSrc = _base->getItemClaimByResearch(rule, false)
 					+ _base->getItemClaimByManufacture(rule, false, false)
 					+ _base->getItemClaimByCrafts(rule, true, true, false)
 					+ soldierArmor;
+				// No 'on-base' display of the following categories:
+				// * Fuel: Cannot return to base stores.
+				// * Future production: Has not yet been taken from base stores.
+				// * Non-refundable: Gone forever or not taken from base stores in first place.
+				row.protectedSrc = _base->getItemClaimByResearch(rule, true)
+					+ _base->getItemClaimByManufacture(rule, true, true)
+					+ _base->getItemClaimByCrafts(rule, true, true, true)
+					+ soldierArmor;
 
 				row.qtySrc += row.transferSrc;
-				row.protectedSrc = row.allocatedSrc;
 			}
 			if (_reservedAmountBehavior == 1) // soldier items only
 			{
