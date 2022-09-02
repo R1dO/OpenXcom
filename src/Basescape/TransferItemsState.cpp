@@ -176,12 +176,113 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 	_cats.push_back("STR_ALL_ITEMS");
 	_cats.push_back("STR_ITEMS_AT_DESTINATION");
 
-	for (std::vector<Soldier*>::iterator i = _baseFrom->getSoldiers()->begin(); i != _baseFrom->getSoldiers()->end(); ++i)
+	TransferItemRow row;
+	// Original behavior makes sense: No display of named soldiers assigned to craft or in-transfer.
+	// Prevents display clutter. Wounded soldiers are fair game though.
+	auto addSoldier = [&](Base* base)
 	{
-		if (_debriefingState) break;
-		if ((*i)->getCraft() == 0)
+		for (std::vector<Soldier*>::iterator i = base->getSoldiers()->begin(); i != base->getSoldiers()->end(); ++i)
 		{
-			TransferRow row = { TRANSFER_SOLDIER, (*i), (*i)->getName(true), (int)(5 * _distance), 1, 0, 0, -4, 0, 0, (int)(5 * _distance) };
+			if ((*i)->getCraft() == 0)
+			{
+				row = {};
+				row.type = TRANSFER_SOLDIER;
+				row.rule = (*i);
+				row.name = (*i)->getName(true);
+				row.cost = (int)(5 * _distance);
+				row.listOrder = -4;
+				row.totalCost = row.cost; // Named soldiers are unique
+				if (base == _baseFrom)
+					row.qtySrc = 1;
+				else if (base == baseTo)
+					row.qtyDst = 1;
+
+				_items.push_back(row);
+				std::string cat = getCategory(_items.size() - 1);
+				if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+				{
+					_cats.push_back(cat);
+				}
+			}
+		}
+	};
+	if (!_debriefingState)
+	{
+		addSoldier(_baseFrom);
+		addSoldier(_baseTo);
+	}
+
+	// Original behavior makes sense: No display of named aircraft currently on a mission or in-transfer (unless user option active).
+	// Prevents display clutter.
+	auto addCraft = [&](Base* base)
+	{
+		for (std::vector<Craft*>::iterator i = base->getCrafts()->begin(); i != base->getCrafts()->end(); ++i)
+		{
+			if ((*i)->getStatus() != "STR_OUT" || (Options::canTransferCraftsWhileAirborne && (*i)->getFuel() >= (*i)->getFuelLimit(_baseTo)))
+			{
+				row = {};
+				row.type = TRANSFER_CRAFT;
+				row.rule = (*i);
+				row.name = (*i)->getName(_game->getLanguage());
+				row.cost = (int)(25 * _distance);
+				row.listOrder = -3;
+				row.totalCost = row.cost; // Named craft are unique
+				if (base == _baseFrom)
+					row.qtySrc = 1;
+				else if (base == baseTo)
+					row.qtyDst = 1;
+
+				_items.push_back(row);
+				std::string cat = getCategory(_items.size() - 1);
+				if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+				{
+					_cats.push_back(cat);
+				}
+			}
+		}
+	};
+	if (!_debriefingState)
+	{
+		addCraft(_baseFrom);
+		addCraft(_baseTo);
+	}
+
+	// Transfer screen kinda acts like a storestate-lite view.
+	// Calculate/show even if no scientists are currently available.
+	if (_debriefingState == 0)
+	{
+		row = {};
+		// Vanilla display as starting point: Only available scientists.
+		row.qtySrc = _baseFrom->getAvailableScientists();
+		row.qtyDst = _baseTo->getAvailableScientists();
+
+		if (_reservedAmountBehavior > 0)
+		{
+			row.transferSrc = _baseFrom->getTotalScientists() - _baseFrom->getTotalScientists(false);
+			row.transferDst = _baseTo->getTotalScientists() - _baseTo->getTotalScientists(false);
+		}
+		if (_reservedAmountBehavior > 1)
+		{
+			// Soldiers claiming scientists is a different kind of game.
+			row.allocatedSrc = _baseFrom->getAllocatedScientists();
+			row.allocatedDst = _baseTo->getAllocatedScientists();
+		}
+		// This screen does not support removing scientists from research projects.
+		row.qtySrc += row.transferSrc;
+		row.qtyDst += row.transferDst;
+		row.protectedSrc = row.allocatedSrc;
+		row.protectedDst = row.allocatedDst;
+
+		if (row.qtySrc > 0 || row.qtyDst > 0 || row.allocatedSrc > 0 || row.allocatedDst > 0)
+		{
+			row.type = TRANSFER_SCIENTIST;
+			row.name = tr("STR_SCIENTIST");
+			row.cost = (int)(5 * _distance);
+			row.listOrder = -2;
+			/// Bit tricky, for no I go with: adding Src & Dst is closest to intention.
+			/// If not: Split it into Src and Dst (and add option to filter).
+			row.totalCost = row.cost * (row.qtySrc + row.qtyDst);
+
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -190,12 +291,41 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 			}
 		}
 	}
-	for (std::vector<Craft*>::iterator i = _baseFrom->getCrafts()->begin(); i != _baseFrom->getCrafts()->end(); ++i)
+	// Calculate/show even if no engineers are currently available.
+	if (_debriefingState == 0)
 	{
-		if (_debriefingState) break;
-		if ((*i)->getStatus() != "STR_OUT" || (Options::canTransferCraftsWhileAirborne && (*i)->getFuel() >= (*i)->getFuelLimit(_baseTo)))
+		row = {};
+		// Vanilla display as starting point: Only available scientists.
+		row.qtySrc = _baseFrom->getAvailableEngineers();
+		row.qtyDst = _baseTo->getAvailableEngineers();
+
+		if (_reservedAmountBehavior > 0)
 		{
-			TransferRow row = { TRANSFER_CRAFT, (*i), (*i)->getName(_game->getLanguage()),  (int)(25 * _distance), 1, 0, 0, -3, 0, 0, (int)(25 * _distance) };
+			row.transferSrc = _baseFrom->getTotalEngineers() - _baseFrom->getTotalEngineers(false);
+			row.transferDst = _baseTo->getTotalEngineers() - _baseTo->getTotalEngineers(false);
+		}
+		if (_reservedAmountBehavior > 1)
+		{
+			// Soldiers claiming scientists is a different kind of game.
+			row.allocatedSrc = _baseFrom->getAllocatedEngineers();
+			row.allocatedDst = _baseTo->getAllocatedEngineers();
+		}
+		// This screen does not support removing engineers from projects.
+		row.qtySrc += row.transferSrc;
+		row.qtyDst += row.transferDst;
+		row.protectedSrc = row.allocatedSrc;
+		row.protectedDst = row.allocatedDst;
+
+		if (row.qtySrc > 0 || row.qtyDst > 0 || row.allocatedSrc > 0 || row.allocatedDst > 0)
+		{
+			row.type = TRANSFER_ENGINEER;
+			row.name = tr("STR_ENGINEER");
+			row.cost = (int)(5 * _distance);
+			row.listOrder = -1;
+			/// Bit tricky, for no I go with: adding Src & Dst is closest to intention.
+			/// If not: Split it into Src and Dst.
+			row.totalCost = row.cost * (row.qtySrc + row.qtyDst);
+
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -204,38 +334,118 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 			}
 		}
 	}
-	if (_baseFrom->getAvailableScientists() > 0 && _debriefingState == 0)
-	{
-		TransferRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"),  (int)(5 * _distance), _baseFrom->getAvailableScientists(), _baseTo->getAvailableScientists(), 0, -2, 0, 0, _baseFrom->getAvailableScientists() * (int)(5 * _distance) };
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
-		{
-			_cats.push_back(cat);
-		}
-	}
-	if (_baseFrom->getAvailableEngineers() > 0 && _debriefingState == 0)
-	{
-		TransferRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"),  (int)(5 * _distance), _baseFrom->getAvailableEngineers(), _baseTo->getAvailableEngineers(), 0, -1, 0, 0, _baseFrom->getAvailableEngineers() * (int)(5 * _distance) };
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
-		{
-			_cats.push_back(cat);
-		}
-	}
+
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
-		int qty = _baseFrom->getStorageItems()->getItem(*i);
-		RuleItem *rule = _game->getMod()->getItem(*i, true);
+		const RuleItem *rule = _game->getMod()->getItem(*i, true);
+		row = {};
 		if (_debriefingState != 0)
 		{
-			qty = _debriefingState->getRecoveredItemCount(rule);
+			// Only allowed to transfer recovered items.
+			row.qtySrc = _debriefingState->getRecoveredItemCount(rule);
+
+			// Let 'allocated*' represent what is currently on bases plus in transfer.
+			// So player has an easier time figuring out if something is worth keeping.
+			if (row.qtySrc > 0 && _reservedAmountBehavior > 0)
+			{
+				auto setAllocatedDebrief = [&](Base* base)
+				{
+					int allocated = base->getStorageItems()->getItem(rule)
+						+ base->getItemCountTransfers(rule, false)
+						+ base->getItemClaimByResearch(rule)
+						+ base->getItemClaimByManufacture(rule)
+						+ base->getItemClaimByCrafts(rule, true);
+
+					if (base == _baseFrom)
+					{
+						row.allocatedSrc = allocated;
+						// DebriefingState already added recovered items to base store, correct for that.
+						// init() >>> prepareDebriefing() >>> recoverItems()
+						row.allocatedSrc -= row.qtySrc;
+					}
+					else if (base == baseTo)
+					{
+						row.allocatedDst = allocated;
+					}
+				};
+				setAllocatedDebrief(_baseFrom);
+				setAllocatedDebrief(_baseTo);
+			}
 		}
-		if (qty > 0)
+		else
 		{
-			TransferRow row = { TRANSFER_ITEM, rule, tr(*i),  (int)(1 * _distance), qty, _baseTo->getStorageItems()->getItem(*i), 0, rule->getListOrder(), rule->getSize(), qty * rule->getSize(), qty * (int)(1 * _distance) };
+			// Vanilla display: Only items from base stores.
+			row.qtySrc = _baseFrom->getStorageItems()->getItem(rule);
+			row.qtyDst = _baseTo->getStorageItems()->getItem(rule);
+
+			// Non-vanilla:
+			if (_reservedAmountBehavior > 0)
+			{
+				auto setFieldsAlternateScreen = [&](Base* base)
+				{
+					// Always allow transfer of in-transfer items, unless part of a craft.
+					int transferQty = base->getItemCountTransfers(rule, false);
+					// Worn armor, can (theoretically) return to base stores.
+					int soldierArmor = base->getItemClaimBySoldiers(rule, true, false)
+						- base->getItemClaimBySoldiers(rule, true, true);
+					// Reserved amounts (includes future production).
+					int allocated = base->getItemClaimByResearch(rule, true)
+						+ base->getItemClaimByManufacture(rule, false, true)
+						+ base->getItemClaimByCrafts(rule, true, true, true)
+						+ soldierArmor;
+					// No 'on-base' display of the following categories:
+					// * Future production: Has not yet been taken from base stores.
+					int addProtected = base->getItemClaimByResearch(rule, true)
+						+ base->getItemClaimByManufacture(rule, true, true)
+						+ base->getItemClaimByCrafts(rule, true, true, true)
+						+ soldierArmor;
+
+					if (base == _baseFrom)
+					{
+						row.transferSrc = transferQty;
+						row.allocatedSrc = allocated;
+						row.protectedSrc = addProtected;
+						row.qtySrc += row.transferSrc;
+					}
+					else if (base == baseTo)
+					{
+						row.transferDst = transferQty;
+						row.allocatedDst = allocated;
+						row.protectedDst = addProtected;
+						row.qtyDst += row.transferDst;
+					}
+				};
+				setFieldsAlternateScreen(_baseFrom);
+				setFieldsAlternateScreen(_baseTo);
+			}
+			if (_reservedAmountBehavior == 1) // soldier items only
+			{
+				row.allocatedSrc = _baseFrom->getItemClaimBySoldiers(rule, true, false);
+				row.allocatedDst = _baseTo->getItemClaimBySoldiers(rule, true, false);
+			}
+			else if (_reservedAmountBehavior == 3) // greedy
+			{
+				int soldiersClaimSrc = _baseFrom->getItemClaimBySoldiers(rule, true, false);
+				int soldiersClaimDst = _baseTo->getItemClaimBySoldiers(rule, true, false);
+				row.allocatedSrc = std::max(row.allocatedSrc, soldiersClaimSrc);
+				row.allocatedDst = std::max(row.allocatedDst, soldiersClaimDst);
+			}
+		}
+
+		if (row.qtySrc > 0 || row.qtyDst > 0 || row.allocatedSrc > 0 || row.allocatedDst > 0)
+		{
+			row.type = TRANSFER_ITEM;
+			row.rule = rule;
+			row.name = tr(*i);
+			row.cost = (int)(1 * _distance);
+			row.listOrder = rule->getListOrder();
+			row.size = rule->getSize();
+			/// Bit tricky, for no I go with: adding Src & Dst is closest to intention.
+			/// If not: Split it into Src and Dst (and add option to filter).
+			row.totalSize = row.size * (row.qtySrc + row.qtyDst);
+			row.totalCost = row.cost * (row.qtySrc + row.qtyDst);
+
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -252,7 +462,7 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 
 		// first find all relevant item categories
 		std::vector<std::string> tempCats;
-		for (std::vector<TransferRow>::iterator i = _items.begin(); i != _items.end(); ++i)
+		for (std::vector<TransferItemRow>::iterator i = _items.begin(); i != _items.end(); ++i)
 		{
 			if ((*i).type == TRANSFER_ITEM)
 			{
@@ -442,11 +652,11 @@ void TransferItemsState::updateList()
 	{
 		switch (_currentSort)
 		{
-		case TransferSortDirection::BY_TOTAL_COST: std::stable_sort(_items.begin(), _items.end(), [](const TransferRow a, const TransferRow b) { return a.totalCost > b.totalCost; }); break;
-		case TransferSortDirection::BY_UNIT_COST:  std::stable_sort(_items.begin(), _items.end(), [](const TransferRow a, const TransferRow b) { return a.cost > b.cost; }); break;
-		case TransferSortDirection::BY_TOTAL_SIZE: std::stable_sort(_items.begin(), _items.end(), [](const TransferRow a, const TransferRow b) { return a.totalSize > b.totalSize; }); break;
-		case TransferSortDirection::BY_UNIT_SIZE:  std::stable_sort(_items.begin(), _items.end(), [](const TransferRow a, const TransferRow b) { return a.size > b.size; }); break;
-		default:                                   std::stable_sort(_items.begin(), _items.end(), [](const TransferRow a, const TransferRow b) { return a.listOrder < b.listOrder; }); break;
+		case TransferSortDirection::BY_TOTAL_COST: std::stable_sort(_items.begin(), _items.end(), [](const TransferItemRow a, const TransferItemRow b) { return a.totalCost > b.totalCost; }); break;
+		case TransferSortDirection::BY_UNIT_COST:  std::stable_sort(_items.begin(), _items.end(), [](const TransferItemRow a, const TransferItemRow b) { return a.cost > b.cost; }); break;
+		case TransferSortDirection::BY_TOTAL_SIZE: std::stable_sort(_items.begin(), _items.end(), [](const TransferItemRow a, const TransferItemRow b) { return a.totalSize > b.totalSize; }); break;
+		case TransferSortDirection::BY_UNIT_SIZE:  std::stable_sort(_items.begin(), _items.end(), [](const TransferItemRow a, const TransferItemRow b) { return a.size > b.size; }); break;
+		default:                                   std::stable_sort(_items.begin(), _items.end(), [](const TransferItemRow a, const TransferItemRow b) { return a.listOrder < b.listOrder; }); break;
 		}
 	}
 
@@ -551,7 +761,7 @@ void TransferItemsState::completeTransfer()
 {
 	int time = (int)floor(6 + _distance / 10.0);
 	_game->getSavedGame()->setFunds(_game->getSavedGame()->getFunds() - _total);
-	for (std::vector<TransferRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	for (std::vector<TransferItemRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
 		if (i->amount > 0)
 		{
