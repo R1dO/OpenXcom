@@ -289,12 +289,6 @@ void MonthlyCostsState::lstSalariesClick(Action *action)
 	case 0:
 		_game->pushState(new MonthlyCostsDetailsState(_base, CC_SOLDIERS));
 		break;
-	case 1:
-		_game->pushState(new MonthlyCostsDetailsState(_base, CC_SCIENTISTS));
-		break;
-	case 2:
-		_game->pushState(new MonthlyCostsDetailsState(_base, CC_ENGINEERS));
-		break;
 	case 3:
 		_game->pushState(new MonthlyCostsDetailsState(_base, CC_ITEMS));
 		break;

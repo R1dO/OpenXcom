@@ -140,10 +140,20 @@ void MonthlyCostsDetailsState::btnOkClick(Action *)
  */
 void MonthlyCostsDetailsState::btnNextClick(Action *)
 {
-	if (_currentCategory == CC_GLOBAL_RESULT)
+	switch (_currentCategory)
+	{
+	case CC_GLOBAL_RESULT:
 		_currentCategory = CC_CRAFTS_ALL;
-	else
+		break;
+	case CC_SOLDIERS:
+	case CC_SCIENTISTS:
+	case CC_ENGINEERS:
+		_currentCategory = CC_ITEMS;
+		break;
+	default:
 		_currentCategory = (CostCategory)(_currentCategory + 1);
+		break;
+	}
 
 	drawBody();
 }
@@ -154,10 +164,20 @@ void MonthlyCostsDetailsState::btnNextClick(Action *)
  */
 void MonthlyCostsDetailsState::btnPrevClick(Action *)
 {
-	if (_currentCategory == CC_CRAFTS_ALL)
+	switch (_currentCategory)
+	{
+	case CC_CRAFTS_ALL:
 		_currentCategory = CC_GLOBAL_RESULT;
-	else
+		break;
+	case CC_ITEMS:
+	case CC_ENGINEERS:
+	case CC_SCIENTISTS:
+		_currentCategory = CC_SOLDIERS;
+		break;
+	default:
 		_currentCategory = (CostCategory)(_currentCategory - 1);
+		break;
+	}
 
 	drawBody();
 }
@@ -440,7 +460,6 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, itemValue);
 		}
 	}
-
 	// Prefer alphabetical listing of detailed rows.
 	std::stable_sort(_details.begin(), _details.end(),
 		[](const BeanCounter a, const BeanCounter b)
