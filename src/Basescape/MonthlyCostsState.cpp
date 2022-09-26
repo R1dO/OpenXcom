@@ -282,19 +282,13 @@ void MonthlyCostsState::lstSalariesClick(Action *action)
 	int rowHeight = _game->getMod()->getFont("FONT_SMALL")->getHeight() + _game->getMod()->getFont("FONT_SMALL")->getSpacing();
 	int mouseInList = floor(action->getRelativeYMouse() / (rowHeight * action->getYScale()));
 	int currentScroll = _lstSalaries->getScroll();
-	size_t sel = std::max(0, currentScroll + mouseInList);
+	int sel = std::max(0, currentScroll + mouseInList);
 
-	switch (sel)
-	{
-	case 0:
+	// Depends on scientist, engineer and items being single row entries!
+	if (sel <= _lstSalaries->getLastRowIndex() - 3)
 		_game->pushState(new MonthlyCostsDetailsState(_base, CC_SOLDIERS));
-		break;
-	case 3:
+	else if (sel == _lstSalaries->getLastRowIndex())
 		_game->pushState(new MonthlyCostsDetailsState(_base, CC_ITEMS));
-		break;
-	default:
-		break;
-	}
 }
 
 /**
