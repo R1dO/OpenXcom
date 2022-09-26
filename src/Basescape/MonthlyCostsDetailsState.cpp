@@ -277,7 +277,7 @@ int64_t MonthlyCostsDetailsState::calculateSubtotalValue(int parentId)
 	int64_t total = 0;
 	for (auto element : _details)
 	{
-		if (element.parentId == parentId)
+		if (element.parentId == parentId && element.id != element.parentId)
 		{
 			total += element.totalValue;
 		}
