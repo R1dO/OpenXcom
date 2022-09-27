@@ -381,10 +381,11 @@ void SellState::delayedInit()
 				row.protectedSrc -= craftsClaim;
 				if (!overfullCritical)
 				{
+					// Not allowed to sell equipped craft weapons.
 					int correction = _base->getItemClaimByCrafts(rule, true, false);
 					row.transferSrc -= correction - _base->getItemClaimByCrafts(rule, false ,false);
 					row.qtySrc -= correction;
-					row.protectedSrc -= correction;
+					row.protectedSrc += correction;
 				}
 
 				// Non-vanilla already included in-transfer amounts.
