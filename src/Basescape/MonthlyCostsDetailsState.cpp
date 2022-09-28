@@ -24,6 +24,7 @@
 #include "../Mod/Armor.h"
 #include "../Mod/Mod.h"
 #include "../Mod/RuleBaseFacility.h"
+#include "../Mod/RuleSoldier.h"
 #include "../Engine/Options.h"
 #include "../Interface/TextButton.h"
 #include "../Interface/Window.h"
@@ -299,6 +300,10 @@ void MonthlyCostsDetailsState::drawBody()
 
 	switch (_currentCategory)
 	{
+	case CC_SOLDIERS:
+		ssTitle << tr("STR_SOLDIERS");
+		categorySoldierSalaries();
+		break;
 	case CC_ITEMS:
 		ssTitle << tr("STR_OTHER_EMPLOYEES");
 		categoryItemMaintenance();
@@ -337,6 +342,106 @@ void MonthlyCostsDetailsState::drawBody()
 
 	_txtTitle->setText(ssTitle.str().c_str());
 	updateList();
+}
+
+/**
+ * Setup screen that displays soldier salaries.
+ *
+ * Each soldier type gets their own subtotal.
+ * Fanatics are included as well (those fighting for the divine case need no salary).
+ *
+ * @note
+ * No research check is performed. Once a soldier is on the base we have
+ * to pay them anyway, meaning a player can deduce already.
+ *
+ * Logic based on: 'Base::getSoldierCountAndSalary()'.
+ */
+void MonthlyCostsDetailsState::categorySoldierSalaries()
+{
+	int idItem = _game->getMod()->getSoldiersList().size(); // Offset taking all soldier types into account.
+	int idParent;      // Can be as much as there are soldier types -1 (0-based counting).
+	int soldierSalary; // Always positive, unless a subtotal.
+
+	// Keep track of soldier types and their corresponding parentId.
+	std::vector<std::pair<int, std::string> > subTotals;
+	// Returns parentID for selected soldierType, creates one if does not exist yet.
+	auto getSubTotalParentId = [&](std::string soldierType) -> int
+	{
+		auto it = std::find_if(subTotals.begin(), subTotals.end(),
+			[&](const std::pair<int, std::string>& sType) { return sType.second == soldierType; });
+		if (it == subTotals.end())
+		{
+			subTotals.push_back(std::make_pair(subTotals.size(), soldierType));
+			return subTotals.size() - 1;
+		}
+		return (*it).first;
+	};
+
+	for (auto soldier : *_base->getSoldiers())
+	{
+		idParent = getSubTotalParentId(soldier->getRules()->getType());
+		soldierSalary = soldier->getRules()->getSalaryCost(soldier->getRank());
+		idItem = addToDetailsVector(soldier->getName(), idParent, idItem, 1, soldierSalary);
+	}
+	for (auto transfer : *_base->getTransfers())
+	{
+		if (transfer->getType() != TRANSFER_SOLDIER) continue;
+
+		idParent = getSubTotalParentId(transfer->getSoldier()->getRules()->getType());
+		soldierSalary = transfer->getSoldier()->getRules()->getSalaryCost(transfer->getSoldier()->getRank());
+		idItem = addToDetailsVector(transfer->getSoldier()->getName(), idParent, idItem, 1, soldierSalary);
+	}
+	// Prefer alphabetical listing.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return Unicode::naturalCompare(a.description, b.description);
+		}
+	);
+	// But I want them grouped by rank (inferred from salary)
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.totalValue > b.totalValue;
+		}
+	);
+
+	// Returns the amount of identities belonging to this subtotal.
+	auto calculateSubtotalAmount = [&](int parentId) -> int
+	{
+		int64_t total = 0;
+		for (auto element : _details)
+		{
+			if (element.parentId == parentId && element.id != element.parentId)
+			{
+				total += element.amount;
+			}
+		}
+		return total;
+	};
+
+	// Insert Subtotals
+	BeanCounter row;
+	int subTotal, subAmount;
+	int screenTotal = 0;
+	for (auto soldierType : subTotals)
+	{
+		subTotal = calculateSubtotalValue(soldierType.first);
+		subAmount = calculateSubtotalAmount(soldierType.first);
+		screenTotal += subTotal;
+		row = {soldierType.first, soldierType.first, true, tr(soldierType.second), subAmount, -1 * subTotal};
+		_details.insert(_details.begin(), row);
+	}
+	// Ensure elements are shown below appropriate subtotal.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
+
+	// Allow for double checking: use a different formula (w.r.t. previous screen) to calculate total.
+	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(-1 * screenTotal, true).c_str());
 }
 
 /**

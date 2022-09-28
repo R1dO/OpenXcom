@@ -269,7 +269,7 @@ void MonthlyCostsState::btnOkClick(Action *)
 }
 
 /**
- * Open the global details sub-window, based on the mouse-over row.
+ * Open the global salary details sub-window, based on the mouse-over row.
  * @param action Pointer to an action.
  */
 void MonthlyCostsState::lstSalariesClick(Action *action)
