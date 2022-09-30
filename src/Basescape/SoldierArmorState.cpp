@@ -128,6 +128,10 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	const auto &armors = _game->getMod()->getArmorsForSoldiers();
 	for (auto* a : armors)
 	{
+		bool isCurrentArmorFamily = false;
+		if (s->getArmor() == a)
+			isCurrentArmorFamily = true;
+
 		if (a->getRequiredResearch() && !_game->getSavedGame()->isResearched(a->getRequiredResearch()))
 			continue;
 		if (!a->getCanBeUsedBy(s->getRules()))
@@ -136,12 +140,12 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		{
 			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), ""));
 		}
-		else if (_base->getStorageItems()->getItem(a->getStoreItem()) > 0)
+		else if (isCurrentArmorFamily || _base->getStorageItems()->getItem(a->getStoreItem()) > 0)
 		{
 			std::ostringstream ss;
 			if (_game->getSavedGame()->getMonthsPassed() > -1)
 			{
-				ss << _base->getStorageItems()->getItem(a->getStoreItem());
+				ss << _base->getStorageItems()->getItem(a->getStoreItem()) + (isCurrentArmorFamily ? 1 : 0);
 			}
 			else
 			{
@@ -309,6 +313,7 @@ void SoldierArmorState::lstArmorClick(Action *)
 	}
 	if (_game->getSavedGame()->getMonthsPassed() != -1)
 	{
+		// We undress before dress: It should be safe to include currently worn armor.
 		if (prev->getStoreItem())
 		{
 			_base->getStorageItems()->addItem(prev->getStoreItem());
