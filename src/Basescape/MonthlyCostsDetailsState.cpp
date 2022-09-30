@@ -266,6 +266,25 @@ bool MonthlyCostsDetailsState::isSubtotalNeeded(int parentId)
 }
 
 /**
+ * Calculate specific subtotal amount of entries.
+ *
+ * @param parentId Id of subtotal to check.
+ * @return The sum of all element amounts for this subtotal.
+ */
+int MonthlyCostsDetailsState::calculateSubtotalAmount(int parentId)
+{
+	int64_t amount = 0;
+	for (auto element : _details)
+	{
+		if (element.parentId == parentId && element.id != element.parentId)
+		{
+			amount += element.amount;
+		}
+	}
+	return amount;
+};
+
+/**
  * Calculate specific subtotal result.
  *
  * @param parentId Id of subtotal to check.
@@ -397,26 +416,29 @@ void MonthlyCostsDetailsState::categoryCraftMaintenance()
 		idItem = addToDetailsVector(row);
 	}
 
-	int subTotal, screenTotal = 0;
+	int subTotal, subAmount, screenTotal = 0;
 	if (isSubtotalNeeded(0)) // Fighter
 	{
 		subTotal = -1 * calculateSubtotalValue(0);
+		subAmount = calculateSubtotalAmount(0);
 		screenTotal += subTotal;
-		row = {0, 0, true, tr("MCDS_SUBTOTAL_FIGHTER"), -1, subTotal};
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_FIGHTER"), subAmount, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(1)) // Transporter
 	{
 		subTotal = -1 * calculateSubtotalValue(1);
+		subAmount = calculateSubtotalAmount(1);
 		screenTotal += subTotal;
-		row = {1, 1, true, tr("MCDS_SUBTOTAL_TANSPORTER"), -1, subTotal};
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_TANSPORTER"), subAmount, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(2)) // Mixed
 	{
 		subTotal = -1 * calculateSubtotalValue(2);
+		subAmount = calculateSubtotalAmount(2);
 		screenTotal += subTotal;
-		row = {2, 2, true, tr("MCDS_SUBTOTAL_MIXED"), -1, subTotal};
+		row = {2, 2, true, tr("MCDS_SUBTOTAL_MIXED"), subAmount, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 
@@ -500,20 +522,6 @@ void MonthlyCostsDetailsState::categorySoldierSalaries()
 			return a.totalValue > b.totalValue;
 		}
 	);
-
-	// Returns the amount of identities belonging to this subtotal.
-	auto calculateSubtotalAmount = [&](int parentId) -> int
-	{
-		int64_t total = 0;
-		for (auto element : _details)
-		{
-			if (element.parentId == parentId && element.id != element.parentId)
-			{
-				total += element.amount;
-			}
-		}
-		return total;
-	};
 
 	// Insert Subtotals
 	int subTotal, subAmount, screenTotal = 0;
@@ -689,33 +697,37 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 		}
 	);
 
-	int subTotal, screenTotal = 0;
+	int subTotal, subAmount, screenTotal = 0;
 	if (isSubtotalNeeded(0)) // Salary
 	{
 		subTotal = -1 * calculateSubtotalValue(0);
+		subAmount = calculateSubtotalAmount(0);
 		screenTotal += subTotal;
-		row = {0, 0, true, tr("MCDS_SUBTOTAL_ITEM_SALARY"), -1, subTotal};
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_ITEM_SALARY"), subAmount, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(1)) // Consulting
 	{
 		subTotal = calculateSubtotalValue(1);
+		subAmount = calculateSubtotalAmount(1);
 		screenTotal += subTotal;
-		row = {1, 1, true, tr("MCDS_SUBTOTAL_ITEM_SALARY_INCOME"), -1, subTotal};
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_ITEM_SALARY_INCOME"), subAmount, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(2)) // Maintenance
 	{
 		subTotal = -1 * calculateSubtotalValue(2);
+		subAmount = calculateSubtotalAmount(2);
 		screenTotal += subTotal;
-		row = {2, 2, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE"), -1, subTotal};
+		row = {2, 2, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE"), subAmount, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(3)) // Services
 	{
 		subTotal = calculateSubtotalValue(3);
+		subAmount = calculateSubtotalAmount(3);
 		screenTotal += subTotal;
-		row = {3, 3, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE_INCOME"), -1, subTotal};
+		row = {3, 3, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE_INCOME"), subAmount, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	// Ensure elements are shown below appropriate subtotal.
@@ -763,19 +775,21 @@ void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 		}
 	);
 
-	int subTotal, screenTotal = 0;
+	int subTotal, subAmount, screenTotal = 0;
 	if (isSubtotalNeeded(0)) // Maintenance
 	{
 		subTotal = -1 * calculateSubtotalValue(0);
+		subAmount = calculateSubtotalAmount(0);
 		screenTotal += subTotal;
-		row = {0, 0, true, tr("MCDS_SUBTOTAL_FACILITY_MAINTENANCE"), -1, subTotal};
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_FACILITY_MAINTENANCE"), subAmount, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(1)) // Revenue
 	{
 		subTotal = calculateSubtotalValue(1);
+		subAmount = calculateSubtotalAmount(1);
 		screenTotal += subTotal;
-		row = {1, 1, true, tr("MCDS_SUBTOTAL_FACILITY_REVENUE"), -1, subTotal};
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_FACILITY_REVENUE"), subAmount, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	// Ensure elements are shown below appropriate subtotal.

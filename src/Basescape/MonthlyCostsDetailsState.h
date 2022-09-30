@@ -76,6 +76,7 @@ private:
 	int addToDetailsVector(BeanCounter row);
 	bool isSubtotalNeeded(int parentId);
 	int64_t calculateSubtotalValue(int parentId);
+	int calculateSubtotalAmount(int parentId);
 
 public:
 	/// Creates the cost details state.
