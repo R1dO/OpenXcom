@@ -129,7 +129,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	const auto &armors = _game->getMod()->getArmorsForSoldiers();
 	for (auto* a : armors)
 	{
-		isWornBySoldier = (s->getArmor() == a); // True for the complete familt
+		isWornBySoldier = (s->getArmor()->getStoreItem() == a->getStoreItem()); // True for the complete family
 
 		if (a->getRequiredResearch() && !_game->getSavedGame()->isResearched(a->getRequiredResearch()))
 			continue;
