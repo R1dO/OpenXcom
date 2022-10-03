@@ -368,6 +368,10 @@ public:
 	CraftPlacementErrors validateAddingSoldier(int space, const Soldier* s) const;
 	/// Validates craft space and craft constraints on adding vehicles to a craft.
 	int validateAddingVehicles(int totalSize) const;
+
+	int getItemCountArmament(const RuleItem* item, bool assumeFullyLoaded = false) const;
+	int getItemCountCargoBay(const RuleItem* item) const;
+	int getItemCountFuel(const RuleItem* item, bool assumeFullyLoaded = false) const;
 };
 
 }

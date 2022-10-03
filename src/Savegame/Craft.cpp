@@ -761,36 +761,7 @@ double Craft::getTotalItemStorageSize(const Mod* mod) const
  */
 int Craft::getTotalItemCount(const RuleItem* item) const
 {
-	int qty = _items->getItem(item);
-
-	for (const auto* v : _vehicles)
-	{
-		if (v->getRules() == item)
-		{
-			qty += 1;
-		}
-		else if (v->getRules()->getVehicleClipAmmo() == item)
-		{
-			qty += v->getRules()->getVehicleClipsLoaded();
-		}
-	}
-
-	for (const auto* w : _weapons)
-	{
-		if (w)
-		{
-			if (w->getRules()->getLauncherItem() == item)
-			{
-				qty += 1;
-			}
-			else if (w->getRules()->getClipItem() == item)
-			{
-				qty += w->getClipsLoaded();
-			}
-		}
-	}
-
-	return qty;
+	return getItemCountCargoBay(item) + getItemCountArmament(item);
 }
 
 /**
@@ -1759,6 +1730,101 @@ int Craft::getVehicleCount(const std::string &vehicle) const
 		}
 	}
 	return total;
+}
+
+/**
+ * Returns the amount of a specific storage item assigned to this craft's armament.
+ *
+ * @note
+ * Armament includes both craft weapons and their ammunition.
+ *
+ * @param item              Pointer to item ruleset.
+ * @param assumeFullyLoaded Whether ammo count uses current value `false` or total capacity `true`.
+ * @return Amount of specific item claimed by this craft's armament.
+ */
+int Craft::getItemCountArmament(const RuleItem* item, bool assumeFullyLoaded) const
+{
+	if (!item)
+		return 0;
+
+	int qty = 0;
+	for (const auto* w : _weapons)
+	{
+		if (!w || !w->getRules())
+			continue;
+
+		if (w->getRules()->getLauncherItem() == item)
+		{
+			qty += 1;
+		}
+		else if (w->getRules()->getClipItem() == item && w->getRules()->getAmmoMax() > 0)
+		{
+			if (assumeFullyLoaded)
+			{
+				// `getAmmoMax() > 0` enforces `getRearmRate() > 0`, see: `RuleCraftWeapon::afterLoad()`.
+				qty += w->getRules()->getAmmoMax() / w->getRules()->getRearmRate();
+			}
+			else
+			{
+				qty += w->getClipsLoaded();
+			}
+		}
+	}
+	return qty;
+}
+
+/**
+ * Returns the amount of a specific storage item assigned to this craft's cargo bay.
+ *
+ * @note
+ * This includes vehicles and their ammo.
+ * A vehicle cannot be assigned to a craft if 'available ammo < capacity',
+ * hence no need to differentiate between currently allocated and capacity.
+ *
+ * @param item Pointer to item ruleset.
+ * @return Amount of specific item claimed by this craft's cargo bay.
+ */
+int Craft::getItemCountCargoBay(const RuleItem* item) const
+{
+	if (!item)
+		return 0;
+
+	int qty = _items->getItem(item);
+	for (const auto* v : _vehicles)
+	{
+		qty += _fuel;
+		if (!v || !v->getRules())
+			continue;
+
+		if (v->getRules() == item)
+		{
+			qty += 1;
+		}
+		else if (v->getRules()->getVehicleClipAmmo() == item)
+		{
+			qty += v->getRules()->getVehicleClipsLoaded();
+		}
+	}
+	return qty;
+}
+
+/**
+ * Returns the amount of a specific storage item loaded as fuel in this craft.
+ *
+ * @note
+ * Craft fuel should only be used for display purposes.
+ * It does not count towards base storage and is impossible to get back.
+ *
+ * @param item              Pointer to item ruleset.
+ * @param assumeFullyLoaded Whether fuel count uses current value `false` or total capacity `true`.
+ * @return Amount of specific item in this craft's fuel tanks.
+ */
+int Craft::getItemCountFuel(const RuleItem* item, bool assumeFullyLoaded) const
+{
+	if (!item || _rules->getRefuelItem() != item)
+		return 0;
+
+	return assumeFullyLoaded ? _stats.fuelMax : _fuel;
 }
 
 /**
