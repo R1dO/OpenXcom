@@ -48,6 +48,7 @@
 #include "../Engine/Collections.h"
 #include "WeightedOptions.h"
 #include "AlienMission.h"
+#include "EquipmentLayoutItem.h"
 
 namespace OpenXcom
 {
@@ -889,6 +890,235 @@ int Base::getAvailableStores() const
 	return total;
 }
 
+/**
+ * Returns the amount of a storage item claimed by crafts on base/in transfer.
+ *
+ * By default this includes armament, vehicles in item format and items in cargo bay.
+ *
+ * @warning
+ * Inclusion of loaded fuel is for display purposes only.
+ * It does not count towards base storage and is impossible to get back.
+ *
+ * @param item               Pointer to item ruleset.
+ * @param includeTransfers   Whether to include items of crafts currently en-route.
+ * @param includeNormalItems Whether to include normal items (stuff that will be dumped on the battlescape).
+ * @param excludeCraftFuel   Whether to exclude loaded fuel.
+ * @return Amount of a specific item claimed by crafts.
+ */
+ int Base::getItemClaimByCrafts(const RuleItem* item,
+	bool includeTransfers, bool includeNormalItems, bool excludeCraftFuel) const
+{
+	if (!item) return 0;
+	int qtyClaimed = 0;
+
+	for (const auto* craft : _crafts)
+	{
+		qtyClaimed += craft->getItemClaimByCraft(item, includeNormalItems, excludeCraftFuel);
+	}
+
+	if (!includeTransfers) return qtyClaimed;
+
+	for (const auto transfer : _transfers)
+	{
+		if (transfer->getType() != TRANSFER_CRAFT || transfer->getCraft() == 0) continue;
+		qtyClaimed += transfer->getCraft()->getItemClaimByCraft(item, includeNormalItems, excludeCraftFuel);
+	}
+	return qtyClaimed;
+}
+
+/**
+ * Returns the amount of a storage item claimed by manufacture projects.
+ *
+ * This includes queued projects (items are already allocated).
+ *
+ * @note
+ * Future production refers to projects that still have to run multiple times in
+ * order to create enough copies to satisfy player demand.
+ *
+ * @warning
+ * Inclusion of non-refundable & future production is for display purposes only.
+ * - Non-refundable manufacture items are destroyed upon starting a project.
+ * - Future production items are still in base storage.
+ *
+ * @param item                    Pointer to item ruleset.
+ * @param excludeFutureProduction Whether to exclude items needed for future production.
+ * @param excludeNonRefundable    Whether to exclude current production's nonrefundable items.
+ * @return Amount of a specific item in use by manufacture projects.
+ */
+int Base::getItemClaimByManufacture(const RuleItem* item,
+	bool excludeFutureProduction, bool excludeNonRefundable) const
+{
+	if (!item) return 0;
+	int qtyClaimed = 0;
+
+	for (const auto* production : _productions)
+	{
+		const RuleManufacture *rules = production->getRules();
+		if (rules == 0 || rules->getRequiredItems().empty()) continue;
+
+		for (const auto& ruleItem : rules->getRequiredItems())
+		{
+			if (ruleItem.first == item)
+			{
+				int productionAmountLeft = 0;
+
+				// Currently (queued) production
+				if (rules->getRefund() || !excludeNonRefundable)
+				{
+					productionAmountLeft += 1;
+				}
+				if (!excludeFutureProduction && production->getInfiniteAmount())
+				{
+					// Use similar tactic as infinite shots.
+					productionAmountLeft = 255;
+				}
+				else if (!excludeFutureProduction)
+				{
+					productionAmountLeft += production->getAmountTotal() - production->getAmountProduced();
+					// Correct for current production.
+					productionAmountLeft -= 1;
+				}
+
+				qtyClaimed += productionAmountLeft * ruleItem.second;
+			}
+		}
+	}
+	return qtyClaimed;
+}
+
+/**
+ * Returns the amount of a storage item claimed by research projects.
+ *
+ * @warning
+ * Inclusion of non-refundable is for display purposes only.
+ * - Non-refundable research items were never taken from base stores in the first place.
+ * - Only destroyable research items are taken from stores (and returned upon project cancellation).
+ *
+ * @param item                 Pointer to item ruleset.
+ * @param excludeNonRefundable Whether to exclude non-refundable items.
+ * @return Amount of a specific item in use by research projects.
+ */
+int Base::getItemClaimByResearch(const RuleItem* item, bool excludeNonRefundable) const
+{
+	if (!item) return 0;
+	int qtyClaimed = 0;
+
+	for (const auto* research : _research)
+	{
+		const RuleResearch *rules = research->getRules();
+		if (rules == 0 || !rules->needItem()) continue;
+
+		if (rules->getName() == item->getType() && (rules->destroyItem() || !excludeNonRefundable))
+		{
+			qtyClaimed++;
+		}
+	}
+	return qtyClaimed;
+}
+
+/**
+ * Returns the amount of a storage item claimed by soldiers on base/in transfer.
+ *
+ * Prefers player managed layout.
+ * Falls back to game managed layout if a personal one does not exist.
+ *
+ * @warning
+ * Inclusion of armor is for display purposes only.
+ * It does not count towards base storage and removal requires assigning a new one.
+ *
+ * @param item             Pointer to item ruleset.
+ * @param includeTransfers Whether to include items of soldiers currently en-route.
+ * @param excludeArmor     Whether to exclude armors.
+ * @return Amount of a specific item claimed by soldiers.
+ */
+int Base::getItemClaimBySoldiers(const RuleItem* item,
+	bool includeTransfers, bool excludeArmor) const
+{
+	if (!item) return 0;
+	int qtyClaimed = 0;
+
+	for (const auto& soldier : _soldiers)
+	{
+		if (!excludeArmor)
+		{
+			auto soldierArmor = soldier->getPersonalEquipmentArmor();
+			if (soldierArmor == nullptr)
+				soldierArmor = soldier->getArmor();
+			if (soldierArmor != nullptr && soldierArmor->getStoreItem() == item)
+				qtyClaimed++;
+		}
+
+		auto* soldierEquipment = soldier->getPersonalEquipmentLayout();
+		if (soldierEquipment->empty()) // No personal layout.
+			soldierEquipment = soldier->getEquipmentLayout();
+		if (soldierEquipment->empty()) continue;
+
+		for (auto* equippedItem : *soldierEquipment)
+		{
+			if (equippedItem && equippedItem->getItemType() == item->getType())
+			{
+				qtyClaimed++;
+			}
+
+			if (item->getBattleType() != BT_FIREARM || item->getPrimaryCompatibleAmmo()->empty())
+			{
+				continue;
+			}
+			// loaded ammo
+			for (int slot = 0; slot < RuleItem::AmmoSlotMax; ++slot)
+			{
+				auto& loadedAmmoType = equippedItem->getAmmoItemForSlot(slot);
+				if (loadedAmmoType == item->getType())
+				{
+					qtyClaimed++;
+				}
+			}
+		}
+	}
+
+	if (!includeTransfers)
+	{
+		return qtyClaimed;
+	}
+	for (const auto transfer : _transfers)
+	{
+		if (transfer->getType() == TRANSFER_SOLDIER)
+		{
+			if (!excludeArmor)
+			{
+				auto soldierArmor = transfer->getSoldier()->getPersonalEquipmentArmor();
+				if (soldierArmor == nullptr)
+					soldierArmor = transfer->getSoldier()->getArmor();
+				if (soldierArmor != nullptr && soldierArmor->getStoreItem() == item)
+					qtyClaimed++;
+			}
+
+			auto* soldierEquipment = transfer->getSoldier()->getPersonalEquipmentLayout();
+			if (soldierEquipment->empty()) // No personal layout.
+				soldierEquipment = transfer->getSoldier()->getEquipmentLayout();
+			if (soldierEquipment->empty()) continue;
+
+			for (auto* equippedItem : *soldierEquipment)
+			{
+				if (equippedItem->getItemType() == item->getType())
+				{
+					qtyClaimed++;
+				}
+
+				// loaded ammo
+				for (int slot = 0; slot < RuleItem::AmmoSlotMax; ++slot)
+				{
+					auto& loadedAmmoType = equippedItem->getAmmoItemForSlot(slot);
+					if (loadedAmmoType == item->getType())
+					{
+						qtyClaimed++;
+					}
+				}
+			}
+		}
+	}
+	return qtyClaimed;
+}
 
 /**
  * Return the amount of a storage item en-route to this base.

@@ -312,6 +312,22 @@ public:
 	std::vector<Craft*>::iterator removeCraft(Craft *craft, bool unload);
 
 	int getSoldierAllocatedCount(const std::string &soldier) const;
+	int getItemClaimByCrafts(
+		const RuleItem* item,
+		bool includeTransfers = false,
+		bool includeNormalItems = true,
+		bool excludeCraftFuel = true) const;
+	int getItemClaimByManufacture(
+		const RuleItem* item,
+		bool excludeFutureProduction = true,
+		bool excludeNonRefundable = true) const;
+	int getItemClaimByResearch(
+		const RuleItem* item,
+		bool excludeNonRefundable = true) const;
+	int getItemClaimBySoldiers(
+		const RuleItem* item,
+		bool includeTransfers = false,
+		bool excludeArmor = true) const;
 	int getItemCountTransfers(
 		const RuleItem* item,
 		bool includeCraftItems = true) const;
