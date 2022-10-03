@@ -44,6 +44,7 @@
 #include "../Mod/AlienDeployment.h"
 #include "SerializationHelper.h"
 #include "../Engine/Logger.h"
+#include "EquipmentLayoutItem.h"
 
 namespace YAML
 {
@@ -1661,6 +1662,59 @@ int Craft::getVehicleCount(const std::string &vehicle) const
 		}
 	}
 	return total;
+}
+
+/**
+ * Gets the items claimed by soldiers on the craft.
+ *
+ * Prefers player managed layout with fallback to game managed layout.
+ *
+ * @warning
+ * Inclusion of armor is for display purposes only.
+ * It does not count towards base storage and removal requires assigning a new one.
+ *
+ * @param excludeArmor  Whether to exclude armors.
+ * @return Pointer to mapping of claimed items and their respective amount for all soldiers on the craft.
+ */
+const ItemContainer *Craft::getItemsClaimedBySoldiers(bool excludeArmor) const
+{
+	ItemContainer *claimedItems = new ItemContainer;
+
+	for (auto* soldier : *_base->getSoldiers())
+	{
+		if (!soldier) continue;
+
+		if (soldier->getCraft() == this)
+		{
+			auto* soldierEquipment = soldier->getPersonalEquipmentLayout();
+			if (soldierEquipment->empty())
+			{
+				soldierEquipment = soldier->getEquipmentLayout();
+			}
+			if (!soldierEquipment) continue;
+
+			for (auto* equipment : *soldierEquipment)
+			{
+				claimedItems->addItem(equipment->getItemType());
+
+				// ammo
+				for (int slot = 0; slot < RuleItem::AmmoSlotMax; ++slot)
+				{
+					auto& loadedAmmoType = equipment->getAmmoItemForSlot(slot);
+					if (loadedAmmoType != "NONE")
+					{
+						claimedItems->addItem(loadedAmmoType);
+					}
+				}
+			}
+
+			if (!excludeArmor && soldier->getArmor()->getStoreItem())
+			{
+				claimedItems->addItem(soldier->getArmor()->getType());
+			}
+		}
+	}
+	return claimedItems;
 }
 
 /**

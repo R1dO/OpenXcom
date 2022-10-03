@@ -333,6 +333,8 @@ public:
 	bool validateAddingSoldier(int space, const Soldier* s) const;
 	/// Validates craft space and craft constraints on adding vehicles to a craft.
 	int validateAddingVehicles(int totalSize) const;
+
+	const ItemContainer *getItemsClaimedBySoldiers(bool excludeArmor = true) const;
 };
 
 }
