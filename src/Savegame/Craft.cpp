@@ -1673,7 +1673,7 @@ int Craft::getVehicleCount(const std::string &vehicle) const
  * Inclusion of armor is for display purposes only.
  * It does not count towards base storage and removal requires assigning a new one.
  *
- * @param excludeArmor  Whether to exclude armors.
+ * @param excludeArmor Whether to exclude armors.
  * @return Pointer to mapping of claimed items and their respective amount for all soldiers on the craft.
  */
 const ItemContainer *Craft::getItemsClaimedBySoldiers(bool excludeArmor) const
@@ -1684,14 +1684,21 @@ const ItemContainer *Craft::getItemsClaimedBySoldiers(bool excludeArmor) const
 	{
 		if (!soldier) continue;
 
+		if (!excludeArmor)
+		{
+			auto soldierArmor = soldier->getPersonalEquipmentArmor();
+			if (soldierArmor == nullptr)
+				soldierArmor = soldier->getArmor();
+			if (soldierArmor != nullptr)
+				claimedItems->addItem(soldierArmor->getType());
+		}
+
 		if (soldier->getCraft() == this)
 		{
 			auto* soldierEquipment = soldier->getPersonalEquipmentLayout();
 			if (soldierEquipment->empty())
-			{
 				soldierEquipment = soldier->getEquipmentLayout();
-			}
-			if (!soldierEquipment) continue;
+			if (soldierEquipment->empty()) continue;
 
 			for (auto* equipment : *soldierEquipment)
 			{
@@ -1706,11 +1713,6 @@ const ItemContainer *Craft::getItemsClaimedBySoldiers(bool excludeArmor) const
 						claimedItems->addItem(loadedAmmoType);
 					}
 				}
-			}
-
-			if (!excludeArmor && soldier->getArmor()->getStoreItem())
-			{
-				claimedItems->addItem(soldier->getArmor()->getType());
 			}
 		}
 	}
