@@ -334,6 +334,10 @@ public:
 	/// Validates craft space and craft constraints on adding vehicles to a craft.
 	int validateAddingVehicles(int totalSize) const;
 
+	int getItemClaimByCraft(
+		const RuleItem* item,
+		bool includeNormalItems = true,
+		bool excludeCraftFuel = true) const;
 	const ItemContainer *getItemsClaimedBySoldiers(bool excludeArmor = true) const;
 };
 

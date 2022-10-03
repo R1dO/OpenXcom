@@ -1665,6 +1665,36 @@ int Craft::getVehicleCount(const std::string &vehicle) const
 }
 
 /**
+ * Returns the amount of a storage item claimed by the craft itself.
+ *
+ * @warning
+ * Inclusion of loaded fuel is for display purposes only.
+ * It does not count towards base storage and is impossible to get back.
+ *
+ * @param item Pointer to item ruleset.
+ * @param includeNormalItems Whether to include normal items (stuff that will be dumped on the battlescape).
+ * @param excludeCraftFuel   Whether to exclude loaded fuel.
+ * @return Amount of specific item claimed by the craft.
+ */
+int Craft::getItemClaimByCraft(const RuleItem* item,
+	bool includeNormalItems, bool excludeCraftFuel) const
+{
+	if (!item) return 0;
+	int qtyClaimed = getTotalItemCount(item);
+
+	if (!includeNormalItems)
+	{
+		qtyClaimed -= _items->getItem(item);
+	}
+	if (!excludeCraftFuel && _rules->getRefuelItem() == item->getType())
+	{
+		qtyClaimed += _fuel;
+	}
+
+	return qtyClaimed;
+}
+
+/**
  * Gets the items claimed by soldiers on the craft.
  *
  * Prefers player managed layout with fallback to game managed layout.
