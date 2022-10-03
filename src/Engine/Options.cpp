@@ -189,6 +189,7 @@ void create()
 	_info.push_back(OptionInfo("fieldPromotions", &fieldPromotions, false, "STR_FIELDPROMOTIONS", "STR_GEOSCAPE"));
 	//_info.push_back(OptionInfo("meetingPoint", &meetingPoint, false, "STR_MEETINGPOINT", "STR_GEOSCAPE")); // intentionally disabled in OXCE
 	_info.push_back(OptionInfo("alternateBaseScreens", &alternateBaseScreens, false, "STR_ALTERNATE_BASE_SCREENS", "STR_GEOSCAPE"));
+	_info.push_back(OptionInfo("reservedAmountBehavior", &reservedAmountBehavior, 0, "STR_RESERVED_BEHAVIOR", "STR_GEOSCAPE"));
 
 	_info.push_back(OptionInfo("battleDragScrollInvert", &battleDragScrollInvert, false, "STR_DRAGSCROLLINVERT", "STR_BATTLESCAPE")); // true drags away from the cursor, false drags towards (like a grab)
 	_info.push_back(OptionInfo("sneakyAI", &sneakyAI, false, "STR_SNEAKYAI", "STR_BATTLESCAPE"));

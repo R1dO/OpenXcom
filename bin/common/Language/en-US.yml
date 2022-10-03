@@ -421,3 +421,5 @@ en-US:
 # Options.cpp
   STR_ALTERNATE_BASE_SCREENS: "DEMO: R1dO's alternate screens"
   STR_ALTERNATE_BASE_SCREENS_DESC: "Diverse alterations to base screens, potentially even to battlescape."
+  STR_RESERVED_BEHAVIOR: "DEMO: Behavior of reserved items column (buy/sell/transfer)"
+  STR_RESERVED_BEHAVIOR_DESC: "0: Do not use, 1: Claimed by soldiers, 2: Claimed by crafts/engineering/research, 3: Greedy (max of 1 and 2). All options >0 change buy/sell/transfer screens."

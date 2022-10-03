@@ -311,6 +311,11 @@ void OptionsAdvancedState::lstOptionsClick(Action *action)
 			min = _isTFTD ? 2 : 1;
 			max = _isTFTD ? 16 : 15;
 		}
+		else if (i == &Options::reservedAmountBehavior)
+		{
+			min = 0;
+			max = 3;
+		}
 
 		if (*i < min)
 		{
