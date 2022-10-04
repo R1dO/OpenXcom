@@ -1293,7 +1293,7 @@ bool BattleItem::isAmmo() const
  * @param currentAmmo Pointer to ammo currently loaded (multislot ammo weapons).
  * @return if we can assume the stats are reasonably known.
  */
-bool BattleItem::isItemStatsKnownCached(SavedGame *save, Mod *mod, const BattleItem *currentAmmo) const
+bool BattleItem::isItemStatsKnownCached(SavedGame *save, const Mod *mod) const
 {
 	// Return cached value.
 	if (_isStatsKnownCache != TS_UNDEFINED)
@@ -1308,20 +1308,6 @@ bool BattleItem::isItemStatsKnownCached(SavedGame *save, Mod *mod, const BattleI
 	{
 		_isStatsKnownCache = TS_FALSE;
 		return false;
-	}
-	// It is caller's responsibility to pass 'currentAmmo'.
-	// If not defined assume item does not depend on ammo or
-	// caller is interested in weapon stats only.
-	if (currentAmmo)
-	{
-		// Hidden articles are ok here, it was the weapon that unlocked the stats.
-		ArticleDefinition *ammoArticle = mod->getUfopaediaArticle(currentAmmo->getRules()->getType(), false);
-		// No article at all or not researched yet
-		if (!ammoArticle || !Ufopaedia::isArticleAvailable(save, ammoArticle))
-		{
-			_isStatsKnownCache = TS_FALSE;
-			return false;
-		}
 	}
 
 	// Unfortunately there is no guarantee any ammo item is not just a hidden
@@ -1385,12 +1371,11 @@ bool BattleItem::isItemStatsKnownCached(SavedGame *save, Mod *mod, const BattleI
  *
  * @param save Pointer to saved game.
  * @param mod Pointer to the mod.
- * @param currentAmmo Pointer to ammo currently loaded (multislot ammo weapons).
  * @return if we are allowed to see them.
  */
-bool BattleItem::isItemStatsKnown(SavedGame *save, Mod *mod, const BattleItem *currentAmmo) const
+bool BattleItem::isItemStatsKnown(SavedGame *save, const Mod *mod) const
 {
-	return isItemStatsKnownCached(save, mod, currentAmmo);
+	return isItemStatsKnownCached(save, mod);
 }
 
 ////////////////////////////////////////////////////////////

@@ -68,7 +68,7 @@ private:
 	ScriptValues<BattleItem> _scriptValues;
 
 	mutable TriState _isStatsKnownCache;
-	bool isItemStatsKnownCached(SavedGame *save, Mod *mod, const BattleItem *currentAmmo = nullptr) const;
+	bool isItemStatsKnownCached(SavedGame *save, const Mod *mod) const;
 
 public:
 
@@ -238,7 +238,7 @@ public:
 	/// Checks a flag on the item to see if it's a clip in a weapon or not.
 	bool isAmmo() const;
 
-	bool isItemStatsKnown(SavedGame *save, Mod *mod, const BattleItem *currentAmmo = nullptr) const;
+	bool isItemStatsKnown(SavedGame *save, const Mod *mod) const;
 };
 
 }
