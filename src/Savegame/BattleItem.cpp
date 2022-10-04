@@ -33,6 +33,7 @@
 #include "../Engine/ScriptBind.h"
 #include "../Engine/RNG.h"
 #include "../fmath.h"
+#include "../Ufopaedia/Ufopaedia.h"
 
 namespace OpenXcom
 {
@@ -42,7 +43,7 @@ namespace OpenXcom
  * @param rules Pointer to ruleset.
  * @param id The id of the item.
  */
-BattleItem::BattleItem(const RuleItem *rules, int *id) : _id(*id), _rules(rules), _owner(0), _previousOwner(0), _unit(0), _tile(0), _inventorySlot(0), _inventoryX(0), _inventoryY(0), _ammoItem{ }, _fuseTimer(-1), _ammoQuantity(0), _painKiller(0), _heal(0), _stimulant(0), _XCOMProperty(false), _droppedOnAlienTurn(false), _isAmmo(false), _isWeaponWithAmmo(false), _fuseEnabled(false)
+BattleItem::BattleItem(const RuleItem *rules, int *id) : _id(*id), _rules(rules), _owner(0), _previousOwner(0), _unit(0), _tile(0), _inventorySlot(0), _inventoryX(0), _inventoryY(0), _ammoItem{ }, _fuseTimer(-1), _ammoQuantity(0), _painKiller(0), _heal(0), _stimulant(0), _XCOMProperty(false), _droppedOnAlienTurn(false), _isAmmo(false), _isWeaponWithAmmo(false), _fuseEnabled(false), _isStatsKnownCache(TS_UNDEFINED)
 {
 	(*id)++;
 	if (_rules)
@@ -1279,6 +1280,118 @@ bool BattleItem::isAmmo() const
 	return _isAmmo;
 }
 
+/**
+ * Are itemstats known for this item?
+ *
+ * @note
+ * Intended usage is to set the TriState '_isStatsKnownCache' upon first user
+ * interaction. To prevent unnecessary calculations during battlescape initialization
+ * (since that involves lots of items and this method is kinda expensive).
+ *
+ * @param save Pointer to saved game.
+ * @param mod Pointer to the mod.
+ * @param currentAmmo Pointer to ammo currently loaded (multislot ammo weapons).
+ * @return if we can assume the stats are reasonably known.
+ */
+bool BattleItem::isItemStatsKnownCached(SavedGame *save, Mod *mod, const BattleItem *currentAmmo) const
+{
+	// Return cached value.
+	if (_isStatsKnownCache != TS_UNDEFINED)
+		return (_isStatsKnownCache == TS_TRUE ? true : false);
+
+	// Cannot compute
+	if (!_rules || !save || !mod) return false;
+
+	ArticleDefinition *article = mod->getUfopaediaArticle(_rules->getType(), false);
+	// No article at all or not researched yet
+	if (!article || !Ufopaedia::isArticleAvailable(save, article))
+	{
+		_isStatsKnownCache = TS_FALSE;
+		return false;
+	}
+	// It is caller's responsibility to pass 'currentAmmo'.
+	// If not defined assume item does not depend on ammo or
+	// caller is interested in weapon stats only.
+	if (currentAmmo)
+	{
+		// Hidden articles are ok here, it was the weapon that unlocked the stats.
+		ArticleDefinition *ammoArticle = mod->getUfopaediaArticle(currentAmmo->getRules()->getType(), false);
+		// No article at all or not researched yet
+		if (!ammoArticle || !Ufopaedia::isArticleAvailable(save, ammoArticle))
+		{
+			_isStatsKnownCache = TS_FALSE;
+			return false;
+		}
+	}
+
+	// Unfortunately there is no guarantee any ammo item is not just a hidden
+	// (unlocked) category that becomes visible to the player due to unlock
+	// of weapon article.
+	//
+	// Debatable though:
+	// * It is the modders responsibility to define correct research dependencies.
+	// * Why take away the ability to show ammo stats if those are researched seperatly?
+	// even if weapon stats are not known?
+	bool wantReverseSearch = true;
+	if (_rules->getBattleType() == BT_AMMO && wantReverseSearch)
+	{
+		const std::vector<std::string> &modItems = mod->getItemsList();
+		for (std::vector<std::string>::const_iterator i = modItems.begin(); i != modItems.end(); ++i)
+		{
+			RuleItem *rule = mod->getItem(*i);
+			if (rule->getBattleType() == BT_FIREARM && !rule->getPrimaryCompatibleAmmo()->empty())
+			{
+				for (auto* weaponClip : *rule->getPrimaryCompatibleAmmo())
+				{
+					if (weaponClip->getType() == _rules->getType())
+					{
+						ArticleDefinition *weaponArticle = mod->getUfopaediaArticle(rule->getType(), false);
+						if (weaponArticle && Ufopaedia::isArticleAvailable(save, weaponArticle))
+						{
+							_isStatsKnownCache = TS_TRUE;
+							return true;
+						}
+					}
+				}
+			}
+		}
+		// Found no researched weapon capable needing this ammo item.
+		_isStatsKnownCache = TS_FALSE;
+		return false;
+	}
+	_isStatsKnownCache = TS_TRUE;
+	return true;
+
+	// Alternative scheme:
+	//     Is item buyable (salesperson convinced us using a fancy leaflet)
+	//  || Is item manufacturable (specs are part of an engineering project)
+	//  || Is item info visible in ufopedia (allows for lootable items).
+	//
+	// Which boils down to 3 consecutive 'SavedGame::isResearched()' calls.
+	// Such a scheme will only benefit late game lookups (when a player can
+	// buy/manufacture most items).
+	// Another downside is that this scheme does not allow for mods that have
+	// buyable or manufacturable weapons with stats unlocked at a later stage.
+	//
+	// Second alternative:
+	// Introduce ruleset parameter that allows modder to determine which
+	// research unlocks the stats.
+	// Default to the same research topic used to unlock this item.
+	// Gives maximum flexibility for the cost of maximum modder work.
+}
+
+/**
+ * Are we allowed to display weapon stats?
+ *
+ * @param save Pointer to saved game.
+ * @param mod Pointer to the mod.
+ * @param currentAmmo Pointer to ammo currently loaded (multislot ammo weapons).
+ * @return if we are allowed to see them.
+ */
+bool BattleItem::isItemStatsKnown(SavedGame *save, Mod *mod, const BattleItem *currentAmmo) const
+{
+	return isItemStatsKnownCached(save, mod, currentAmmo);
+}
 
 ////////////////////////////////////////////////////////////
 //					Script binding
