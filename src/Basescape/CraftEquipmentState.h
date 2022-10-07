@@ -33,6 +33,7 @@ class TextList;
 class ComboBox;
 class Timer;
 class Base;
+class ItemContainer;
 
 /**
  * Equipment screen that lets the player
@@ -64,6 +65,7 @@ private:
 	void initList();
 
 	bool _showClaimedItems;
+	const ItemContainer* _soldierClaimItems;
 	void updateSubtitleArea();
 public:
 	/// Creates the Craft Equipment state.
