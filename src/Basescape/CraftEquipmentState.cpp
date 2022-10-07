@@ -862,7 +862,13 @@ void CraftEquipmentState::updateSubtitleArea()
 		ssSpaceUsage << tr("STR_SPACE_UC") << ">" << Unicode::TOK_COLOR_FLIP;
 		ssSpaceUsage << c->getSpaceUsed() << ":" << c->getRules()->getMaxUnits();
 
-		ssItemSize << tr("STR_SIZE_UC") << ">" << Unicode::TOK_COLOR_FLIP << _totalItemStorageSize;
+		// Dealing with floating point
+		// - precision(1) : Save space, 1 digit is enough to inform player.
+		// - std::fixed : Prevent scientific notation (1.4524e-16, 2e+2).
+		// - std::max() : Round-off error creating negative numbers.
+		ssItemSize.precision(1);
+		ssItemSize << std::fixed;
+		ssItemSize << tr("STR_SIZE_UC") << ">" << Unicode::TOK_COLOR_FLIP << std::max(_totalItemStorageSize, 0.0);
 		ssItemAmount << tr("STR_ITEMS_UC") << ">" << Unicode::TOK_COLOR_FLIP << _totalItems;
 		if (c->getRules()->getMaxStorageSpace() > 0.0)
 		{
