@@ -426,3 +426,4 @@ en-GB:
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"
+  STR_CLAIMED_BY_SOLDIERS: "Claimed by Soldiers"

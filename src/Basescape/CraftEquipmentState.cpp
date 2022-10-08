@@ -171,6 +171,8 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	// populate sort options
 	_categoryStrings.push_back("STR_ALL");
 	_categoryStrings.push_back("STR_EQUIPPED");
+	if (_showClaimedItems)
+		_categoryStrings.push_back("STR_CLAIMED_BY_SOLDIERS");
 	bool hasUnassigned = false;
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
@@ -353,6 +355,7 @@ void CraftEquipmentState::initList()
 	}
 	const std::string selectedCategory = _categoryStrings[selIdx];
 	bool categoryFilterEnabled = (selectedCategory != "STR_ALL");
+	bool categoryClaimedBySoldiers = (selectedCategory == "STR_CLAIMED_BY_SOLDIERS");
 	bool categoryUnassigned = (selectedCategory == "STR_UNASSIGNED");
 	bool categoryEquipped = (selectedCategory == "STR_EQUIPPED");
 	bool categoryNotEquipped = (selectedCategory == "STR_NOT_EQUIPPED");
@@ -414,6 +417,13 @@ void CraftEquipmentState::initList()
 				else if (categoryNotEquipped)
 				{
 					if (cQty > 0)
+					{
+						continue;
+					}
+				}
+				else if (categoryClaimedBySoldiers)
+				{
+					if (_soldierClaimItems->getItem(*i) <= 0)
 					{
 						continue;
 					}
