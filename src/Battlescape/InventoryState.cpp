@@ -2167,4 +2167,39 @@ void InventoryState::updateTemplateButtons(bool isVisible)
 	}
 }
 
+/**
+ * Check if stats are supposed to be known
+ *
+ * @param item Pointer to battle item.
+ * @param currentAmmo Pointer to ammo currently loaded.
+ * @return If we are allowed to see item stats.
+ */
+bool InventoryState::isItemStatsKnown(BattleItem *item, BattleItem *currentAmmo) const
+{
+	if (!item || !item->getRules())
+		return false;
+
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!currentUnit)
+		return false;
+
+	// PSI and Mana must be known
+	if (item->getRules()->isPsiRequired() && currentUnit->getBaseStats()->psiSkill <= 0)
+		return false;
+	if ((item->getRules()->isManaRequired() && currentUnit->getOriginalFaction() == FACTION_PLAYER) &&
+		(!_game->getMod()->isManaFeatureEnabled() || !_game->getSavedGame()->isManaUnlocked(_game->getMod())))
+	{
+		return false;
+	}
+
+	// Actual research check. Uses a cached value, hence impact will be low after first lookup.
+	if (!item->isItemStatsKnown(_game->getSavedGame(), _game->getMod()))
+		return false;
+	// Item itself is known, now check any potential ammo.
+	if (currentAmmo)
+		return isItemStatsKnown(currentAmmo);
+
+	return true;
+}
+
 }

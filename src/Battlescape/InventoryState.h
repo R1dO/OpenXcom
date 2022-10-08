@@ -157,6 +157,7 @@ private:
 	void updateTemplateButtons(bool isVisible);
 	/// Refresh the hover status of the mouse.
 	void refreshMouse();
+	bool isItemStatsKnown(BattleItem *item = nullptr, BattleItem *currentAmmo = nullptr) const;
 };
 
 }
