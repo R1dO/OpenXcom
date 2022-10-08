@@ -212,7 +212,14 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	_cbxFilterBy->onChange((ActionHandler)&CraftEquipmentState::cbxFilterByChange);
 
 	_lstEquipment->setArrowColumn(203, ARROW_HORIZONTAL);
-	_lstEquipment->setColumns(3, 156, 83, 41);
+	if (_showClaimedItems)
+	{
+		_lstEquipment->setColumns(4, 156, 25+48, 25, 26); // 48 is reservation for arrowButtons
+	}
+	else
+	{
+		_lstEquipment->setColumns(3, 156, 83, 41);
+	}
 	_lstEquipment->setSelectable(true);
 	_lstEquipment->setBackground(_window);
 	_lstEquipment->setMargin(8);
@@ -434,7 +441,21 @@ void CraftEquipmentState::initList()
 			{
 				s.insert(0, "  ");
 			}
-			_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
+
+			if (_showClaimedItems)
+			{
+				std::string ssClaimed;
+				int rQty = _soldierClaimItems->getItem(*i);
+				if (rQty > 0)
+				{
+					ssClaimed = createAssignedToSoldiersString(cQty, rQty);
+				}
+				_lstEquipment->addRow(4, s.c_str(), ss.str().c_str(), ss2.str().c_str(), ssClaimed.c_str());
+			}
+			else
+			{
+				_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
+			}
 
 			Uint8 color;
 			if (cQty == 0)
@@ -646,6 +667,17 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setRowColor(_sel, color);
 	_lstEquipment->setCellText(_sel, 1, ss.str());
 	_lstEquipment->setCellText(_sel, 2, ss2.str());
+
+	if (_showClaimedItems)
+	{
+		std::string ssClaimed;
+		int rQty = _soldierClaimItems->getItem(_items[_sel]);
+		if (rQty > 0)
+		{
+			ssClaimed = createAssignedToSoldiersString(cQty, rQty);
+		}
+		_lstEquipment->setCellText(_sel, 3, ssClaimed);
+	}
 
 	updateSubtitleArea();
 }
@@ -890,6 +922,34 @@ void CraftEquipmentState::updateSubtitleArea()
 		_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
 		_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
 	}
+}
+
+/**
+ * Create the "claimed items" string.
+ *
+ * Represents the total amount of this item claimed soldiers on the craft.
+ * @param craftQty Amount of the item assigned to the craft.
+ * @param claimQty Amount of the item claimed by soldiers on the craft.
+ * @return Text to insert in the cell.
+ */
+std::string CraftEquipmentState::createAssignedToSoldiersString(const int craftQty, const int claimQty) const
+{
+	std::ostringstream  itemsClaimedBySoldiers;
+
+	if (craftQty > claimQty)
+	{
+		itemsClaimedBySoldiers << "> " << claimQty; // or STR_LARGER
+	}
+	else if (craftQty < claimQty)
+	{
+		itemsClaimedBySoldiers << "< " << claimQty; // or STR_SMALLER
+	}
+	else
+	{
+		itemsClaimedBySoldiers << "= " << claimQty; // or STR_EQUAL
+	}
+
+	return itemsClaimedBySoldiers.str();
 }
 
 /**

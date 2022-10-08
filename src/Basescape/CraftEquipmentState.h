@@ -64,9 +64,13 @@ private:
 	/// initializes the displayed list
 	void initList();
 
+	/// Do we use the alternate base screen option?
 	bool _showClaimedItems;
+	/// Items soldiers have laid a claim on.
 	const ItemContainer* _soldierClaimItems;
+
 	void updateSubtitleArea();
+	std::string createAssignedToSoldiersString(const int craftQty, const int claimQty) const;
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);
