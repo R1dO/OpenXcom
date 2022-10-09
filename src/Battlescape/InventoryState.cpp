@@ -59,6 +59,7 @@
 #include "TileEngine.h"
 #include "../Mod/RuleInterface.h"
 #include "../Ufopaedia/Ufopaedia.h"
+#include <climits>
 
 namespace OpenXcom
 {
@@ -73,9 +74,10 @@ static const int _applyTemplateBtnY  = 113;
  * @param tu Does Inventory use up Time Units?
  * @param parent Pointer to parent Battlescape.
  */
-InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bool noCraft) : _tu(tu), _noCraft(noCraft), _parent(parent), _base(base), _reloadUnit(false), _globalLayoutIndex(-1)
+InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bool noCraft) : _tu(tu), _noCraft(noCraft), _parent(parent), _base(base), _reloadUnit(false), _globalLayoutIndex(-1), _alternateScreen(false)
 {
 	_battleGame = _game->getSavedGame()->getSavedBattle();
+	_alternateScreen = Options::alternateBaseScreens;
 
 	if (Options::maximizeInfoScreens)
 	{
@@ -2308,6 +2310,133 @@ bool InventoryState::isItemStatsKnown(BattleItem *item, BattleItem *currentAmmo)
 		return isItemStatsKnown(currentAmmo);
 
 	return true;
+}
+
+/**
+ * Display item stats.
+ *
+ * Shows item stats and handobj when appropriate.
+ * Hides template buttons when needed.
+ *
+ * @param item Pointer to battle item.
+ * @param currentAmmo Pointer to ammo currently loaded.
+ */
+void InventoryState::updateItemStats(BattleItem *item, BattleItem *currentAmmo)
+{
+	if (!item || !item->getRules())
+	{
+		_txtAmmo->setText("");
+		_selAmmo->clear();
+		updateTemplateButtons(!_tu);
+		return;
+	}
+
+	// Calculate extended stats for item
+	// @return tuple of [power, accuracy, rounds left, max rounds].
+	auto calcItemStats = [&](BattleItem *weapon, BattleItem *clip) -> std::tuple<int, int, int, int>
+	{
+		int itemPower = 0, skill = 0;
+		std::pair<int, int> rounds = std::make_pair(0, 0); // (current, max)
+
+		switch (weapon->getRules()->getBattleType())
+		{
+			case BT_AMMO:
+				// Throwing accuracy is kinda confusing for this kind of item,
+				// hence no display and thus no need to calculate.
+				itemPower = getItemPower(weapon, clip);
+				rounds = getItemRounds(weapon, clip);
+				break;
+			case BT_FLARE:
+				// Zero power items are probably recoverable 'geoscape-only' items.
+				// Those are not weapons so it makes little sense to show stats.
+				//
+				// Alternative is to check for "ignoreInBaseDefense" variable.
+				// The downside of that approach is that it takes away the modder's
+				// ability to put items at risk during base defense if they want to
+				// hide stats for this kind of item.
+				itemPower = getItemPower(weapon, clip);
+				if (itemPower != 0)
+				{
+					skill = getItemAccuracy(weapon, clip);
+					rounds = getItemRounds(weapon, clip);
+				}
+				break;
+			case BT_MELEE:
+			case BT_FIREARM:
+			case BT_GRENADE:
+			case BT_PROXIMITYGRENADE:
+			case BT_PSIAMP:
+				itemPower = getItemPower(weapon, clip);
+				skill = getItemAccuracy(weapon, clip);
+				rounds = getItemRounds(weapon, clip);
+				break;
+			default:
+				break;
+		}
+
+		return std::make_tuple(itemPower, skill, rounds.first, rounds.second);
+	};
+
+	// Text display part.
+	std::ostringstream ssItemStats;
+	if (item->getRules()->getBattleType() == BT_MEDIKIT)
+	{
+		ssItemStats << tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
+	}
+	else if (!_alternateScreen && item->getAmmoQuantity() != 0 && item->getRules()->getBattleType() == BT_AMMO)
+	{
+		ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
+	}
+	else if (_alternateScreen)
+	{
+		// Structured binding, requires C++17.
+		auto [power, skill, rounds, capacity] = calcItemStats(item, currentAmmo);
+
+		if (skill > 0 && isItemStatsKnown(item, currentAmmo))
+			ssItemStats << tr("STR_ACCURACY_SHORT").arg(skill) << Unicode::TOK_COLOR_FLIP;
+		else if (skill == -1)
+			ssItemStats << tr("STR_ACCURACY_SHORT").arg("?") << Unicode::TOK_COLOR_FLIP;
+		// No display of 0 skill
+		ssItemStats << std::endl;
+
+		if (power > 0 && isItemStatsKnown(item, currentAmmo))
+			ssItemStats << tr("STR_POWER_SHORT").arg(power) << Unicode::TOK_COLOR_FLIP;
+		else if (power == -1)
+			ssItemStats << tr("STR_POWER_SHORT").arg("?") << Unicode::TOK_COLOR_FLIP;
+		// No display of 0 power
+		ssItemStats << std::endl;
+
+		// Don't show rounds on empty clips or infinite shots weapons (single shot is ok though).
+		// No need to gate display behind research check, bit too harsh (and assume player can count).
+		if (rounds > 0 && capacity != INT_MAX)
+			ssItemStats << tr("STR_ROUNDS_SHORT").arg(rounds);
+	}
+	_txtAmmo->setText(ssItemStats.str());
+
+	// Draw ammo handobj or template buttons.
+	_selAmmo->clear();
+	if (currentAmmo)
+	{
+		// Only need to hide buttons when drawing ammoitems.
+		updateTemplateButtons(false);
+
+		SDL_Rect r;
+		r.x = 0;
+		r.y = 0;
+		r.w = RuleInventory::HAND_W * RuleInventory::SLOT_W;
+		r.h = RuleInventory::HAND_H * RuleInventory::SLOT_H;
+		_selAmmo->drawRect(&r, _game->getMod()->getInterface("inventory")->getElement("grid")->color);
+		r.x++;
+		r.y++;
+		r.w -= 2;
+		r.h -= 2;
+		_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
+		currentAmmo->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo, currentAmmo, _game->getSavedGame()->getSavedBattle(), _inv->getAnimFrame());
+	}
+	else
+	{
+		updateTemplateButtons(!_tu);
+	}
 }
 
 }

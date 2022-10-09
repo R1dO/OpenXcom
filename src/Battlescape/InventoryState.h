@@ -69,6 +69,9 @@ private:
 	void _createInventoryTemplate(std::vector<EquipmentLayoutItem*> &inventoryTemplate);
 	/// Helper method for Apply Template button
 	void _applyInventoryTemplate(std::vector<EquipmentLayoutItem*> &inventoryTemplate);
+
+	/// Do we use the alternate base screen option?
+	bool _alternateScreen;
 public:
 	/// Creates the Inventory state.
 	InventoryState(bool tu, BattlescapeState *parent, Base *base, bool noCraft = false);
@@ -161,6 +164,7 @@ private:
 	int getItemPower(BattleItem *item = nullptr, BattleItem *currentAmmo = nullptr) const;
 	std::pair<int, int> getItemRounds(BattleItem *item = nullptr, BattleItem *currentAmmo = nullptr) const;
 	bool isItemStatsKnown(BattleItem *item = nullptr, BattleItem *currentAmmo = nullptr) const;
+	void updateItemStats(BattleItem *item = nullptr, BattleItem *currentAmmo = nullptr);
 };
 
 }
