@@ -2168,6 +2168,114 @@ void InventoryState::updateTemplateButtons(bool isVisible)
 }
 
 /**
+ * Gets weapon accuracy for the selected unit.
+ *
+ * Accuracy is based on following components:
+ * - Item (ammo) base accuracy
+ * - Soldier stat based accuracy multipliers
+ *
+ * Does not take into account the following multipliers:
+ * - Accuracy based on shot type (action)
+ * - Kneeling bonus
+ * - 2-handiness
+ * - Adjustment for wounds
+ *
+ * @param item Pointer to battle item.
+ * @param currentAmmo Pointer to ammo currently loaded.
+ * @return Item accuracy for the current unit.
+ */
+int InventoryState::getItemAccuracy(BattleItem *item, BattleItem *currentAmmo) const
+{
+	if (!item || item->getRules()->getBattleType() == BT_CORPSE)
+		return 0;
+
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!currentUnit)
+		return 0;
+
+	// Accuracy should only depend on item itself?
+	// Included 'damageItem' just in case it has an effect on item accuracy stat.
+	const BattleItem *damageItem = item;
+	if (currentAmmo)
+		damageItem = currentAmmo;
+
+	// Confused by 'multiplier' method names? Think of it this way:
+	// Return value is the percentage to be multiplied with the shot's type accuracy.
+	switch (item->getRules()->getBattleType())
+	{
+		case BT_PSIAMP:
+		case BT_FIREARM:
+			return item->getRules()->getAccuracyMultiplier({ BA_NONE, currentUnit, item, damageItem });
+		case BT_MELEE:
+			return item->getRules()->getMeleeMultiplier({ BA_NONE, currentUnit, item, damageItem });
+		case BT_AMMO:
+		case BT_FLARE:
+		case BT_GRENADE:
+		case BT_PROXIMITYGRENADE:
+			return item->getRules()->getThrowMultiplier({ BA_NONE, currentUnit, item, damageItem });
+		default:
+			return 0;
+	}
+}
+
+/**
+ * Gets weapon (ammo) power.
+ *
+ * Adjusted for soldier skill (when appropriate)
+ *
+ * @param item Pointer to battle item.
+ * @param currentAmmo Pointer to ammo currently loaded.
+ * @return Item (weapon/ammo).power for the current unit.
+ */
+int InventoryState::getItemPower(BattleItem *item, BattleItem *currentAmmo) const
+{
+	if (!item || item->getRules()->getBattleType() == BT_CORPSE)
+		return 0;
+
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!currentUnit)
+		return 0;
+
+	// Power depends on damageItem!
+	const BattleItem *damageItem = item;
+	if (currentAmmo)
+		damageItem = currentAmmo;
+
+	return damageItem->getRules()->getPowerBonus({ BA_NONE, currentUnit, item, damageItem });
+}
+
+/**
+ * Gets weapon (ammo) rounds.
+ *
+ * @param item Pointer to battle item.
+ * @param currentAmmo Pointer to ammo currently loaded.
+ * @return Number of rounds left and the maximum rounds (INT_MAX denotes infinite).
+ */
+std::pair<int, int> InventoryState::getItemRounds(BattleItem *item, BattleItem *currentAmmo) const
+{
+	if (!item || (item->isWeaponWithAmmo() && !currentAmmo))
+		return std::make_pair(0,0);
+
+	int roundsLeft = 0, maxRounds = 0;
+	if (currentAmmo)
+	{
+		roundsLeft = currentAmmo->getAmmoQuantity();
+		maxRounds = currentAmmo->getRules()->getClipSize();
+	}
+	else
+	{
+		roundsLeft = item->getAmmoQuantity();
+		maxRounds = item->getRules()->getClipSize();
+	}
+
+	// Infinite is denoted by 255 for 'getAmmoQuantity()' and -1 for 'getClipSize()'.
+	roundsLeft = (roundsLeft == 255 ? INT_MAX : roundsLeft);
+	maxRounds = (maxRounds == -1 ? INT_MAX : maxRounds);
+
+	return std::make_pair(roundsLeft, maxRounds);
+}
+
+/**
  * Check if stats are supposed to be known
  *
  * @param item Pointer to battle item.

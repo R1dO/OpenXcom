@@ -157,6 +157,9 @@ private:
 	void updateTemplateButtons(bool isVisible);
 	/// Refresh the hover status of the mouse.
 	void refreshMouse();
+	int getItemAccuracy(BattleItem *item = nullptr, BattleItem *currentAmmo = nullptr) const;
+	int getItemPower(BattleItem *item = nullptr, BattleItem *currentAmmo = nullptr) const;
+	std::pair<int, int> getItemRounds(BattleItem *item = nullptr, BattleItem *currentAmmo = nullptr) const;
 	bool isItemStatsKnown(BattleItem *item = nullptr, BattleItem *currentAmmo = nullptr) const;
 };
 
