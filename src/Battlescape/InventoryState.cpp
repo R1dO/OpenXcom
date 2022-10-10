@@ -2420,12 +2420,14 @@ std::pair<int, int> InventoryState::getItemRounds(BattleItem *item, BattleItem *
  */
 bool InventoryState::isItemStatsKnown(BattleItem *item, BattleItem *currentAmmo) const
 {
-	if (!item || !item->getRules())
+	// Stats may depend on soldier
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!item || !item->getRules() || !currentUnit)
 		return false;
 
-	const BattleUnit *currentUnit = _inv->getSelectedUnit();
-	if (!currentUnit)
-		return false;
+	// Skirmish mode
+	if (_game->getSavedGame()->getMonthsPassed() == -1)
+		return true;
 
 	// PSI and Mana must be known
 	if (item->getRules()->isPsiRequired() && currentUnit->getBaseStats()->psiSkill <= 0)
@@ -2436,7 +2438,7 @@ bool InventoryState::isItemStatsKnown(BattleItem *item, BattleItem *currentAmmo)
 		return false;
 	}
 
-	// Actual research check. Uses a cached value, hence impact will be low after first lookup.
+	// Actual research check. Ends up using a BattleItem's cached value.
 	if (!item->isItemStatsKnown(_game->getSavedGame(), _game->getMod()))
 		return false;
 	// Item itself is known, now check any potential ammo.
