@@ -165,8 +165,6 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bo
 
 	centerAllSurfaces();
 
-
-
 	_txtName->setBig();
 	_txtName->setHighContrast(true);
 	_txtName->onChange((ActionHandler)&InventoryState::edtSoldierChange);
@@ -2471,7 +2469,8 @@ void InventoryState::updateItemStats(BattleItem *item, BattleItem *currentAmmo)
 	// @return tuple of [power, accuracy, rounds left, max rounds].
 	auto calcItemStats = [&](BattleItem *weapon, BattleItem *clip) -> std::tuple<int, int, int, int>
 	{
-		int itemPower = 0, skill = 0;
+		// Let "-1" denote: do not draw!
+		int itemPower = -1, skill = -1;
 		std::pair<int, int> rounds = std::make_pair(0, 0); // (current, max)
 
 		switch (weapon->getRules()->getBattleType())
@@ -2528,16 +2527,16 @@ void InventoryState::updateItemStats(BattleItem *item, BattleItem *currentAmmo)
 		// Structured binding, requires C++17.
 		auto [power, skill, rounds, capacity] = calcItemStats(item, currentAmmo);
 
-		if (skill > 0 && isItemStatsKnown(item, currentAmmo))
+		if (skill >= 0 && isItemStatsKnown(item, currentAmmo))
 			ssItemStats << tr("STR_ACCURACY_SHORT").arg(skill) << Unicode::TOK_COLOR_FLIP;
-		else if (skill == -1)
+		else if (skill >= 0)
 			ssItemStats << tr("STR_ACCURACY_SHORT").arg("?") << Unicode::TOK_COLOR_FLIP;
 		// No display of 0 skill
 		ssItemStats << std::endl;
 
-		if (power > 0 && isItemStatsKnown(item, currentAmmo))
+		if (power >= 0 && isItemStatsKnown(item, currentAmmo))
 			ssItemStats << tr("STR_POWER_SHORT").arg(power) << Unicode::TOK_COLOR_FLIP;
-		else if (power == -1)
+		else if (power >= 0)
 			ssItemStats << tr("STR_POWER_SHORT").arg("?") << Unicode::TOK_COLOR_FLIP;
 		// No display of 0 power
 		ssItemStats << std::endl;
