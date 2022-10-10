@@ -2439,4 +2439,119 @@ void InventoryState::updateItemStats(BattleItem *item, BattleItem *currentAmmo)
 	}
 }
 
+/**
+ * Updates the soldier weight info text.
+ *
+ * For preview purposes weight is based on mouseover slot.
+ *
+ * + No support for preview of modifier key actions.
+ *
+ * @param extraWeight Additional weight to add.
+ */
+void InventoryState::updateSoldierStatWeight(int extraWeight)
+{
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!currentUnit || !_txtWeight->getVisible()) return;
+
+	BattleItem *dragItem = _inv->getSelectedItem();
+	int weight = currentUnit->getCarriedWeight(dragItem); // Vanilla behavior
+
+	// Preview
+	if (_alternateScreen)
+	{
+		// Decision points for preview:
+		// * If item originates from a soldier slot (general or hand):
+		//   >>> Do nothing until we mouse-over the ground.
+		//   + Till that happens it remains unknown if player wants to put
+		//     item into a different soldier slot or on the ground.
+		//   + Reduces unnecessary updates (which is annoying).
+		// * If item originates from the ground:
+		//   >>> Do nothing until mouse leaves ground.
+		//   + Improves consistency with previous point.
+
+		const RuleInventory *slotTo = _inv->getMouseOverSlot();
+		// Good thing getCarriedWeight() ignores items originating from ground.
+		// The dragged item (from a soldier slot) was already ignored at declaration of weight.
+		if (dragItem && (slotTo == 0 || slotTo->getType() != INV_GROUND))
+			weight += dragItem->getTotalWeight();
+
+		weight += extraWeight;
+	}
+	// No research check if item stats (technically includes weight) are known.
+	// * Weight is something a soldier can easily tell.
+	// * Don't want to be too harsh on the player.
+	// * Extreme consistency would dictate no weight display at all.
+
+	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(currentUnit->getBaseStats()->strength));
+	if (weight > currentUnit->getBaseStats()->strength)
+		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
+	else
+		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
+}
+
+/**
+ * Updates the soldier TU info text.
+ *
+ * For preview purposes TU will reflect what happens based on mouseover slot.
+ *
+ * + No support for preview of modifier key actions.
+ * + Uses logic adapted from inventory::mouseclick()
+ *
+ * @param extraTu Additional TU to add.
+ */
+void InventoryState::updateSoldierStatTu(int extraTu)
+{
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!currentUnit || !_txtTus->getVisible()) return;
+
+	int unitTu = currentUnit->getTimeUnits(); // Vanilla behavior
+
+	// Preview
+	if (_alternateScreen)
+	{
+		BattleItem *dragItem = _inv->getSelectedItem();
+		// Assume dragged item will be placed in the mouseover slot (even if
+		// already occupied) but do not account for removal of occupying item.
+		const RuleInventory *slotTo = _inv->getMouseOverSlot();
+		if (slotTo != 0 && dragItem && dragItem->getSlot() != 0 && dragItem->getRules()->canBePlacedIntoInventorySection(slotTo))
+		{
+			unitTu -= dragItem->getMoveToCost(slotTo);
+
+			// Preview cost of loading ammoitem in matching weapon.
+			// The exception where preview takes into account the mouseover slot item.
+			if (dragItem->getRules()->getBattleType() == BT_AMMO)
+			{
+				BattleItem *itemTo = _inv->getMouseOverItem();
+				if (itemTo != 0 && itemTo->isWeaponWithAmmo() &&
+					itemTo->getRules()->getSlotForAmmo(dragItem->getRules()) >= 0)
+				{
+					unitTu -= itemTo->getRules()->getTULoad(itemTo->getRules()->getSlotForAmmo(dragItem->getRules()));
+
+					// Only when 'EXTENDED_ITEM_RELOAD_COST' is in effect there
+					// is additional cost for moving the item to the slot.
+					// Game default is to only pay the reload cost.
+					if (!Mod::EXTENDED_ITEM_RELOAD_COST)
+					{
+						// Undo previously booked move cost
+						unitTu += dragItem->getMoveToCost(slotTo);
+					}
+				}
+			}
+		}
+		unitTu += extraTu;
+	}
+	// No research check if inventory stats (technically includes TU usage) are known.
+	// * Time consumption is something a soldier can easily tell.
+	// * Don't want to be too harsh on the player.
+	// * Extreme consistency would dictate no TU display at all.
+
+	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(unitTu));
+	// Reuse '_txtWeight' color definition for 2nd (=color) and 3rd (=color2) number state.
+	// That one uses "id: textWeight" for text colors and "id: weight" for number colors.
+	if (unitTu < 0 && _alternateScreen)
+		_txtTus->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
+	else
+		_txtTus->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
+}
+
 }
