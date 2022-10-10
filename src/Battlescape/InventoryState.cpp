@@ -222,6 +222,7 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bo
 
 	_btnUnload->onMouseClick((ActionHandler)&InventoryState::btnUnloadClick);
 	_btnUnload->setTooltip("STR_UNLOAD_WEAPON");
+	_btnUnload->onMouseOver((ActionHandler)&InventoryState::btnUnloadMouseOver);
 	_btnUnload->onMouseIn((ActionHandler)&InventoryState::txtTooltipIn);
 	_btnUnload->onMouseOut((ActionHandler)&InventoryState::txtTooltipOut);
 
@@ -1100,6 +1101,139 @@ void InventoryState::btnUnloadClick(Action *)
 		updateStats();
 		_game->getMod()->getSoundByDepth(0, Mod::ITEM_DROP)->play();
 	}
+}
+
+/**
+ * Preview of Unload button result.
+ *
+ * Updates TU and Weight (when visible).
+ *
+ * Adapted logic from 'Inventory::unload()'.
+ * + Only interested in what could happen upon unload, no error messages.
+ * + Does not recognise "shift unload" modifier.
+ * + In preview mode negative TU is allowed.
+ *
+ * @param action Pointer to an action.
+ */
+void InventoryState::btnUnloadMouseOver(Action *action)
+{
+	if (!_txtTus->getVisible() && !_txtWeight->getVisible())
+		return; // Nothing to draw
+
+	BattleItem *grabbedItem = _inv->getSelectedItem();
+	BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!grabbedItem || !currentUnit)
+		return; // Cannot compute
+
+	const auto type = grabbedItem->getRules()->getBattleType();
+	const bool grenade = type == BT_GRENADE || type == BT_PROXIMITYGRENADE;
+	const bool weapon = type == BT_FIREARM || type == BT_MELEE;
+	int slotForAmmoUnload = -1;
+	int tuForAmmoUnload = 0;
+	int weightOfAmmoUnload = 0;
+
+	// Item should be able to unload or unprimed.
+	if (grenade)
+	{
+		// Item must be primed
+		if (grabbedItem->getFuseTimer() == -1)
+			return;
+		if (grabbedItem->getRules()->getFuseTimerType() == BFT_NONE)
+			return;
+	}
+	else if (weapon)
+	{
+		// lambda to check if a slot is loaded
+		auto checkSlot = [&](int slot)
+		{
+			// No ammo in slot
+			if (!grabbedItem->needsAmmoForSlot(slot))
+				return false;
+
+			// tu=0 means unable to unload (fixed ammo)?
+			auto tu = grabbedItem->getRules()->getTUUnload(slot);
+			if (tu == 0 && !_tu)
+				return false;
+
+			auto ammo = grabbedItem->getAmmoForSlot(slot);
+			if (ammo)
+			{
+				tuForAmmoUnload = tu;
+				slotForAmmoUnload = slot;
+				weightOfAmmoUnload = ammo->getRules()->getWeight();
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		};
+
+		// We can only unload 1 slot at the time, first one wins.
+		for (int slot = 0; slot < RuleItem::AmmoSlotMax; ++slot)
+		{
+			if (checkSlot(slot))
+				break;
+		}
+
+		if (slotForAmmoUnload == -1)
+			return; // No ammo present.
+	}
+	else
+	{
+		return; // not weapon or grenade, can't use unload button
+	}
+
+	// Check which hands are free.
+	RuleInventory *FirstFreeHand = _game->getMod()->getInventoryRightHand();
+	RuleInventory *SecondFreeHand = _game->getMod()->getInventoryLeftHand();
+
+	for (std::vector<BattleItem*>::iterator i = currentUnit->getInventory()->begin(); i != currentUnit->getInventory()->end(); ++i)
+	{
+		if ((*i)->getSlot()->getType() == INV_HAND && (*i) != grabbedItem)
+		{
+			if ((*i)->getSlot() == SecondFreeHand)
+				SecondFreeHand = nullptr;
+			if ((*i)->getSlot() == FirstFreeHand)
+				FirstFreeHand = nullptr;
+		}
+	}
+
+	if (FirstFreeHand == nullptr)
+	{
+		FirstFreeHand = SecondFreeHand;
+		SecondFreeHand = nullptr;
+	}
+	if (FirstFreeHand == nullptr)
+		return; // No free hand
+
+	BattleActionCost cost { BA_NONE, currentUnit, grabbedItem };
+	if (grenade)
+	{
+		cost.type = BA_UNPRIME;
+		cost.updateTU();
+	}
+	else
+	{
+		// 2. unload cost (= move the ammo to the second free hand)
+		cost.Time += tuForAmmoUnload;
+
+		if (SecondFreeHand == nullptr)
+		{
+			// 3. drop the ammo on the ground (if the second hand is not free)
+			cost.Time += FirstFreeHand->getCost(_game->getMod()->getInventoryGround());
+			// Change soldier weight.
+			updateSoldierStatWeight(-1 * weightOfAmmoUnload);
+		}
+	}
+
+	if (grabbedItem->getSlot()->getType() != INV_HAND) // Preview: No need for TU check
+	{
+		// 1. move the weapon to the first free hand
+		cost.Time += grabbedItem->getMoveToCost(FirstFreeHand);
+	}
+
+	updateSoldierStatTu(-1 * cost.Time);
 }
 
 /**

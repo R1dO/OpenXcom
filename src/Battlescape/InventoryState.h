@@ -161,6 +161,8 @@ private:
 	/// Refresh the hover status of the mouse.
 	void refreshMouse();
 
+	void btnUnloadMouseOver(Action *action);
+
 	int getItemAccuracy(BattleItem *item, BattleItem *currentAmmo = nullptr) const;
 	int getItemPower(BattleItem *item, BattleItem *currentAmmo = nullptr) const;
 	std::pair<int, int> getItemRounds(BattleItem *item, BattleItem *currentAmmo = nullptr) const;
