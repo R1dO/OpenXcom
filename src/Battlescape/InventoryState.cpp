@@ -1771,13 +1771,14 @@ void InventoryState::calculateCurrentDamageTooltip()
 
 	// step 1: determine rule
 	const RuleItem *rule;
+	BattleItem *ammo = nullptr;
 	if (weaponRule->getBattleType() == BT_PSIAMP)
 	{
 		rule = weaponRule;
 	}
 	else if (_currentDamageTooltipItem->needsAmmoForSlot(PRIMARY_SLOT))
 	{
-		auto ammo = _currentDamageTooltipItem->getAmmoForSlot(PRIMARY_SLOT);
+		ammo = _currentDamageTooltipItem->getAmmoForSlot(PRIMARY_SLOT);
 		if (ammo != nullptr)
 		{
 			damageItem = ammo;
@@ -1793,35 +1794,8 @@ void InventoryState::calculateCurrentDamageTooltip()
 		rule = weaponRule;
 	}
 
-	// step 2: check if unlocked
-	if (_game->getSavedGame()->getMonthsPassed() == -1)
-	{
-		// new battle mode
-	}
-	else if (rule)
-	{
-		// instead of checking the weapon/ammo itself... we're checking their ufopedia articles here
-		// same as for the battlescape indicator
-		// it's arguable if this is the correct approach, but so far this is what we have
-		ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(rule->getType(), false);
-		if (article && !Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
-		{
-			// ammo/weapon locked
-			rule = 0;
-		}
-		if (rule && rule->getType() != weaponRule->getType())
-		{
-			article = _game->getMod()->getUfopaediaArticle(weaponRule->getType(), false);
-			if (article && !Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
-			{
-				// weapon locked
-				rule = 0;
-			}
-		}
-	}
-
-	// step 3: calculate and remember
-	if (rule)
+	// step 3: calculate and remember, original step 2 is now a method call inside if().
+	if (isItemStatsKnown(_currentDamageTooltipItem, ammo))
 	{
 		if (rule->getBattleType() != BT_CORPSE)
 		{
