@@ -590,19 +590,6 @@ void InventoryState::updateStats()
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 
-	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(unit->getTimeUnits()));
-
-	int weight = unit->getCarriedWeight(_inv->getSelectedItem());
-	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(unit->getBaseStats()->strength));
-	if (weight > unit->getBaseStats()->strength)
-	{
-		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
-	}
-	else
-	{
-		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
-	}
-
 	auto psiSkillWithoutAnyBonuses = unit->getBaseStats()->psiSkill;
 	if (unit->getGeoscapeSoldier())
 	{
@@ -667,6 +654,8 @@ void InventoryState::updateStats()
 	updateStatLine(_txtStatLine2, "textStatLine2");
 	updateStatLine(_txtStatLine3, "textStatLine3");
 	updateStatLine(_txtStatLine4, "textStatLine4");
+	updateSoldierStatTu();
+	updateSoldierStatWeight();
 }
 
 /**
@@ -1098,8 +1087,7 @@ void InventoryState::btnUnloadClick(Action *)
 	if (_inv->unload(false))
 	{
 		_txtItem->setText("");
-		_txtAmmo->setText("");
-		_selAmmo->clear();
+		updateItemStats();
 		updateStats();
 		_game->getMod()->getSoundByDepth(0, Mod::ITEM_DROP)->play();
 	}
@@ -1863,6 +1851,9 @@ void InventoryState::invMouseOver(Action *)
 {
 	if (_inv->getSelectedItem() != 0)
 	{
+		// Preview for grabbed items.
+		updateSoldierStatWeight();
+		updateSoldierStatTu();
 		return;
 	}
 
@@ -1955,27 +1946,17 @@ void InventoryState::invMouseOver(Action *)
 			_txtItem->setText(itemName);
 		}
 
-		_selAmmo->clear();
 		bool hasSelfAmmo = item->getRules()->getBattleType() != BT_AMMO && item->getRules()->getClipSize() > 0;
 		if ((item->isWeaponWithAmmo() || hasSelfAmmo) && item->haveAnyAmmo())
 		{
-			updateTemplateButtons(false);
-			_txtAmmo->setText("");
+			// think() handles display of ammo, _txtAmmo and (un)hiding of buttons.
+			// Method variable "item" is no longer needed (ensures updateAmmoStat() starts empty).
+			item = nullptr;
 		}
 		else
 		{
+			// Anything that is not an armed weapon: skip think();
 			_mouseHoverItem = nullptr;
-			updateTemplateButtons(!_tu);
-			std::string s;
-			if (item->getAmmoQuantity() != 0 && item->getRules()->getBattleType() == BT_AMMO)
-			{
-				s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
-			}
-			else if (item->getRules()->getBattleType() == BT_MEDIKIT)
-			{
-				s = tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
-			}
-			_txtAmmo->setText(s);
 		}
 	}
 	else
@@ -1984,10 +1965,8 @@ void InventoryState::invMouseOver(Action *)
 		{
 			_txtItem->setText("");
 		}
-		_txtAmmo->setText("");
-		_selAmmo->clear();
-		updateTemplateButtons(!_tu);
 	}
+	updateItemStats(item);
 }
 
 /**
@@ -1997,13 +1976,11 @@ void InventoryState::invMouseOver(Action *)
 void InventoryState::invMouseOut(Action *)
 {
 	_txtItem->setText("");
-	_txtAmmo->setText("");
-	_selAmmo->clear();
 	_inv->setMouseOverItem(0);
 	_mouseHoverItem = nullptr;
 	_currentDamageTooltipItem = nullptr;
 	_currentDamageTooltip = "";
-	updateTemplateButtons(!_tu);
+	updateItemStats();
 }
 
 void InventoryState::onMoveGroundInventoryToBase(Action *)
@@ -2169,26 +2146,7 @@ void InventoryState::think()
 				++seq;
 			}
 		}
-		if (firstAmmo)
-		{
-			_txtAmmo->setText(tr("STR_AMMO_ROUNDS_LEFT").arg(firstAmmo->getAmmoQuantity()));
-			SDL_Rect r;
-			r.x = 0;
-			r.y = 0;
-			r.w = RuleInventory::HAND_W * RuleInventory::SLOT_W;
-			r.h = RuleInventory::HAND_H * RuleInventory::SLOT_H;
-			_selAmmo->drawRect(&r, _game->getMod()->getInterface("inventory")->getElement("grid")->color);
-			r.x++;
-			r.y++;
-			r.w -= 2;
-			r.h -= 2;
-			_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
-			firstAmmo->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo, firstAmmo, _game->getSavedGame()->getSavedBattle(), anim);
-		}
-		else
-		{
-			_selAmmo->clear();
-		}
+		updateItemStats(_mouseHoverItem, firstAmmo);
 	}
 	State::think();
 }
