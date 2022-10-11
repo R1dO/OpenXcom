@@ -425,4 +425,4 @@ en-GB:
   STR_RESERVED_BEHAVIOR_DESC: "0: Do not use, 1: Claimed by soldiers, 2: Claimed by crafts/engineering/research, 3: Greedy (max of 1 and 2). All options >0 change buy/sell/transfer/craftEquipment screens."
 # InventoryState.cpp
   STR_POWER_SHORT: "Pwr>{ALT}{0}"
-  STR_ROUNDS_SHORT: "Rnds>{ALT}{0}"
+  STR_ROUNDS_SHORT: "Ammo>{ALT}{0}"

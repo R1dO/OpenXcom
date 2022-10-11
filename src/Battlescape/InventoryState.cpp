@@ -186,6 +186,10 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bo
 
 	_txtAmmo->setAlign(ALIGN_CENTER);
 	_txtAmmo->setHighContrast(true);
+	if (_alternateScreen)
+	{
+		_txtAmmo->setVerticalAlign(ALIGN_BOTTOM);
+	}
 
 	_btnOk->onMouseClick((ActionHandler)&InventoryState::btnOkClick);
 	_btnOk->onKeyboardPress((ActionHandler)&InventoryState::btnOkClick, Options::keyCancel);
@@ -2527,24 +2531,22 @@ void InventoryState::updateItemStats(BattleItem *item, BattleItem *currentAmmo)
 		// Structured binding, requires C++17.
 		auto [power, skill, rounds, capacity] = calcItemStats(item, currentAmmo);
 
+		// Skill can benefit from drawing 0 (tells player unit is absolute rubbish for this item)
 		if (skill >= 0 && isItemStatsKnown(item, currentAmmo))
 			ssItemStats << tr("STR_ACCURACY_SHORT").arg(skill) << Unicode::TOK_COLOR_FLIP;
 		else if (skill >= 0)
 			ssItemStats << tr("STR_ACCURACY_SHORT").arg("?") << Unicode::TOK_COLOR_FLIP;
-		// No display of 0 skill
-		ssItemStats << std::endl;
 
-		if (power >= 0 && isItemStatsKnown(item, currentAmmo))
-			ssItemStats << tr("STR_POWER_SHORT").arg(power) << Unicode::TOK_COLOR_FLIP;
-		else if (power >= 0)
-			ssItemStats << tr("STR_POWER_SHORT").arg("?") << Unicode::TOK_COLOR_FLIP;
-		// No display of 0 power
-		ssItemStats << std::endl;
+		// Do not show 0 power entries, it has a weaker (no?) dependency on unit stats
+		if (power > 0 && isItemStatsKnown(item, currentAmmo))
+			ssItemStats << std::endl << tr("STR_POWER_SHORT").arg(power) << Unicode::TOK_COLOR_FLIP;
+		else if (power > 0)
+			ssItemStats << std::endl << tr("STR_POWER_SHORT").arg("?") << Unicode::TOK_COLOR_FLIP;
 
-		// Don't show rounds on empty clips or infinite shots weapons (single shot is ok though).
-		// No need to gate display behind research check, bit too harsh (and assume player can count).
-		if (rounds > 0 && capacity != INT_MAX)
-			ssItemStats << tr("STR_ROUNDS_SHORT").arg(rounds);
+		// Do not show rounds on empty clips or infinite/single shots weapons.
+		// No need to gate behind research check, bit too harsh (and assume player can count).
+		if (rounds > 1 && capacity != INT_MAX)
+			ssItemStats << std::endl << tr("STR_ROUNDS_SHORT").arg(rounds);
 	}
 	_txtAmmo->setText(ssItemStats.str());
 
