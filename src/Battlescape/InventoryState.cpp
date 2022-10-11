@@ -2431,7 +2431,7 @@ void InventoryState::updateItemStats(BattleItem *item, BattleItem *currentAmmo)
 	// @return tuple of [power, accuracy, rounds left, max rounds].
 	auto calcItemStats = [&](BattleItem *weapon, BattleItem *clip) -> std::tuple<int, int, int, int>
 	{
-		// Let "-1" denote: do not draw!
+		// Let "-1" denote: do not draw under any circumstance!
 		int itemPower = -1, skill = -1;
 		std::pair<int, int> rounds = std::make_pair(0, 0); // (current, max)
 
@@ -2443,7 +2443,17 @@ void InventoryState::updateItemStats(BattleItem *item, BattleItem *currentAmmo)
 				itemPower = getItemPower(weapon, clip);
 				rounds = getItemRounds(weapon, clip);
 				break;
-			case BT_FLARE:
+			case BT_MELEE:
+			case BT_GRENADE:
+			case BT_PROXIMITYGRENADE:
+			case BT_FIREARM:
+			case BT_PSIAMP:
+				itemPower = getItemPower(weapon, clip);
+				skill = getItemAccuracy(weapon, clip);
+				rounds = getItemRounds(weapon, clip);
+				break;
+			default: // BT_FLARE and others
+				itemPower = getItemPower(weapon, clip);
 				// Zero power items are probably recoverable 'geoscape-only' items.
 				// Those are not weapons so it makes little sense to show stats.
 				//
@@ -2451,23 +2461,11 @@ void InventoryState::updateItemStats(BattleItem *item, BattleItem *currentAmmo)
 				// The downside of that approach is that it takes away the modder's
 				// ability to put items at risk during base defense if they want to
 				// hide stats for this kind of item.
-				itemPower = getItemPower(weapon, clip);
-				if (itemPower != 0)
+				if (itemPower > 0)
 				{
 					skill = getItemAccuracy(weapon, clip);
 					rounds = getItemRounds(weapon, clip);
 				}
-				break;
-			case BT_MELEE:
-			case BT_FIREARM:
-			case BT_GRENADE:
-			case BT_PROXIMITYGRENADE:
-			case BT_PSIAMP:
-				itemPower = getItemPower(weapon, clip);
-				skill = getItemAccuracy(weapon, clip);
-				rounds = getItemRounds(weapon, clip);
-				break;
-			default:
 				break;
 		}
 
