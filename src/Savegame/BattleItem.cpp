@@ -1303,8 +1303,9 @@ bool BattleItem::isItemStatsKnownCached(SavedGame *save, const Mod *mod) const
 	if (!_rules || !save || !mod) return false;
 
 	ArticleDefinition *article = mod->getUfopaediaArticle(_rules->getType(), false);
-	// No article at all or not researched yet
-	if (!article || !Ufopaedia::isArticleAvailable(save, article))
+	// Prevent false negatives: if no article exist assume stats are known.
+	// No need to punish player if ufopaedia entries are low priority for a modder.
+	if (article && !Ufopaedia::isArticleAvailable(save, article))
 	{
 		_isStatsKnownCache = TS_FALSE;
 		return false;
@@ -1332,6 +1333,7 @@ bool BattleItem::isItemStatsKnownCached(SavedGame *save, const Mod *mod) const
 					if (weaponClip->getType() == _rules->getType())
 					{
 						ArticleDefinition *weaponArticle = mod->getUfopaediaArticle(rule->getType(), false);
+						// Prevent false.positives: Ammo can only be matched to weapons for which an article exist.
 						if (weaponArticle && Ufopaedia::isArticleAvailable(save, weaponArticle))
 						{
 							_isStatsKnownCache = TS_TRUE;
