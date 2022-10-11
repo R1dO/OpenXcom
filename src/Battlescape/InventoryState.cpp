@@ -297,6 +297,7 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bo
 	_inv->onMouseClick((ActionHandler)&InventoryState::invClick, 0);
 	_inv->onMouseOver((ActionHandler)&InventoryState::invMouseOver);
 	_inv->onMouseOut((ActionHandler)&InventoryState::invMouseOut);
+	_inv->onMouseIn((ActionHandler)&InventoryState::invMouseIn);
 
 	if (_battleGame->getDebugMode() && _game->isShiftPressed())
 	{
@@ -1955,6 +1956,19 @@ void InventoryState::invMouseOut(Action *)
 	_currentDamageTooltipItem = nullptr;
 	_currentDamageTooltip = "";
 	updateItemStats();
+}
+
+/**
+ * Un-Hides item info.
+ * @param action Pointer to an action.
+ */
+void InventoryState::invMouseIn(Action *)
+{
+	_mouseHoverItem = _inv->getSelectedItem();
+	// think() takes care of the rest.
+
+	// At the moment _txtItem is not updated.
+	// Would probably require a refactor into own (or multiple?) 'update...' method(s).
 }
 
 void InventoryState::onMoveGroundInventoryToBase(Action *)

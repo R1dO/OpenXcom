@@ -138,6 +138,8 @@ public:
 	/// Handler for showing item info.
 	void calculateCurrentDamageTooltip();
 	void invMouseOver(Action *action);
+	/// Handler for un-hiding item info.
+	void invMouseIn(Action *action);
 	/// Handler for hiding item info.
 	void invMouseOut(Action *action);
 	/// Handler for hitting the [Move Ground Inventory To Base] hotkey.
