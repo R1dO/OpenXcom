@@ -157,7 +157,7 @@ void MonthlyCostsDetailsState::btnPrevClick(Action *)
 }
 
 /**
- * Handles the mouse-click on the list rows.
+ * Handles mouse-clicks on the list rows.
  * @param action Pointer to an action.
  */
 void MonthlyCostsDetailsState::lstDetailsMousePress(Action *action)
@@ -190,6 +190,76 @@ void MonthlyCostsDetailsState::lstDetailsMousePress(Action *action)
 
 	updateList();
 }
+
+/**
+ * Adds another contribution to the '_details' vector.
+ *
+ * Creates a new entry if needed, updates if an entry already exist.
+ * An entry is defined by the unique combination of 'parentID' and 'description'.
+ * Any new entries are marked as *not* visible by default.
+ *
+ * @param description The row's description (first column as visible on screen).
+ * @param parentId    Subtotal this row belongs to.
+ * @param itemId      Unique identifier for this contribution (although uniqueness is not enforced).
+ * @param amount      How many times this contribution has been found.
+ * @param value       Cost (or income) of a single contribution.
+ * @param updateValue Controls if value field or amount field is updated.
+ * @return Unique identifier for the next element in the list (!not the vector's rowid!).
+ */
+int MonthlyCostsDetailsState::addToDetailsVector(std::string description, int parentId, int itemId, int amount, int64_t value, bool updateValue)
+{
+	for (auto &bean : _details)
+	{
+		// There are 2 ways to assign a cost to elements (positive & negative).
+		// Therefore it is possible an element belongs to 2 parents.
+		if (bean.description == description && bean.parentId == parentId)
+		{
+			if (updateValue)
+				bean.value += value;
+			else
+				bean.amount += amount;
+			return itemId;
+		}
+	}
+	BeanCounter row = {itemId, parentId, false, description, amount, value};
+	_details.push_back(row);
+	return ++itemId;
+}
+
+/**
+ * Check if the details list need a specific subtotal
+ *
+ * @param parentId Id of subtotal to check.
+ */
+bool MonthlyCostsDetailsState::isSubtotalNeeded(int parentId)
+{
+		auto bean = std::find_if(_details.begin(), _details.end(),
+			[&](const BeanCounter row) {return row.parentId == parentId;});
+		if (bean == _details.end())
+		{
+			return false;
+		}
+		return true;
+}
+
+/**
+ * Calculate specific subtotal result.
+ *
+ * @param parentId Id of subtotal to check.
+ * @return The total value for this subtotal.
+ */
+int64_t MonthlyCostsDetailsState::calculateSubtotalValue(int parentId)
+{
+	int64_t total = 0;
+	for (auto element : _details)
+	{
+		if (element.parentId == parentId)
+		{
+			total += element.amount * element.value;
+		}
+	}
+	return total;
+};
 
 /**
  * Setup and draw the screen's body.
@@ -243,6 +313,10 @@ void MonthlyCostsDetailsState::drawBody()
 
 /**
  * Setup screen that displays facility maintenance
+ *
+ * Recognize 2 subtotals may exist:
+ * (0) Facility Maintenance: getMonthlyCost() > 0
+ * (1) Facility Revenue:     getMonthlyCost() < 0
  */
 void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 {
@@ -354,11 +428,19 @@ void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 /**
  * Setup the global income overview.
  *
+ * Recognize 2 subtotals may exist:
+ * (0) Global Income:
+ * (1) Global Maintenance:
+ *
  * NOTE:
  *  Other possibility is to split income categories (or even make 2 separate screens).
  *  - See comments further down on "can be broken down further".
  *  - For now not chosen (maintenance one would lead to a pretty empty screen).
  *  - Might help a player where to put it's next focus, although geoscape's GRAPHS and FUNDING screens are better suited for that.
+ *  If going that route: recognise 2 additional subtotals
+ *  - It is technically possible for countries to have negative income and bases to have negative maintenance
+ *  - Although negative income countries might not act entirely as expected.
+ *    For example: it looks like 'Country::newMonth()' can reset funding to 0 if a player performs BAD.
  */
 void MonthlyCostsDetailsState::categoryGlobalResult()
 {

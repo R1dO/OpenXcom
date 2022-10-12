@@ -39,9 +39,9 @@ struct BeanCounter
 	// Use parent-child relation to enable collapsable details.
 	int id;         // We have a subtotal if 'id == parentId'.
 	int parentId;   // To allow collapsing of child rows.
-	bool isVisible; // Collapsed children should not be drawn.
+	bool isVisible; // By default children are hidden unless unfolded.
 	std::string description;
-	int amount;     // Zero is used to indicate: Don't draw this column.
+	int amount;     // How many times a contribution is present on the base. Zero is used to indicate: Don't draw this column.
 	int64_t value;  // Cost or Income per element.
 };
 
@@ -67,13 +67,14 @@ private:
 	void drawBody();
 	void categoryFacilityMaintenance();
 	void categoryGlobalResult();
+	void updateList();
 
 	BeanCounter &getRow() {return _details[_rows[_sel]];}
-	/// Handler for pressing-down a mouse-button in the list.
 	void lstDetailsMousePress(Action *action);
+	int addToDetailsVector(std::string description, int parentId, int itemId, int amount, int64_t value, bool updateValue = false);
+	bool isSubtotalNeeded(int parentId);
+	int64_t calculateSubtotalValue(int parentId);
 
-/// Updates the item list.
-	void updateList();
 public:
 	/// Creates the cost details state.
 	MonthlyCostsDetailsState(Base *base, CostCategory currentCategory);
