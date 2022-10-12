@@ -51,10 +51,10 @@ MonthlyCostsDetailsState::MonthlyCostsDetailsState(Base *base, CostCategory curr
 	_btnPrev = new TextButton(28, 14, 8, 18);
 	_btnNext = new TextButton(28, 14, 284, 18);
 	_txtTitle = new Text(278, 17, 21, 18);
-	_txtSource = new Text(114, 9, 14, 35);
-	_txtQuantity = new Text(50, 9, 167, 35);
-	_txtResult = new Text(76, 9, 219, 35);
-	_lstDetails = new TextList(284, 104, 10, 46); // Height = 13*8 (8 due to rowheight overlap using default rules).
+	_txtSource = new Text(114, 9, 30, 35);
+	_txtQuantity = new Text(34, 9, 178, 35);
+	_txtResult = new Text(76, 9, 218, 35);
+	_lstDetails = new TextList(272, 104, 23, 46); // Height = 13*8 (8 due to rowheight overlap using default rules).
 	_lstTotal = new TextList(133, 9, 171, 154);
 
 	// Set palette
@@ -96,7 +96,7 @@ MonthlyCostsDetailsState::MonthlyCostsDetailsState(Base *base, CostCategory curr
 	_txtQuantity->setText("Amount");
 	_txtResult->setText("Result");
 
-	_lstDetails->setColumns(3, 155, 50, 76); // Note, list starts indented 2px due to align?
+	_lstDetails->setColumns(3, 155, 32, 83); // Note, list starts indented 2px due to align?
 	_lstDetails->setSelectable(true);        // Needed for collapse/fold functionality.
 	_lstDetails->setBackground(_window);
 	_lstDetails->setScrolling(true);
@@ -216,7 +216,6 @@ void MonthlyCostsDetailsState::drawBody()
 	default:
 		ssTitle << "Cost Category " << _currentCategory << " not implemented yet";
 
-		_txtQuantity->setVisible(true);
 		BeanCounter row;
 		int parent, id = 0; // I know: parent is not initialized yet, will happen in the loop.
 		for (auto i = 0; i < 5; i++)
@@ -247,8 +246,6 @@ void MonthlyCostsDetailsState::drawBody()
  */
 void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 {
-	_txtQuantity->setVisible(true);
-
 	bool baseHasRevenueFacilities = false;
 	// Keep both of those running numbers positive, correct when casting into row,
 	int totalMaintenance = 0, totalRevenue = 0;
@@ -283,7 +280,8 @@ void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 		}
 		if (!facilityAlreadyAccountedFor)
 		{
-			row = {id, idParent, false, tr(facility->getRules()->getType()), 1, -1 * facility->getRules()->getMonthlyCost()};
+			// row.value is always positive for details
+			row = {id, idParent, false, tr(facility->getRules()->getType()), 1, facility->getRules()->getMonthlyCost()};
 			_details.push_back(row);
 			id++;
 		}
@@ -364,10 +362,6 @@ void MonthlyCostsDetailsState::categoryFacilityMaintenance()
  */
 void MonthlyCostsDetailsState::categoryGlobalResult()
 {
-	// Amount does not provide value for this view, hide the column header.
-	// This is also the reason why all BeanCounter.amount fields are 0.
-	_txtQuantity->setVisible(false);
-
 	int countryFunding = _game->getSavedGame()->getCountryFunding();
 	// Depends on 'getPerformanceBonusFactor() == 0' when not defined.
 	int performanceFunding = std::max(0, _game->getSavedGame()->getCurrentScore(_game->getSavedGame()->getMonthsPassed()) * _game->getMod()->getPerformanceBonusFactor());
@@ -393,11 +387,11 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 	// Global maintenance subtotal
 	row = {1, 1, true, tr("MCDS_SUBTOTAL_BASES_MAINTENANCE"), 0, -1 * allBasesMaintenance};
 	_details.push_back(row);
-	// Global maintenance elements
+	// Global maintenance elements (row.value is always positive)
 	int id = 2;
 	for (auto *base : *_game->getSavedGame()->getBases())
 	{
-		row = {id, 1, false, base->getName(), 0, -1 * base->getMonthlyMaintenace()};
+		row = {id, 1, false, base->getName(), 0, base->getMonthlyMaintenace()};
 		_details.push_back(row);
 		id++;
 	}
@@ -421,14 +415,17 @@ void MonthlyCostsDetailsState::updateList()
 
 		std::string description = _details[i].description;
 		std::ostringstream ssAmount, ssValue;
+		// Let subtotals show signs, but elements not (aesthetics).
+		bool unconditionallyShowSign = true;
 		if (_details[i].parentId != _details[i].id) // Not a subtotal.
 		{
 			description.insert(0, " "); // Do not use dots for description indentation.
 			ssAmount << tr("MCDS_DOTTED_INDENTATION");
-			ssValue << tr("MCDS_DOTTED_INDENTATION");
+			ssValue << tr("MCDS_DOTTED_INDENTATION") << tr("MCDS_DOTTED_INDENTATION");
+			unconditionallyShowSign = false;
 		}
 		ssAmount << _details[i].amount;
-		ssValue << Unicode::formatFunding(_details[i].value, true);
+		ssValue << Unicode::formatFunding(_details[i].value * std::max(1,_details[i].amount), unconditionallyShowSign);
 
 		if (_details[i].amount > 0)
 		{
