@@ -270,6 +270,8 @@ void MonthlyCostsState::btnOkClick(Action *)
  */
 void MonthlyCostsState::lstGlobalResultClick(Action *)
 {
+	if (!_alternateScreen) return;
+	_game->pushState(new MonthlyCostsDetailsState(_base, CC_GLOBAL_RESULT));
 }
 
 }
