@@ -34,6 +34,18 @@ enum CostCategory {
 	CC_SALARIES_ALL, CC_SOLDIERS, CC_SCIENTISTS, CC_ENGINEERS, CC_ITEMS,
 	CC_FACILITIES, CC_GLOBAL_RESULT};
 
+struct BeanCounter
+{
+	// Use parent-child relation to enable collapsable details.
+	int id;         // we have a subtotal if  id == parentId.
+	int parentId;   // To allow collapsing of child rows.
+	bool isVisible; // Collapsed children should not be drawn.
+	std::string description;
+	int amount;     // Zero is used to indicate: Don't draw this column.
+	int64_t value;  // Cost or Income per element.
+};
+
+
 /**
  * Monthly Costs category breakdown subwindow
  *
@@ -49,11 +61,20 @@ private:
 	Window *_window;
 	Text *_txtTitle, *_txtSource, *_txtQuantity, *_txtResult;
 	TextList *_lstDetails, *_lstTotal;
+	std::vector<BeanCounter> _details;
+	std::vector<int> _rows;
+	size_t _sel;
 
 	void drawTitle();
 	void drawBody();
 	void categoryGlobalResult();
 
+	BeanCounter &getRow() {return _details[_rows[_sel]];}
+	/// Handler for pressing-down a mouse-button in the list.
+	void lstDetailsMousePress(Action *action);
+
+/// Updates the item list.
+	void updateList();
 public:
 	/// Creates the cost details state.
 	MonthlyCostsDetailsState(Base *base, CostCategory currentCategory);
