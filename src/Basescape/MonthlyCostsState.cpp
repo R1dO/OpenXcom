@@ -108,6 +108,7 @@ MonthlyCostsState::MonthlyCostsState(Base *base) : _base(base), _alternateScreen
 	{
 		_txtIncome->setVisible(false);
 		_txtMaintenance->setVisible(false);
+		_lstMaintenance->onMouseClick((ActionHandler)&MonthlyCostsState::lstFacilitiesClick, SDL_BUTTON_RIGHT);
 		_lstGlobalResult->onMouseClick((ActionHandler)&MonthlyCostsState::lstGlobalResultClick, SDL_BUTTON_RIGHT);
 		_lstGlobalResult->setColumns(2, 74, 76); // Allow column 2 to display $999,999,999,999 (+3px overflow)
 		_lstGlobalResult->setDot(true);
@@ -262,6 +263,16 @@ MonthlyCostsState::~MonthlyCostsState()
 void MonthlyCostsState::btnOkClick(Action *)
 {
 	_game->popState();
+}
+
+/**
+ * Open the global facility maintenance/revenue details sub-window.
+ * @param action Pointer to an action.
+ */
+void MonthlyCostsState::lstFacilitiesClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new MonthlyCostsDetailsState(_base, CC_FACILITIES));
 }
 
 /**

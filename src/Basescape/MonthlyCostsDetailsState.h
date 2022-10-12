@@ -65,6 +65,7 @@ private:
 	size_t _sel;
 
 	void drawBody();
+	void categoryFacilityMaintenance();
 	void categoryGlobalResult();
 
 	BeanCounter &getRow() {return _details[_rows[_sel]];}

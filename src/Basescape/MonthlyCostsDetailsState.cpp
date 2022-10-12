@@ -22,12 +22,14 @@
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Mod/Mod.h"
+#include "../Mod/RuleBaseFacility.h"
 #include "../Engine/Options.h"
 #include "../Interface/TextButton.h"
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
 #include "../Interface/TextList.h"
 #include "../Savegame/Base.h"
+#include "../Savegame/BaseFacility.h"
 #include "../Savegame/SavedGame.h"
 
 namespace OpenXcom
@@ -203,6 +205,10 @@ void MonthlyCostsDetailsState::drawBody()
 
 	switch (_currentCategory)
 	{
+	case CC_FACILITIES:
+		ssTitle << tr("MCDS_TITEL_BASE_FACILITIES");
+		categoryFacilityMaintenance();
+		break;
 	case CC_GLOBAL_RESULT:
 		ssTitle << tr("MCDS_TITEL_GLOBAL_RESULT");
 		categoryGlobalResult();
@@ -235,6 +241,117 @@ void MonthlyCostsDetailsState::drawBody()
 	_txtTitle->setText(ssTitle.str().c_str());
 	updateList();
 }
+
+/**
+ * Setup screen that displays facility maintenance
+ */
+void MonthlyCostsDetailsState::categoryFacilityMaintenance()
+{
+	_txtQuantity->setVisible(true);
+
+	bool baseHasRevenueFacilities = false;
+	// Keep both of those running numbers positive, correct when casting into row,
+	int totalMaintenance = 0, totalRevenue = 0;
+
+	BeanCounter row;
+	// Use common scenario as start (facilities contribute to maintenance costs).
+	int id = 1; // Offset since vector is build up using elements and subtotal will be inserted later.
+	int idParent = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Facilities under construction do not cost/generate funds.
+		if (facility->getBuildTime() > 0) continue;
+
+		// Exclude revenue generating facilities.
+		if (facility->getRules()->getMonthlyCost() < 0)
+		{
+			baseHasRevenueFacilities = true;
+			continue;
+		}
+
+		std::string facilityName = tr(facility->getRules()->getType());
+		// Is this facility already listed?
+		bool facilityAlreadyAccountedFor = false;
+		for (auto &listedFacility : _details)
+		{
+			if (listedFacility.description == facilityName)
+			{
+				listedFacility.amount += 1;
+				facilityAlreadyAccountedFor = true;
+				break;
+			}
+		}
+		if (!facilityAlreadyAccountedFor)
+		{
+			row = {id, idParent, false, tr(facility->getRules()->getType()), 1, -1 * facility->getRules()->getMonthlyCost()};
+			_details.push_back(row);
+			id++;
+		}
+
+		totalMaintenance += facility->getRules()->getMonthlyCost();
+	}
+	// Prefer alphabetical listing.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return Unicode::naturalCompare(a.description, b.description);
+		}
+	);
+	// Insert subtotal
+	row = {idParent, idParent, true, tr("MCDS_SUBTOTAL_FACILITY_MAINTENANCE"), 0, -1 * totalMaintenance};
+	_details.insert(_details.begin(), row);
+
+	// Facilities generating revenue.
+	if (baseHasRevenueFacilities)
+	{
+		idParent = id;
+		id++; // Offset since vector is build up using elements and subtotal will be inserted later.
+		std::vector<BeanCounter> detailsRevenueTmp;
+		for (auto *facility : *_base->getFacilities())
+		{
+			if (facility->getBuildTime() > 0 || facility->getRules()->getMonthlyCost() >= 0) continue;
+
+			std::string facilityName = tr(facility->getRules()->getType());
+			// Is this facility already listed?
+			bool facilityAlreadyAccountedFor = false;
+			for (auto &listedFacility : detailsRevenueTmp)
+			{
+				if (listedFacility.description == facilityName)
+				{
+					listedFacility.amount++;
+					facilityAlreadyAccountedFor = true;
+					break;
+				}
+			}
+			if (!facilityAlreadyAccountedFor)
+			{
+				row = {id, idParent, false, tr(facility->getRules()->getType()), 1, -1 * facility->getRules()->getMonthlyCost()};
+				detailsRevenueTmp.push_back(row);
+				id++;
+			}
+
+			// -= leads to += since all costs are negative in this loop.
+			totalRevenue -= facility->getRules()->getMonthlyCost();
+		}
+		// Prefer alphabetical listing.
+		std::stable_sort(detailsRevenueTmp.begin(), detailsRevenueTmp.end(),
+			[](const BeanCounter a, const BeanCounter b)
+			{
+				return Unicode::naturalCompare(a.description, b.description);
+			}
+		);
+		// Insert subtotal
+		row = {idParent, idParent, true, tr("MCDS_SUBTOTAL_FACILITY_REVENUE"), 0, totalRevenue};
+		detailsRevenueTmp.insert(detailsRevenueTmp.begin(), row);
+
+		// Merge vectors, start with income
+		_details.insert(_details.begin(), detailsRevenueTmp.begin(), detailsRevenueTmp.end());
+	}
+
+	// Screen Total
+	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(totalRevenue - totalMaintenance).c_str());
+}
+
 
 /**
  * Setup the global income overview.
