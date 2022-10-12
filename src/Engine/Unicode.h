@@ -86,9 +86,9 @@ namespace Unicode
 	/// Replaces a substring.
 	void replace(std::string &str, const std::string &find, const std::string &replace);
 	/// Formats an integer value as number with separators.
-	std::string formatNumber(int64_t value, const std::string &currency = "");
+	std::string formatNumber(int64_t value, const std::string &currency = "", bool forceSign = false);
 	/// Formats an integer value as currency.
-	std::string formatFunding(int64_t funds);
+	std::string formatFunding(int64_t funds, bool forceSign = false);
 	/// Formats an integer value as percentage.
 	std::string formatPercentage(int value);
 }

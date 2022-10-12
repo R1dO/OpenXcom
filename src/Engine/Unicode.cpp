@@ -715,9 +715,10 @@ void replace(std::string &str, const std::string &find, const std::string &repla
  * Takes an integer value and formats it as number with separators (spacing the thousands).
  * @param value The value.
  * @param currency Currency symbol.
+ * @param forceSign Insert "+" for positive values.
  * @return The formatted string.
  */
-std::string formatNumber(int64_t value, const std::string &currency)
+std::string formatNumber(int64_t value, const std::string &currency, bool forceSign)
 {
 	const std::string thousands_sep = "\xC2\xA0"; // TOK_NBSP
 
@@ -739,6 +740,10 @@ std::string formatNumber(int64_t value, const std::string &currency)
 	{
 		s.insert(0, "-");
 	}
+	else if (forceSign)
+	{
+		s.insert(0, "+");
+	}
 	return s;
 }
 
@@ -746,11 +751,12 @@ std::string formatNumber(int64_t value, const std::string &currency)
  * Takes an integer value and formats it as currency,
  * spacing the thousands and adding a $ sign to the front.
  * @param funds The funding value.
+ * @param forceSign Insert "+" for positive values.
  * @return The formatted string.
  */
-std::string formatFunding(int64_t funds)
+std::string formatFunding(int64_t funds, bool forceSign)
 {
-	return formatNumber(funds, "$");
+	return formatNumber(funds, "$", forceSign);
 }
 
 /**
