@@ -37,14 +37,13 @@ enum CostCategory {
 struct BeanCounter
 {
 	// Use parent-child relation to enable collapsable details.
-	int id;         // we have a subtotal if  id == parentId.
+	int id;         // We have a subtotal if 'id == parentId'.
 	int parentId;   // To allow collapsing of child rows.
 	bool isVisible; // Collapsed children should not be drawn.
 	std::string description;
 	int amount;     // Zero is used to indicate: Don't draw this column.
 	int64_t value;  // Cost or Income per element.
 };
-
 
 /**
  * Monthly Costs category breakdown subwindow
@@ -65,7 +64,6 @@ private:
 	std::vector<int> _rows;
 	size_t _sel;
 
-	void drawTitle();
 	void drawBody();
 	void categoryGlobalResult();
 
@@ -80,8 +78,6 @@ public:
 	MonthlyCostsDetailsState(Base *base, CostCategory currentCategory);
 	/// Cleans up the cost details state.
 	~MonthlyCostsDetailsState();
-	/// Updates 'cost' details window.
-	void init() override;
 	/// Handler for clicking the OK button.
 	void btnOkClick(Action *action);
 

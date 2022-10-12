@@ -106,8 +106,7 @@ MonthlyCostsDetailsState::MonthlyCostsDetailsState(Base *base, CostCategory curr
 	_lstTotal->setDot(true);
 	_lstTotal->setColor(_lstTotal->getSecondaryColor());
 
-	init();
-	
+	drawBody();
 }
 
 /**
@@ -116,22 +115,6 @@ MonthlyCostsDetailsState::MonthlyCostsDetailsState(Base *base, CostCategory curr
 MonthlyCostsDetailsState::~MonthlyCostsDetailsState()
 {
 
-}
-
-/**
- *  Clears all the variables and reinitializes the sub-window.
- */
-void MonthlyCostsDetailsState::init()
-{
-	_lstTotal->clearList();
-	_lstDetails->clearList();
-	_lstDetails->scrollTo(0); // After 'clearlist()' to ensure any scrollbar is removed.
-
-	// ETC
-	drawTitle();
-	drawBody();
-
-	State::init();
 }
 
 /**
@@ -154,7 +137,7 @@ void MonthlyCostsDetailsState::btnNextClick(Action *)
 	else
 		_currentCategory = (CostCategory)(_currentCategory + 1);
 
-	init();
+	drawBody();
 }
 
 /**
@@ -168,7 +151,7 @@ void MonthlyCostsDetailsState::btnPrevClick(Action *)
 	else
 		_currentCategory = (CostCategory)(_currentCategory - 1);
 
-	init();
+	drawBody();
 }
 
 /**
@@ -196,7 +179,7 @@ void MonthlyCostsDetailsState::lstDetailsMousePress(Action *action)
 		// Collapse all elements contributing to parent.
 		for (size_t i = 0; i < _details.size(); ++i)
 		{
-			if (_details[i].parentId == getRow().parentId && (_details[i].parentId != _details[i].id))
+			if (_details[i].parentId == getRow().parentId && (_details[i].id != _details[i].parentId))
 			{
 				_details[i].isVisible = false;
 			}
@@ -206,104 +189,104 @@ void MonthlyCostsDetailsState::lstDetailsMousePress(Action *action)
 	updateList();
 }
 
-
-/**
- * Define screen title based on cost category
- * 
- * TODO: Make strings translatable.
- */
-void MonthlyCostsDetailsState::drawTitle()
-{
-	std::ostringstream ssTitle;
-
-	switch (_currentCategory)
-	{
-		case CC_CRAFTS_ALL: ssTitle << "Monthly " << tr("STR_CRAFT_RENTAL"); break;
-		case CC_GLOBAL_RESULT: ssTitle << tr("MCDS_TITEL_GLOBAL_RESULT"); break;
-	default:
-		ssTitle << "Cost Category " << _currentCategory << " not implemented yet";
-		break;
-	}
-
-	_txtTitle->setText(ssTitle.str().c_str());
-}
-
 /**
  * Setup and draw the screen's body.
+ *  * Screen title
  *  * listDetails
  *  * listTotal
  */
 void MonthlyCostsDetailsState::drawBody()
 {
+	_details.clear();
+	_lstTotal->clearList();
+	std::ostringstream ssTitle;
 
 	switch (_currentCategory)
 	{
-		case CC_GLOBAL_RESULT: categoryGlobalResult(); break;
+	case CC_GLOBAL_RESULT:
+		ssTitle << tr("MCDS_TITEL_GLOBAL_RESULT");
+		categoryGlobalResult();
+		break;
 	default:
-		_lstDetails->clearList();
-		_txtQuantity->setVisible(true);
+		ssTitle << "Cost Category " << _currentCategory << " not implemented yet";
 
-		for (int j = 0; j != 4; ++j)
+		_txtQuantity->setVisible(true);
+		BeanCounter row;
+		int parent, id = 0; // I know: parent is not initialized yet, will happen in the loop.
+		for (auto i = 0; i < 5; i++)
 		{
-			_lstDetails->addRow(3, "Long text explaining the source", "999", Unicode::formatFunding(999999999999).c_str());
-			_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), _lstDetails->getSecondaryColor());
+			parent = id;
+			row = {id, parent, true, "Long text explaining the source", 999, 999999999999};
+			_details.push_back(row);
+			id++;
 			
-			for (int i = 0; i != 5; ++i )
+			for (auto j = 0; j < 5; j++)
 			{
-			std::ostringstream ssFiddling1, ssFiddling2;
-			ssFiddling1 << tr("MCDS_DOTTED_INDENTATION") << "99";
-			ssFiddling2 << tr("MCDS_DOTTED_INDENTATION") << Unicode::formatFunding(999999999999);
-			_lstDetails->addRow(3, " Normally collapsed (moar details)", ssFiddling1.str().c_str(), ssFiddling2.str().c_str());
+				row = {id, parent, false, "Normally collapsed (moaar details)", 99, 999999999999};
+				_details.push_back(row);
+				id++;
 			}
+
 		}
 		_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(999999999999).c_str());
 		break;
 	}
 
+	_txtTitle->setText(ssTitle.str().c_str());
+	updateList();
 }
 
 /**
  * Setup the global income overview.
-  */
+ *
+ * NOTE:
+ *  Other possibility is to split income categories (or even make 2 separate screens).
+ *  - See comments further down on "can be broken down further".
+ *  - For now not chosen (maintenance one would lead to a pretty empty screen).
+ *  - Might help a player where to put it's next focus, although geoscape's GRAPHS and FUNDING screens are better suited for that.
+ */
 void MonthlyCostsDetailsState::categoryGlobalResult()
 {
-	_details.clear();
+	// Amount does not provide value for this view, hide the column header.
+	// This is also the reason why all BeanCounter.amount fields are 0.
 	_txtQuantity->setVisible(false);
 
 	int countryFunding = _game->getSavedGame()->getCountryFunding();
-	// When not defined the bonus factor is 0.
+	// Depends on 'getPerformanceBonusFactor() == 0' when not defined.
 	int performanceFunding = std::max(0, _game->getSavedGame()->getCurrentScore(_game->getSavedGame()->getMonthsPassed()) * _game->getMod()->getPerformanceBonusFactor());
 	int allBasesMaintenance = _game->getSavedGame()->getBaseMaintenance();
-
 	BeanCounter row;
+
 	// Global Income subtotal
 	row = {0, 0, true, tr("MCDS_SUBTOTAL_GEO_INCOME"), 0, countryFunding + performanceFunding};
 	_details.push_back(row);
-	// Global Income elements
+	// Global Income elements. Can theoretically be broken down further (per country funding).
 	row = {1, 0, false, tr("MCDS_DETAIL_COUNTRIES_INCOME"), 0, countryFunding};
 	_details.push_back(row);
 	if (_game->getMod()->getPerformanceBonusFactor())
 	{
+		// Can theoretically be broken down further (score per region, council protection scheme, research scores).
+		// - Those can be misleading. Could add-up to negative income, which is not allowed (must be corrected for via an extra row).
+		// - Would need to adapt screen to [description][score][value]
+		// - Impossible to break down research scores (it is a running number, no concept of topics researched *this* month).
 		row = {2, 0, false, tr("MCDS_DETAIL_PERFORMANCE_INCOME"), 0, performanceFunding};
 		_details.push_back(row);
 	}
 
 	// Global maintenance subtotal
-	row = {1, 1, true, tr("MCDS_SUBTOTAL_BASES_MAINTENANCE"), 0, allBasesMaintenance};
+	row = {1, 1, true, tr("MCDS_SUBTOTAL_BASES_MAINTENANCE"), 0, -1 * allBasesMaintenance};
 	_details.push_back(row);
 	// Global maintenance elements
 	int id = 2;
 	for (auto *base : *_game->getSavedGame()->getBases())
 	{
-		row = {id, 1, false, base->getName(), 0, base->getMonthlyMaintenace()};
+		row = {id, 1, false, base->getName(), 0, -1 * base->getMonthlyMaintenace()};
 		_details.push_back(row);
 		id++;
 	}
 
 	// Screen Total
 	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(countryFunding + performanceFunding - allBasesMaintenance).c_str());
-
-	updateList();
 }
 
 /**
@@ -330,7 +313,6 @@ void MonthlyCostsDetailsState::updateList()
 		ssAmount << _details[i].amount;
 		ssValue << Unicode::formatFunding(_details[i].value, true);
 
-
 		if (_details[i].amount > 0)
 		{
 			_lstDetails->addRow(3, description.c_str(), ssAmount.str().c_str(), ssValue.str().c_str());
@@ -343,9 +325,8 @@ void MonthlyCostsDetailsState::updateList()
 
 		if(_details[i].parentId == _details[i].id)
 		{
-			_lstDetails->setRowColor(_rows.size() - 1, _lstDetails->getSecondaryColor());
+			_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), _lstDetails->getSecondaryColor());
 		}
 	}
-
 }
 }
