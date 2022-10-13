@@ -143,7 +143,7 @@ void MonthlyCostsDetailsState::btnNextClick(Action *)
 	switch (_currentCategory)
 	{
 	case CC_GLOBAL_RESULT:
-		_currentCategory = CC_CRAFTS_ALL;
+		_currentCategory = CC_CRAFTS;
 		break;
 	case CC_SOLDIERS:
 	case CC_SCIENTISTS:
@@ -166,7 +166,7 @@ void MonthlyCostsDetailsState::btnPrevClick(Action *)
 {
 	switch (_currentCategory)
 	{
-	case CC_CRAFTS_ALL:
+	case CC_CRAFTS:
 		_currentCategory = CC_GLOBAL_RESULT;
 		break;
 	case CC_ITEMS:
