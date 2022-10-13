@@ -31,6 +31,7 @@
 #include "../Interface/TextList.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/BaseFacility.h"
+#include "../Savegame/Country.h"
 #include "../Savegame/ItemContainer.h"
 #include "../Savegame/SavedGame.h"
 #include "../Savegame/Soldier.h"
@@ -333,8 +334,6 @@ void MonthlyCostsDetailsState::drawBody()
  */
 void MonthlyCostsDetailsState::categoryItemMaintenance()
 {
-	_txtQuantity->setVisible(true);
-
 	int idItem = 4; // Offset since vector is build up using elements and subtotals will be inserted later.
 	int idParent;   // Let parentId represent the numbers as described in method description.
 	int itemValue;  // Always positive, unless a subtotal.
@@ -471,7 +470,7 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 		row = {3, 3, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE_INCOME"), 0, calculateSubtotalValue(3)};
 		_details.insert(_details.begin(), row);
 	}
-	// Sort by parentId.
+	// Ensure elements are shown below appropriate subtotal.
 	std::stable_sort(_details.begin(), _details.end(),
 		[](const BeanCounter a, const BeanCounter b)
 		{
@@ -493,166 +492,154 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
  */
 void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 {
-	bool baseHasRevenueFacilities = false;
-	// Keep both of those running numbers positive, correct when casting into row,
-	int totalMaintenance = 0, totalRevenue = 0;
+	int idItem = 2; // Offset since vector is build up using elements and subtotals will be inserted later.
+	int idParent;   // Let parentId represent the numbers as described in method description.
+	int itemValue;  // Always positive, unless a subtotal.
 
-	BeanCounter row;
-	// Use common scenario as start (facilities contribute to maintenance costs).
-	int id = 1; // Offset since vector is build up using elements and subtotal will be inserted later.
-	int idParent = 0;
 	for (auto *facility : *_base->getFacilities())
 	{
 		// Facilities under construction do not cost/generate funds.
 		if (facility->getBuildTime() > 0) continue;
 
-		// Exclude revenue generating facilities.
-		if (facility->getRules()->getMonthlyCost() < 0)
-		{
-			baseHasRevenueFacilities = true;
-			continue;
-		}
-
-		std::string facilityName = tr(facility->getRules()->getType());
-		// Is this facility already listed?
-		bool facilityAlreadyAccountedFor = false;
-		for (auto &listedFacility : _details)
-		{
-			if (listedFacility.description == facilityName)
-			{
-				listedFacility.amount += 1;
-				facilityAlreadyAccountedFor = true;
-				break;
-			}
-		}
-		if (!facilityAlreadyAccountedFor)
-		{
-			// row.value is always positive for details
-			row = {id, idParent, false, tr(facility->getRules()->getType()), 1, facility->getRules()->getMonthlyCost()};
-			_details.push_back(row);
-			id++;
-		}
-
-		totalMaintenance += facility->getRules()->getMonthlyCost();
+		idParent = facility->getRules()->getMonthlyCost() >= 0 ? 0 : 1;
+		itemValue = abs(facility->getRules()->getMonthlyCost());
+		idItem = addToDetailsVector(tr(facility->getRules()->getType()), idParent, idItem, 1, itemValue);
 	}
-	// Prefer alphabetical listing.
+	// Prefer alphabetical listing of detailed rows.
 	std::stable_sort(_details.begin(), _details.end(),
 		[](const BeanCounter a, const BeanCounter b)
 		{
 			return Unicode::naturalCompare(a.description, b.description);
 		}
 	);
-	// Insert subtotal
-	row = {idParent, idParent, true, tr("MCDS_SUBTOTAL_FACILITY_MAINTENANCE"), 0, -1 * totalMaintenance};
-	_details.insert(_details.begin(), row);
 
-	// Facilities generating revenue.
-	if (baseHasRevenueFacilities)
+	BeanCounter row;
+	if (isSubtotalNeeded(0))
 	{
-		idParent = id;
-		id++; // Offset since vector is build up using elements and subtotal will be inserted later.
-		std::vector<BeanCounter> detailsRevenueTmp;
-		for (auto *facility : *_base->getFacilities())
-		{
-			if (facility->getBuildTime() > 0 || facility->getRules()->getMonthlyCost() >= 0) continue;
-
-			std::string facilityName = tr(facility->getRules()->getType());
-			// Is this facility already listed?
-			bool facilityAlreadyAccountedFor = false;
-			for (auto &listedFacility : detailsRevenueTmp)
-			{
-				if (listedFacility.description == facilityName)
-				{
-					listedFacility.amount++;
-					facilityAlreadyAccountedFor = true;
-					break;
-				}
-			}
-			if (!facilityAlreadyAccountedFor)
-			{
-				row = {id, idParent, false, tr(facility->getRules()->getType()), 1, -1 * facility->getRules()->getMonthlyCost()};
-				detailsRevenueTmp.push_back(row);
-				id++;
-			}
-
-			// -= leads to += since all costs are negative in this loop.
-			totalRevenue -= facility->getRules()->getMonthlyCost();
-		}
-		// Prefer alphabetical listing.
-		std::stable_sort(detailsRevenueTmp.begin(), detailsRevenueTmp.end(),
-			[](const BeanCounter a, const BeanCounter b)
-			{
-				return Unicode::naturalCompare(a.description, b.description);
-			}
-		);
-		// Insert subtotal
-		row = {idParent, idParent, true, tr("MCDS_SUBTOTAL_FACILITY_REVENUE"), 0, totalRevenue};
-		detailsRevenueTmp.insert(detailsRevenueTmp.begin(), row);
-
-		// Merge vectors, start with income
-		_details.insert(_details.begin(), detailsRevenueTmp.begin(), detailsRevenueTmp.end());
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_FACILITY_MAINTENANCE"), 0, -1 * calculateSubtotalValue(0)};
+		_details.insert(_details.begin(), row);
 	}
+	if (isSubtotalNeeded(1))
+	{
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_FACILITY_REVENUE"), 0, calculateSubtotalValue(1)};
+		_details.insert(_details.begin(), row);
+	}
+	// Ensure elements are shown below appropriate subtotal.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
 
-	// Screen Total
-	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(totalRevenue - totalMaintenance).c_str());
+	// Allow for double checking, use a different formula (w.r.t. previous screen) to calculate total.
+	int screenTotal = calculateSubtotalValue(1) - calculateSubtotalValue(0);
+	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(screenTotal).c_str());
 }
 
 
 /**
  * Setup the global income overview.
  *
- * Recognize 2 subtotals may exist:
- * (0) Global Income:
- * (1) Global Maintenance:
- *
- * NOTE:
- *  Other possibility is to split income categories (or even make 2 separate screens).
- *  - See comments further down on "can be broken down further".
- *  - For now not chosen (maintenance one would lead to a pretty empty screen).
- *  - Might help a player where to put it's next focus, although geoscape's GRAPHS and FUNDING screens are better suited for that.
- *  If going that route: recognise 2 additional subtotals
- *  - It is technically possible for countries to have negative income and bases to have negative maintenance
- *  - Although negative income countries might not act entirely as expected.
- *    For example: it looks like 'Country::newMonth()' can reset funding to 0 if a player performs BAD.
+ * Recognize 4 subtotals may exist:
+ * (0) Geoscape Income: Country funding and performance funding
+ * (1) Geoscape PayBack: Negative Country funding
+ * (2) Bases Maintenance
+ * (3) Bases Revenue
  */
 void MonthlyCostsDetailsState::categoryGlobalResult()
 {
-	int countryFunding = _game->getSavedGame()->getCountryFunding();
-	// Depends on 'getPerformanceBonusFactor() == 0' when not defined.
-	int performanceFunding = std::max(0, _game->getSavedGame()->getCurrentScore(_game->getSavedGame()->getMonthsPassed()) * _game->getMod()->getPerformanceBonusFactor());
-	int allBasesMaintenance = _game->getSavedGame()->getBaseMaintenance();
-	BeanCounter row;
+	int idItem = 4; // Offset since vector is build up using elements and subtotals will be inserted later.
+	int idParent;   // Let parentId represent the numbers as described in method description.
+	int itemValue;  // Always positive, unless a subtotal.
 
-	// Global Income subtotal
-	row = {0, 0, true, tr("MCDS_SUBTOTAL_GEO_INCOME"), 0, countryFunding + performanceFunding};
-	_details.push_back(row);
-	// Global Income elements. Can theoretically be broken down further (per country funding).
-	row = {1, 0, false, tr("MCDS_DETAIL_COUNTRIES_INCOME"), 0, countryFunding};
-	_details.push_back(row);
-	if (_game->getMod()->getPerformanceBonusFactor())
+	// Country funding.
+	for (auto country : *_game->getSavedGame()->getCountries())
 	{
-		// Can theoretically be broken down further (score per region, council protection scheme, research scores).
-		// - Those can be misleading. Could add-up to negative income, which is not allowed (must be corrected for via an extra row).
-		// - Would need to adapt screen to [description][score][value]
-		// - Impossible to break down research scores (it is a running number, no concept of topics researched *this* month).
-		row = {2, 0, false, tr("MCDS_DETAIL_PERFORMANCE_INCOME"), 0, performanceFunding};
-		_details.push_back(row);
-	}
+		int funding = country->getFunding().back();
+		std::string description = funding >= 0 ? tr("MCDS_DETAIL_COUNTRIES_INCOME") : tr("MCDS_DETAIL_COUNTRIES_PAYBACK");
+		idParent = funding >= 0 ? 0 : 1;
+		idItem = addToDetailsVector(description, idParent, idItem, 1, abs(funding), true);
 
-	// Global maintenance subtotal
-	row = {1, 1, true, tr("MCDS_SUBTOTAL_BASES_MAINTENANCE"), 0, -1 * allBasesMaintenance};
-	_details.push_back(row);
-	// Global maintenance elements (row.value is always positive)
-	int id = 2;
+		///NOTE:
+		// Can theoretically be broken down further:
+		//  - Per country funding (geoscape's GRAPHS screen is better suited for this info)
+		///NOTE:
+		// Even though we recognize possibility of negative funding that mod tactic will
+		// probably not work as intended.
+		// For example: 'Country::newMonth()' can reset funding to 0 if a player performs BAD.
+	}
+	// Score based income is special since it is not supposed to create negative income.
+	// Recognize theoretical possibility, just for completeness.
+	if (_game->getMod()->getPerformanceBonusFactor() != 0)
+	{
+		int currentScore = _game->getSavedGame()->getCurrentScore(_game->getSavedGame()->getMonthsPassed());
+		int performanceFunding = currentScore * _game->getMod()->getPerformanceBonusFactor();
+		// Currently negative boni is not allowed, remove next line if that changes.
+		performanceFunding = std::max(0, performanceFunding);
+		std::string description = performanceFunding >= 0 ? tr("MCDS_DETAIL_PERFORMANCE_INCOME") : tr("MCDS_DETAIL_PERFORMANCE_PAYBACK");
+		idParent = performanceFunding >= 0 ? 0 : 1;
+		idItem = addToDetailsVector(description, idParent, idItem, 1, abs(performanceFunding));
+
+		///NOTE:
+		// Can theoretically be broken down further:
+		// - council protection scheme
+		// - score per region (geoscape's GRAPHS screen is better suited for this info)
+		// - research scores
+		// - bookkeeping correction to prevent negative income?
+		// But that can easily become misleading.
+		// It would also benefit from an adapted spreadsheet header column: [description][score][value]
+		// It is also impossible to break down research scores since it is a running number
+		// with no concept of topics researched *this* month.
+	}
+	// Contribution of bases
 	for (auto *base : *_game->getSavedGame()->getBases())
 	{
-		row = {id, 1, false, base->getName(), 0, base->getMonthlyMaintenace()};
-		_details.push_back(row);
-		id++;
+		idParent = base->getMonthlyMaintenace() >= 0 ? 2 : 3;
+		itemValue = abs(base->getMonthlyMaintenace());
+		idItem = addToDetailsVector(base->getName(), idParent, idItem, 1, itemValue, true); // In case player cannot think of unique names.
 	}
 
-	// Screen Total
-	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(countryFunding + performanceFunding - allBasesMaintenance).c_str());
+	// Prefer alphabetical listing of detailed rows.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return Unicode::naturalCompare(a.description, b.description);
+		}
+	);
+
+	BeanCounter row;
+	if (isSubtotalNeeded(0))
+	{
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_GEO_INCOME"), 0, calculateSubtotalValue(0)};
+		_details.insert(_details.begin(), row);
+	}
+	if (isSubtotalNeeded(1))
+	{
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_GEO_PAYBACK"), 0, -1 * calculateSubtotalValue(1)};
+		_details.insert(_details.begin(), row);
+	}
+	if (isSubtotalNeeded(2))
+	{
+		row = {2, 2, true, tr("MCDS_SUBTOTAL_BASES_MAINTENANCE"), 0, -1 * calculateSubtotalValue(2)};
+		_details.insert(_details.begin(), row);
+	}
+	if (isSubtotalNeeded(3))
+	{
+		row = {3, 3, true, tr("MCDS_SUBTOTAL_BASES_REVENUE"), 0, calculateSubtotalValue(3)};
+		_details.insert(_details.begin(), row);
+	}
+	// Ensure elements are shown below appropriate subtotal.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
+
+	// Allow for double checking, use a different formula (w.r.t. previous screen) to calculate total.
+	int screenTotal = calculateSubtotalValue(0) - calculateSubtotalValue(1) - calculateSubtotalValue(2) + calculateSubtotalValue(3);
+	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(screenTotal, true).c_str());
 }
 
 /**
