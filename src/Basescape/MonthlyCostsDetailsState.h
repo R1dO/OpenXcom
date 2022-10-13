@@ -72,7 +72,7 @@ private:
 
 	BeanCounter &getRow() {return _details[_rows[_sel]];}
 	void lstDetailsMousePress(Action *action);
-	int addToDetailsVector(std::string description, int parentId, int itemId, int amount, int64_t value);
+	int addToDetailsVector(BeanCounter row);
 	bool isSubtotalNeeded(int parentId);
 	int64_t calculateSubtotalValue(int parentId);
 

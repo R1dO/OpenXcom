@@ -223,32 +223,30 @@ void MonthlyCostsDetailsState::lstDetailsMousePress(Action *action)
  *
  * Creates a new entry if needed, updates if an entry already exist.
  * An entry is defined by the unique combination of 'parentID' and 'description'.
- * Any new entries are marked as *not* visible by default.
  *
- * @param description The row's description (first column as visible on screen).
- * @param parentId    Subtotal this row belongs to.
- * @param itemId      Unique identifier for this contribution (although uniqueness is not enforced).
- * @param amount      How many times this contribution has been found.
- * @param value       Cost (or income) of a single contribution.
+ * @param row The contents of the row we want to insert.
  * @return Unique identifier for the next element in the list (!not the vector's rowid!).
  */
-int MonthlyCostsDetailsState::addToDetailsVector(std::string description, int parentId, int itemId, int amount, int64_t value)
+int MonthlyCostsDetailsState::addToDetailsVector(BeanCounter row)
 {
 	for (auto &bean : _details)
 	{
 		// There are 2 ways to assign a cost to elements (positive & negative).
 		// Therefore it is possible an element belongs to 2 parents.
-		if (bean.description == description && bean.parentId == parentId)
+		if (bean.parentId == row.parentId && bean.description == row.description)
 		{
-			bean.totalValue += value;
-			if (bean.amount > -1)
-				bean.amount += amount;
-			return itemId;
+			bean.totalValue += row.totalValue;
+			// No checking if bean.amount > -1.
+			// It is callers responsibility to supply correct values.
+			// By not checking any implementation faults become a bit more
+			// visible (weird amount numbers on screen)
+			bean.amount += row.amount;
+
+			return row.id;
 		}
 	}
-	BeanCounter row = {itemId, parentId, false, description, amount, value};
 	_details.push_back(row);
-	return ++itemId;
+	return ++row.id;
 }
 
 /**
@@ -334,7 +332,6 @@ void MonthlyCostsDetailsState::drawBody()
 				_details.push_back(row);
 				id++;
 			}
-
 		}
 		_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(999999999999).c_str());
 		break;
@@ -358,7 +355,7 @@ void MonthlyCostsDetailsState::drawBody()
  */
 void MonthlyCostsDetailsState::categorySoldierSalaries()
 {
-	int idItem = _game->getMod()->getSoldiersList().size(); // Offset taking all soldier types into account.
+	int idItem = _game->getMod()->getSoldiersList().size(); // Offset based on expected subtotal entries.
 	int idParent;      // Can be as much as there are soldier types -1 (0-based counting).
 	int soldierSalary; // Always positive, unless a subtotal.
 
@@ -377,11 +374,14 @@ void MonthlyCostsDetailsState::categorySoldierSalaries()
 		return (*it).first;
 	};
 
+	BeanCounter row;
 	for (auto soldier : *_base->getSoldiers())
 	{
 		idParent = getSubTotalParentId(soldier->getRules()->getType());
 		soldierSalary = soldier->getRules()->getSalaryCost(soldier->getRank());
-		idItem = addToDetailsVector(soldier->getName(), idParent, idItem, 1, soldierSalary);
+		row = {idItem, idParent, false, soldier->getName(), 1, soldierSalary};
+
+		idItem = addToDetailsVector(row);
 	}
 	for (auto transfer : *_base->getTransfers())
 	{
@@ -389,7 +389,9 @@ void MonthlyCostsDetailsState::categorySoldierSalaries()
 
 		idParent = getSubTotalParentId(transfer->getSoldier()->getRules()->getType());
 		soldierSalary = transfer->getSoldier()->getRules()->getSalaryCost(transfer->getSoldier()->getRank());
-		idItem = addToDetailsVector(transfer->getSoldier()->getName(), idParent, idItem, 1, soldierSalary);
+		row = {idItem, idParent, false, transfer->getSoldier()->getName(), 1, soldierSalary};
+
+		idItem = addToDetailsVector(row);
 	}
 	// Prefer alphabetical listing.
 	std::stable_sort(_details.begin(), _details.end(),
@@ -421,9 +423,7 @@ void MonthlyCostsDetailsState::categorySoldierSalaries()
 	};
 
 	// Insert Subtotals
-	BeanCounter row;
-	int subTotal, subAmount;
-	int screenTotal = 0;
+	int subTotal, subAmount, screenTotal = 0;
 	for (auto soldierType : subTotals)
 	{
 		subTotal = calculateSubtotalValue(soldierType.first);
@@ -440,7 +440,7 @@ void MonthlyCostsDetailsState::categorySoldierSalaries()
 		}
 	);
 
-	// Allow for double checking: use a different formula (w.r.t. previous screen) to calculate total.
+	// Allow for double checking: use a different method (w.r.t. previous screen) for total.
 	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(-1 * screenTotal, true).c_str());
 }
 
@@ -457,9 +457,10 @@ void MonthlyCostsDetailsState::categorySoldierSalaries()
  */
 void MonthlyCostsDetailsState::categoryItemMaintenance()
 {
-	int idItem = 4; // Offset since vector is build up using elements and subtotals will be inserted later.
+	int idItem = 4; // Offset based on expected subtotal entries.
 	int idParent;   // Let parentId represent the numbers as described in method description.
-	int totalValue;  // Always positive, unless a subtotal.
+	int totalValue; // Always positive, unless a subtotal.
+	BeanCounter row;
 
 	for (auto transfer : *_base->getTransfers())
 	{
@@ -470,13 +471,17 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 			{
 				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
 				totalValue = transfer->getQuantity() * abs(ruleItem->getMonthlySalary());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), totalValue);
+				row = {idItem, idParent, false, tr(ruleItem->getName()), transfer->getQuantity(), totalValue};
+
+				idItem = addToDetailsVector(row);
 			}
 			if (ruleItem->getMonthlyMaintenance() != 0)
 			{
 				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
 				totalValue = transfer->getQuantity() * abs(ruleItem->getMonthlyMaintenance());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), totalValue);
+				row = {idItem, idParent, false, tr(ruleItem->getName()), transfer->getQuantity(), totalValue};
+
+				idItem = addToDetailsVector(row);
 			}
 		}
 		else if (transfer->getType() == TRANSFER_SOLDIER)
@@ -486,13 +491,17 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 			{
 				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
 				totalValue = transfer->getQuantity() * abs(ruleItem->getMonthlySalary());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), totalValue);
+				row = {idItem, idParent, false, tr(ruleItem->getName()), transfer->getQuantity(), totalValue};
+
+				idItem = addToDetailsVector(row);
 			}
 			if (ruleItem && ruleItem->getMonthlyMaintenance() != 0)
 			{
 				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
 				totalValue = transfer->getQuantity() * abs(ruleItem->getMonthlyMaintenance());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), totalValue);
+				row = {idItem, idParent, false, tr(ruleItem->getName()), transfer->getQuantity(), totalValue};
+
+				idItem = addToDetailsVector(row);
 			}
 		}
 	}
@@ -503,13 +512,17 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 		{
 			idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
 			totalValue = storeItem.second * abs(ruleItem->getMonthlySalary());
-			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, storeItem.second, totalValue);
+			row = {idItem, idParent, false, tr(ruleItem->getName()), storeItem.second, totalValue};
+
+			idItem = addToDetailsVector(row);
 		}
 		if (ruleItem->getMonthlyMaintenance() != 0)
 		{
 			idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
 			totalValue = storeItem.second * abs(ruleItem->getMonthlyMaintenance());
-			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, storeItem.second, totalValue);
+			row = {idItem, idParent, false, tr(ruleItem->getName()), storeItem.second, totalValue};
+
+			idItem = addToDetailsVector(row);
 		}
 	}
 	for (auto craft : *_base->getCrafts())
@@ -521,13 +534,17 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 			{
 				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
 				totalValue = craftItem.second * abs(ruleItem->getMonthlySalary());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, craftItem.second, totalValue);
+				row = {idItem, idParent, false, tr(ruleItem->getName()), craftItem.second, totalValue};
+
+				idItem = addToDetailsVector(row);
 			}
 			if (ruleItem->getMonthlyMaintenance() != 0)
 			{
 				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
 				totalValue = craftItem.second * abs(ruleItem->getMonthlyMaintenance());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, craftItem.second, totalValue);
+				row = {idItem, idParent, false, tr(ruleItem->getName()), craftItem.second, totalValue};
+
+				idItem = addToDetailsVector(row);
 			}
 		}
 		for (auto vehicle : *craft->getVehicles())
@@ -537,13 +554,17 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 			{
 				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
 				totalValue = 1 * abs(ruleItem->getMonthlySalary());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, totalValue);
+				row = {idItem, idParent, false, tr(ruleItem->getName()), 1, totalValue};
+
+				idItem = addToDetailsVector(row);
 			}
 			if (ruleItem->getMonthlyMaintenance() != 0)
 			{
 				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
 				totalValue = 1 * abs(ruleItem->getMonthlyMaintenance());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, totalValue);
+				row = {idItem, idParent, false, tr(ruleItem->getName()), 1, totalValue};
+
+				idItem = addToDetailsVector(row);
 			}
 		}
 	}
@@ -554,13 +575,17 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 		{
 			idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
 			totalValue = 1 * abs(ruleItem->getMonthlySalary());
-			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, totalValue);
+			row = {idItem, idParent, false, tr(ruleItem->getName()), 1, totalValue};
+
+			idItem = addToDetailsVector(row);
 		}
 		if (ruleItem && ruleItem->getMonthlyMaintenance() != 0)
 		{
 			idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
 			totalValue = 1 * abs(ruleItem->getMonthlyMaintenance());
-			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, totalValue);
+			row = {idItem, idParent, false, tr(ruleItem->getName()), 1, totalValue};
+
+			idItem = addToDetailsVector(row);
 		}
 	}
 	// Prefer alphabetical listing of detailed rows.
@@ -571,25 +596,33 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 		}
 	);
 
-	BeanCounter row;
-	if (isSubtotalNeeded(0))
+	int subTotal, screenTotal = 0;
+	if (isSubtotalNeeded(0)) // Salary
 	{
-		row = {0, 0, true, tr("MCDS_SUBTOTAL_ITEM_SALARY"), -1, -1 * calculateSubtotalValue(0)};
+		subTotal = -1 * calculateSubtotalValue(0);
+		screenTotal += subTotal;
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_ITEM_SALARY"), -1, subTotal};
 		_details.insert(_details.begin(), row);
 	}
-	if (isSubtotalNeeded(1))
+	if (isSubtotalNeeded(1)) // Consulting
 	{
-		row = {1, 1, true, tr("MCDS_SUBTOTAL_ITEM_SALARY_INCOME"), -1, calculateSubtotalValue(1)};
+		subTotal = calculateSubtotalValue(1);
+		screenTotal += subTotal;
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_ITEM_SALARY_INCOME"), -1, subTotal};
 		_details.insert(_details.begin(), row);
 	}
-	if (isSubtotalNeeded(2))
+	if (isSubtotalNeeded(2)) // Maintenance
 	{
-		row = {2, 2, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE"), -1, -1 * calculateSubtotalValue(2)};
+		subTotal = -1 * calculateSubtotalValue(2);
+		screenTotal += subTotal;
+		row = {2, 2, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE"), -1, subTotal};
 		_details.insert(_details.begin(), row);
 	}
-	if (isSubtotalNeeded(3))
+	if (isSubtotalNeeded(3)) // Services
 	{
-		row = {3, 3, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE_INCOME"), -1, calculateSubtotalValue(3)};
+		subTotal = calculateSubtotalValue(3);
+		screenTotal += subTotal;
+		row = {3, 3, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE_INCOME"), -1, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	// Ensure elements are shown below appropriate subtotal.
@@ -600,8 +633,7 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 		}
 	);
 
-	// Allow for double checking, use a different formula (w.r.t. previous screen) to calculate total.
-	int screenTotal = calculateSubtotalValue(1) + calculateSubtotalValue(3) - calculateSubtotalValue(0) - calculateSubtotalValue(2);
+	// Allow for double checking, use a different method (w.r.t. previous screen) for total.
 	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(screenTotal, true).c_str());
 }
 
@@ -614,18 +646,21 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
  */
 void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 {
-	int idItem = 2; // Offset since vector is build up using elements and subtotals will be inserted later.
+	int idItem = 2; // Offset based on expected subtotal entries.
 	int idParent;   // Let parentId represent the numbers as described in method description.
 	int itemValue;  // Always positive, unless a subtotal.
 
+	BeanCounter row;
 	for (auto *facility : *_base->getFacilities())
 	{
-		// Facilities under construction do not cost/generate funds.
+		// Buildings under construction won't cost (or generate) money.
 		if (facility->getBuildTime() > 0) continue;
 
 		idParent = facility->getRules()->getMonthlyCost() >= 0 ? 0 : 1;
 		itemValue = abs(facility->getRules()->getMonthlyCost());
-		idItem = addToDetailsVector(tr(facility->getRules()->getType()), idParent, idItem, 1, itemValue);
+		row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, itemValue};
+
+		idItem = addToDetailsVector(row);
 	}
 	// Prefer alphabetical listing of detailed rows.
 	std::stable_sort(_details.begin(), _details.end(),
@@ -635,15 +670,19 @@ void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 		}
 	);
 
-	BeanCounter row;
-	if (isSubtotalNeeded(0))
+	int subTotal, screenTotal = 0;
+	if (isSubtotalNeeded(0)) // Maintenance
 	{
-		row = {0, 0, true, tr("MCDS_SUBTOTAL_FACILITY_MAINTENANCE"), -1, -1 * calculateSubtotalValue(0)};
+		subTotal = -1 * calculateSubtotalValue(0);
+		screenTotal += subTotal;
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_FACILITY_MAINTENANCE"), -1, subTotal};
 		_details.insert(_details.begin(), row);
 	}
-	if (isSubtotalNeeded(1))
+	if (isSubtotalNeeded(1)) // Revenue
 	{
-		row = {1, 1, true, tr("MCDS_SUBTOTAL_FACILITY_REVENUE"), -1, calculateSubtotalValue(1)};
+		subTotal = calculateSubtotalValue(1);
+		screenTotal += subTotal;
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_FACILITY_REVENUE"), -1, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	// Ensure elements are shown below appropriate subtotal.
@@ -654,8 +693,7 @@ void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 		}
 	);
 
-	// Allow for double checking, use a different formula (w.r.t. previous screen) to calculate total.
-	int screenTotal = calculateSubtotalValue(1) - calculateSubtotalValue(0);
+	// Allow for double checking: use a different method (w.r.t. previous screen) for total.
 	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(screenTotal, true).c_str());
 }
 
@@ -671,9 +709,10 @@ void MonthlyCostsDetailsState::categoryFacilityMaintenance()
  */
 void MonthlyCostsDetailsState::categoryGlobalResult()
 {
-	int idItem = 4; // Offset since vector is build up using elements and subtotals will be inserted later.
+	int idItem = 4; // Offset based on expected subtotal entries.
 	int idParent;   // Let parentId represent the numbers as described in method description.
 	int itemValue;  // Always positive, unless a subtotal.
+	BeanCounter row;
 
 	// Country funding.
 	for (auto country : *_game->getSavedGame()->getCountries())
@@ -681,16 +720,19 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 		int funding = country->getFunding().back();
 		std::string description = funding >= 0 ? tr("MCDS_DETAIL_COUNTRIES_INCOME") : tr("MCDS_DETAIL_COUNTRIES_PAYBACK");
 		idParent = funding >= 0 ? 0 : 1;
-		idItem = addToDetailsVector(description, idParent, idItem, 1, abs(funding));
+		row = {idItem, idParent, false, description, 1, std::abs(funding)};
 
+		idItem = addToDetailsVector(row);
 		///NOTE:
-		// Can theoretically be broken down further:
-		//  - Per country funding (geoscape's GRAPHS screen is better suited for this info)
+		// Can theoretically be broken down further to display 'per country funding'.
+		// Since that info is already visible (and presented better) at the geoscape's
+		// GRAPHS screen, i do not believe it adds value here.
 		///NOTE:
 		// Even though we recognize possibility of negative funding that mod tactic will
 		// probably not work as intended.
 		// For example: 'Country::newMonth()' can reset funding to 0 if a player performs BAD.
 	}
+
 	// Score based income is special since it is not supposed to create negative income.
 	// Recognize theoretical possibility, just for completeness.
 	if (_game->getMod()->getPerformanceBonusFactor() != 0)
@@ -701,8 +743,9 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 		performanceFunding = std::max(0, performanceFunding);
 		std::string description = performanceFunding >= 0 ? tr("MCDS_DETAIL_PERFORMANCE_INCOME") : tr("MCDS_DETAIL_PERFORMANCE_PAYBACK");
 		idParent = performanceFunding >= 0 ? 0 : 1;
-		idItem = addToDetailsVector(description, idParent, idItem, 1, abs(performanceFunding));
+		row = {idItem, idParent, false, description, 1, std::abs(performanceFunding)};
 
+		idItem = addToDetailsVector(row);
 		///NOTE:
 		// Can theoretically be broken down further:
 		// - council protection scheme
@@ -710,16 +753,19 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 		// - research scores
 		// - bookkeeping correction to prevent negative income?
 		// But that can easily become misleading.
-		// It would also benefit from an adapted spreadsheet header column: [description][score][totalValue]
-		// It is also impossible to break down research scores since it is a running number
-		// with no concept of topics researched *this* month.
+		// It would benefit from an adapted spreadsheet header column:
+		//  [description][score][totalValue]
+		// It is also impossible to break down research scores since that is a
+		//  running number with no concept of topics researched *this* month.
 	}
 	// Contribution of bases
 	for (auto *base : *_game->getSavedGame()->getBases())
 	{
 		idParent = base->getMonthlyMaintenace() >= 0 ? 2 : 3;
 		itemValue = abs(base->getMonthlyMaintenace());
-		idItem = addToDetailsVector(base->getName(), idParent, idItem, 1, itemValue); // In case player does not use unique base names.
+		row = {idItem, idParent, false, base->getName(), 1, itemValue};
+
+		idItem = addToDetailsVector(row);
 	}
 	// Prefer alphabetical listing of detailed rows.
 	std::stable_sort(_details.begin(), _details.end(),
@@ -729,25 +775,34 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 		}
 	);
 
-	BeanCounter row;
-	if (isSubtotalNeeded(0))
+	// Insert Subtotals
+	int subTotal, screenTotal = 0;
+	if (isSubtotalNeeded(0)) // Geoscape income
 	{
-		row = {0, 0, true, tr("MCDS_SUBTOTAL_GEO_INCOME"), -1, calculateSubtotalValue(0)};
+		subTotal = calculateSubtotalValue(0);
+		screenTotal += subTotal;
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_GEO_INCOME"), -1, subTotal};
 		_details.insert(_details.begin(), row);
 	}
-	if (isSubtotalNeeded(1))
+	if (isSubtotalNeeded(1)) // Geoscape payback
 	{
-		row = {1, 1, true, tr("MCDS_SUBTOTAL_GEO_PAYBACK"), -1, -1 * calculateSubtotalValue(1)};
+		subTotal = -1 * calculateSubtotalValue(1);
+		screenTotal += subTotal;
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_GEO_PAYBACK"), -1, subTotal};
 		_details.insert(_details.begin(), row);
 	}
-	if (isSubtotalNeeded(2))
+	if (isSubtotalNeeded(2)) // Bases Maintenance
 	{
-		row = {2, 2, true, tr("MCDS_SUBTOTAL_BASES_MAINTENANCE"), -1, -1 * calculateSubtotalValue(2)};
+		subTotal = -1 * calculateSubtotalValue(2);
+		screenTotal += subTotal;
+		row = {2, 2, true, tr("MCDS_SUBTOTAL_BASES_MAINTENANCE"), -1, subTotal};
 		_details.insert(_details.begin(), row);
 	}
-	if (isSubtotalNeeded(3))
+	if (isSubtotalNeeded(3)) // Bases Revenue
 	{
-		row = {3, 3, true, tr("MCDS_SUBTOTAL_BASES_REVENUE"), -1, calculateSubtotalValue(3)};
+		subTotal = calculateSubtotalValue(3);
+		screenTotal += subTotal;
+		row = {3, 3, true, tr("MCDS_SUBTOTAL_BASES_REVENUE"), -1, subTotal};
 		_details.insert(_details.begin(), row);
 	}
 	// Ensure elements are shown below appropriate subtotal.
@@ -758,8 +813,7 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 		}
 	);
 
-	// Allow for double checking, use a different formula (w.r.t. previous screen) to calculate total.
-	int screenTotal = calculateSubtotalValue(0) - calculateSubtotalValue(1) - calculateSubtotalValue(2) + calculateSubtotalValue(3);
+	// Allow for double checking: use a different method (w.r.t. previous screen) for total.
 	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(screenTotal, true).c_str());
 }
 
