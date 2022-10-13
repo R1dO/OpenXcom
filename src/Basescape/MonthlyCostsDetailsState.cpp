@@ -298,6 +298,10 @@ void MonthlyCostsDetailsState::drawBody()
 
 	switch (_currentCategory)
 	{
+	case CC_CRAFTS:
+		ssTitle << tr("MCDS_TITLE_CRAFT_MAINTENANCE");
+		categoryCraftMaintenance();
+		break;
 	case CC_SOLDIERS:
 		ssTitle << tr("STR_SOLDIERS");
 		categorySoldierSalaries();
@@ -318,7 +322,7 @@ void MonthlyCostsDetailsState::drawBody()
 		ssTitle << "Cost Category " << _currentCategory << " not implemented yet";
 
 		BeanCounter row;
-		int parent, id = 0; // I know: parent is not initialized yet, will happen in the loop.
+		int parent, id = 0;
 		for (auto i = 0; i < 5; i++)
 		{
 			parent = id;
@@ -340,6 +344,95 @@ void MonthlyCostsDetailsState::drawBody()
 	_txtTitle->setText(ssTitle.str().c_str());
 	updateList();
 }
+
+
+/**
+ * Setup screen that displays craft maintenance.
+ *
+ * Only takes into account crafts that are assigned to the base.
+ *
+ * Recognize 3 subtotals may exist:
+ * (0) Fighter crafts
+ * (1) Transporter crafts
+ * (2) Mixed crafts (fighter/transporter)
+ *
+ * @note
+ * No research check is performed. If a craft is on the base we have to pay
+ * for maintenance anyway, meaning a player can deduce already.
+ * @note
+ * Crafts without maintenance costs are allowed on this screen.
+ *
+ * Logic based on: 'MonthlyCostState.cpp'
+ */
+void MonthlyCostsDetailsState::categoryCraftMaintenance()
+{
+	int idItem = 3;       // Offset based on expected subtotal entries.
+	int idParent;         // Can be as much as there are soldier types -1 (0-based counting).
+	int craftMaintenance; // Always positive, unless a subtotal.
+
+	auto getSubTotalParentId = [&](const RuleCraft* craft) -> int
+	{
+		if (craft->getWeapons() == 0)
+			return 1; // Transporter
+		if (craft->getPilots() == 0  && craft->getMaxUnits() == 0)
+			return 0; // Vanilla style Fighter
+		if (craft->getPilots() == 0 && craft->getMaxUnits() != 0)
+			return 2; // Vanilla style Mixed
+
+		int flightCrewExtra = 0; // Adjust this for more relaxing fighter check.
+		if (craft->getMaxUnits() > (craft->getPilots() + flightCrewExtra))
+			return 2; // OXCE style Mixed
+
+		// If none of above, assume fighter.
+		return 0;
+	};
+
+	BeanCounter row;
+	for (auto craft : *_base->getCrafts())
+	{
+		idParent = getSubTotalParentId(craft->getRules());
+		craftMaintenance = craft->getRules()->getRentCost();
+		row = {idItem, idParent, false, craft->getName(_game->getLanguage()), 1, craftMaintenance};
+
+		idItem = addToDetailsVector(row);
+	}
+
+	int subTotal, screenTotal = 0;
+	if (isSubtotalNeeded(0)) // Fighter
+	{
+		subTotal = -1 * calculateSubtotalValue(0);
+		screenTotal += subTotal;
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_FIGHTER"), -1, subTotal};
+		_details.insert(_details.begin(), row);
+	}
+	if (isSubtotalNeeded(1)) // Transporter
+	{
+		subTotal = -1 * calculateSubtotalValue(1);
+		screenTotal += subTotal;
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_TANSPORTER"), -1, subTotal};
+		_details.insert(_details.begin(), row);
+	}
+	if (isSubtotalNeeded(2)) // Mixed
+	{
+		subTotal = -1 * calculateSubtotalValue(2);
+		screenTotal += subTotal;
+		row = {2, 2, true, tr("MCDS_SUBTOTAL_MIXED"), -1, subTotal};
+		_details.insert(_details.begin(), row);
+	}
+
+	// Ensure elements are shown below appropriate subtotal.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
+
+	// Allow for double checking, use a different method (w.r.t. previous screen) for total.
+	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(screenTotal, true).c_str());
+
+}
+
 
 /**
  * Setup screen that displays soldier salaries.
@@ -726,7 +819,7 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 		///NOTE:
 		// Can theoretically be broken down further to display 'per country funding'.
 		// Since that info is already visible (and presented better) at the geoscape's
-		// GRAPHS screen, i do not believe it adds value here.
+		// GRAPHS screen, I do not believe it adds value here.
 		///NOTE:
 		// Even though we recognize possibility of negative funding that mod tactic will
 		// probably not work as intended.

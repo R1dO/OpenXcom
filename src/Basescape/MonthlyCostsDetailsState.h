@@ -64,6 +64,7 @@ private:
 	size_t _sel;
 
 	void drawBody();
+	void categoryCraftMaintenance();
 	void categorySoldierSalaries();
 	void categoryItemMaintenance();
 	void categoryFacilityMaintenance();

@@ -109,6 +109,7 @@ MonthlyCostsState::MonthlyCostsState(Base *base) : _base(base), _alternateScreen
 	if(_alternateScreen)
 	{
 		_txtIncome->setVisible(false);
+		_lstCrafts->onMouseClick((ActionHandler)&MonthlyCostsState::lstCraftsClick, SDL_BUTTON_RIGHT);
 		_lstSalaries->onMouseClick((ActionHandler)&MonthlyCostsState::lstSalariesClick, SDL_BUTTON_RIGHT);
 		_txtMaintenance->setVisible(false);
 		_lstMaintenance->onMouseClick((ActionHandler)&MonthlyCostsState::lstFacilitiesClick, SDL_BUTTON_RIGHT);
@@ -266,6 +267,16 @@ MonthlyCostsState::~MonthlyCostsState()
 void MonthlyCostsState::btnOkClick(Action *)
 {
 	_game->popState();
+}
+
+/**
+ * Open the global craft maintenance details sub-window.
+ * @param action Pointer to an action.
+ */
+void MonthlyCostsState::lstCraftsClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new MonthlyCostsDetailsState(_base, CC_CRAFTS));
 }
 
 /**
