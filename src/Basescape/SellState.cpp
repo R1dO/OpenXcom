@@ -66,7 +66,7 @@ namespace OpenXcom
  * @param origin Game section that originated this state.
  */
 SellState::SellState(Base *base, DebriefingState *debriefingState, OptionsOrigin origin) : _base(base), _debriefingState(debriefingState), _sel(0), _total(0), _spaceChange(0), _origin(origin),
-	_reset(false), _sellAllButOne(false), _delayedInitDone(false), _previousSort(TransferSortDirection::BY_LIST_ORDER), _currentSort(TransferSortDirection::BY_LIST_ORDER), _alternateScreen(false)
+	_reset(false), _sellAllButOne(false), _delayedInitDone(false), _previousSort(TransferSortDirection::BY_LIST_ORDER), _currentSort(TransferSortDirection::BY_LIST_ORDER), _reservedAmountBehavior(0)
 {
 	_timerInc = new Timer(250);
 	_timerInc->onTimer((StateHandler)&SellState::increase);
@@ -87,7 +87,7 @@ void SellState::delayedInit()
 
 	bool overfull = _debriefingState == 0 && Options::storageLimitsEnforced && _base->storesOverfull();
 	bool overfullCritical = overfull ? _base->storesOverfullCritical() : false;
-	_alternateScreen = Options::alternateBaseScreens;
+	_reservedAmountBehavior = Options::reservedAmountBehavior;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -104,13 +104,10 @@ void SellState::delayedInit()
 	_txtSell = new Text(96, 9, 190, 44);
 	_txtValue = new Text(40, 9, 270, 44);
 	_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
-	if (_alternateScreen)
+	_lstItems = new TextList(287, 120, 8, 54);
+	if (_reservedAmountBehavior > 0)
 	{
-		_lstItems = new TextList(290, 120, 8, 54);
-	}
-	else
-	{
-		_lstItems = new TextList(287, 120, 8, 54);
+		_lstItems->setWidth(290);
 	}
 
 	// Set palette
@@ -165,7 +162,7 @@ void SellState::delayedInit()
 
 	_txtValue->setText(tr("STR_VALUE"));
 
-	if (_alternateScreen)
+	if (_reservedAmountBehavior > 0)
 	{
 		_lstItems->setArrowColumn(189, ARROW_VERTICAL);
 		// Use an empty column to reserve space (28) for the arrows. To allow for arbitrary cell text alignment.
@@ -191,6 +188,7 @@ void SellState::delayedInit()
 
 	_cats.push_back("STR_ALL_ITEMS");
 
+	SellRow row;
 	// Original behavior makes sense: No display of named soldiers assigned to craft or in-transfer.
 	// Prevents display clutter. Wounded soldiers are fair game though.
 	for (std::vector<Soldier*>::iterator i = _base->getSoldiers()->begin(); i != _base->getSoldiers()->end(); ++i)
@@ -198,7 +196,14 @@ void SellState::delayedInit()
 		if (_debriefingState) break;
 		if ((*i)->getCraft() == 0)
 		{
-			SellRow row = { TRANSFER_SOLDIER, (*i), (*i)->getName(true), 0, 1, 0, 0, -4, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+			row = {};
+			row.type = TRANSFER_SOLDIER;
+			row.rule = (*i);
+			row.name = (*i)->getName(true);
+			row.listOrder = -4;
+			row.qtyDst = -1; // Infinite sales opportunities (not used in this screen).
+			row.qtySrc = 1;
+
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -215,8 +220,16 @@ void SellState::delayedInit()
 		if (_debriefingState) break;
 		if ((*i)->getStatus() != "STR_OUT")
 		{
-			SellRow row = { TRANSFER_CRAFT, (*i), (*i)->getName(_game->getLanguage()), (*i)->getRules()->getSellCost(), 1, 0, 0, -3, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+			row = {};
+			row.type = TRANSFER_CRAFT;
+			row.rule = (*i);
+			row.name = (*i)->getName(_game->getLanguage());
+			row.cost = (*i)->getRules()->getSellCost();
+			row.listOrder = -3;
 			row.totalCost = row.cost; // Named craft are unique
+			row.qtyDst = -1; // Infinite sales opportunities (not used in this screen).
+			row.qtySrc = 1;
+
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -226,35 +239,67 @@ void SellState::delayedInit()
 		}
 	}
 
-	if (_base->getAvailableScientists() > 0 && _debriefingState == 0)
+	// Sell screen kinda acts like a storestate-lite view.
+	// Calculate/show even if no scientists are currently available
+	if (_debriefingState == 0)
 	{
-		SellRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), 0, 0, 0, 0, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		row = {};
+		// Vanilla display: Only available scientists. Use as starting point.
 		row.qtySrc = _base->getAvailableScientists();
-		if (_alternateScreen)
+
+		if (_reservedAmountBehavior > 0)
 		{
+			row.transferSrc = _base->getTotalScientists() - _base->getTotalScientists(false);
 			row.allocatedSrc = _base->getAllocatedScientists();
+			// This screen does not support removing scientists from research projects.
+			row.qtySrc += row.transferSrc;
+			row.protectedSrc = row.allocatedSrc;
 		}
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+
+		if (row.qtySrc > 0 || row.allocatedSrc > 0)
 		{
-			_cats.push_back(cat);
+			row.type = TRANSFER_SCIENTIST;
+			row.name = tr("STR_SCIENTIST");
+			row.listOrder = -2;
+			row.qtyDst = -1; // Infinite sales opportunities (not used in this screen).
+
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
 		}
 	}
-
-	if (_base->getAvailableEngineers() > 0 && _debriefingState == 0)
+	// Calculate/show even if no engineers are currently available.
+	if (_debriefingState == 0)
 	{
-		SellRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		row = {};
+		// Vanilla display: Only available engineers. Use as starting point.
 		row.qtySrc = _base->getAvailableEngineers();
-		if (_alternateScreen)
+
+		if (_reservedAmountBehavior > 0)
 		{
+			row.transferSrc = _base->getTotalEngineers() - _base->getTotalEngineers(false);
 			row.allocatedSrc = _base->getAllocatedEngineers();
+			// This screen does not support removing engineers from projects.
+			row.qtySrc += row.transferSrc;
+			row.protectedSrc = row.allocatedSrc;
 		}
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+
+		if (row.qtySrc > 0 || row.allocatedSrc > 0)
 		{
-			_cats.push_back(cat);
+			row.type = TRANSFER_ENGINEER;
+			row.name = tr("STR_ENGINEER");
+			row.listOrder = -1;
+			row.qtyDst = -1; // Infinite sales opportunities (not used in this screen).
+
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
 		}
 	}
 
@@ -262,133 +307,98 @@ void SellState::delayedInit()
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
 		const RuleItem *rule = _game->getMod()->getItem(*i, true);
-		int qty = 0;
-		int qtyAllocated = 0; // Display value of allocated items [row.allocatedSrc]
-		int qtyProtected = 0; // Amount of allocated items that are protected (value <= allocated) [row.protectedSrc]
+		row = {};
 
 		if (_debriefingState != 0)
 		{
 			// Only allowed to sell recovered items.
-			qty = _debriefingState->getRecoveredItemCount(rule);
+			row.qtySrc = _debriefingState->getRecoveredItemCount(rule);
 
-			// Let 'allocatedSrc' represent what is currently on base for the recovered items.
+			// Let 'allocatedSrc' represent what is currently on base plus in transfer.
 			// So player has an easier time figuring out if something is worth keeping.
-			if (qty > 0 && _alternateScreen)
+			if (row.qtySrc > 0 && _reservedAmountBehavior > 0)
 			{
-				qtyAllocated = _base->getStorageItems()->getItem(rule)
-				+ _base->getItemCountTransfers(rule, false)
-				+ _base->getItemClaimByResearch(rule)
-				+ _base->getItemClaimByManufacture(rule)
-				+ _base->getItemClaimByCrafts(rule, true);
-				// DebriefingState already added recovered items to base store, correct for that.
-				// init() >>> prepareDebriefing() >>> recoverItems()
-				qtyAllocated -= qty;
-				// By design 'qtyProtected' stays zero in this specific scenario.
-				// To prevent adding 'protectedSrc' to 'qtySrc' at display time.
-				//qtyProtected = 0;
-			}
-		}
-		else
-		{
-			qty = _base->getStorageItems()->getItem(rule);
-
-			// Let display of 'allocatedSrc' show what is allocated on base (plus allocated inTransfer when applicable)
-			// For display of 'qtySrc' there are 2 options
-			// * Show only what is allowed to be sold (original behavior)
-			//   - Easy to implement
-			// * Show what is allowed to be sold + what is protected (latter becomes lower limit of sale)
-			//   In normal cases display of 'qtySrc' >= display of 'allocatedSrc'
-			//   In forced sale situations display of 'qtySrc' can be < display of 'allocatedSrc'
-			//   This could serve as a warning crafts are about to lose equipment.
-			//   - Harder to implement
-			//
-			//    Call reserved column "STR_ALLOCATED" or "STR_RESERVED"
-			//    Call qty column "STR_ON_BASE" or "STR_IN_STORES"
-			// Second option gives player more insight but is harder to implement, this is what I chose.
-
-			if (Options::storageLimitsEnforced && (_origin == OPT_BATTLESCAPE || overfullCritical))
-			{
-				for (std::vector<Transfer*>::iterator j = _base->getTransfers()->begin(); j != _base->getTransfers()->end(); ++j)
-				{
-					if ((*j)->getItems() == *i)
-					{
-						// Add InTransfer to starting amount, items do not belong to 'allocatedSrc' (yet).
-						qty += (*j)->getQuantity();
-					}
-					else if ((*j)->getCraft())
-					{
-						if (overfullCritical)
-						{
-							// Anything is added to 'qtySrc' already, there is no protection left to add.
-							qty += (*j)->getCraft()->getTotalItemCount(rule);
-							qtyAllocated += (*j)->getCraft()->getTotalItemCount(rule);
-							qtyProtected += 0;
-						}
-						else
-						{
-							// Item could be assigned to weapon/vehicle (protected) and partly in item storage on craft (not protected).
-							qty += (*j)->getCraft()->getItems()->getItem(rule);
-							qtyAllocated += (*j)->getCraft()->getTotalItemCount(rule);
-							qtyProtected += (*j)->getCraft()->getTotalItemCount(rule) - (*j)->getCraft()->getItems()->getItem(rule);
-						}
-					}
-				}
-				// Stuff that in normal circumstances is included in _base->getItemReservedCount().
-				for (std::vector<Craft*>::iterator j = _base->getCrafts()->begin(); j != _base->getCrafts()->end(); ++j)
-				{
-					if (overfullCritical)
-					{
-						// Anything is added to 'qtySrc' already, there is no protection left to add.
-						qty += (*j)->getTotalItemCount(rule);
-						qtyAllocated += (*j)->getTotalItemCount(rule);
-						qtyProtected += 0;
-					}
-					else
-					{
-						// Item could be assigned to weapon/vehicle (protected) and partly in item storage on craft (not protected).
-						qty += (*j)->getItems()->getItem(rule); // items in belly
-						qtyAllocated += (*j)->getTotalItemCount(rule);
-						qtyProtected += (*j)->getTotalItemCount(rule) - (*j)->getItems()->getItem(rule);
-					}
-				}
-				// Just because I can: show allocated armors
-				if (_alternateScreen)
-				{
-					for (std::vector<Soldier*>::const_iterator k = _base->getSoldiers()->begin(); k != _base->getSoldiers()->end(); ++k)
-					{
-						if ((*k)->getArmor()->getStoreItem() && (*k)->getArmor()->getStoreItem()->getType() == *i)
-						{
-							// Those armors must never be allowed to be sold.
-							qtyAllocated++;
-							qtyProtected++;
-						}
-					}
-				}
-			}
-			else
-			{
-				qtyAllocated = _base->getStorageItems()->getItem(rule)
+				row.allocatedSrc = _base->getStorageItems()->getItem(rule)
 					+ _base->getItemCountTransfers(rule, false)
 					+ _base->getItemClaimByResearch(rule)
 					+ _base->getItemClaimByManufacture(rule)
 					+ _base->getItemClaimByCrafts(rule, true);
-				qtyProtected = qtyAllocated;
+
+				// DebriefingState already added recovered items to base store, correct for that.
+				// init() >>> prepareDebriefing() >>> recoverItems()
+				row.allocatedSrc -= row.qtySrc;
+			}
+		}
+		else
+		{
+			// Vanilla display: Only items from base stores unless in forced sale scenario.
+			row.qtySrc = _base->getStorageItems()->getItem(rule);
+
+			// Non-vanilla:
+			if (_reservedAmountBehavior > 0)
+			{
+				// Always allow sale of in-transfer items, unless part of a craft.
+				row.transferSrc = _base->getItemCountTransfers(rule, false);
+
+				// Worn armor (virtual item).
+				int soldierArmor = _base->getItemClaimBySoldiers(rule, true, false)
+					- _base->getItemClaimBySoldiers(rule, true, true);
+
+				// Display of reserved amounts (includes non-refundable and future production).
+				row.allocatedSrc = _base->getItemClaimByResearch(rule, false)
+					+ _base->getItemClaimByManufacture(rule, false, false)
+					+ _base->getItemClaimByCrafts(rule, true, true, false)
+					+ soldierArmor;
+
+				row.qtySrc += row.transferSrc;
+				row.protectedSrc = row.allocatedSrc;
+			}
+			if (_reservedAmountBehavior == 1) // soldier items only
+			{
+				row.allocatedSrc = _base->getItemClaimBySoldiers(rule, true, false);
+			}
+			if (_reservedAmountBehavior == 3) // greedy
+			{
+				int soldiersClaim = _base->getItemClaimBySoldiers(rule, true, false);
+				row.allocatedSrc = std::max(row.allocatedSrc, soldiersClaim);
+			}
+
+			// Forced sale situation, allow items on board of craft (including in-transfer ones).
+			if (Options::storageLimitsEnforced && (_origin == OPT_BATTLESCAPE || overfullCritical))
+			{
+				// For craft items there is no difference between vanilla and new screens.
+				int craftsClaim = _base->getItemClaimByCrafts(rule, true);
+				row.transferSrc += craftsClaim - _base->getItemClaimByCrafts(rule);
+				row.qtySrc += craftsClaim;
+				row.protectedSrc -= craftsClaim;
+				if (!overfullCritical)
+				{
+					int correction = _base->getItemClaimByCrafts(rule, true, false);
+					row.transferSrc -= correction - _base->getItemClaimByCrafts(rule, false ,false);
+					row.qtySrc -= correction;
+					row.protectedSrc -= correction;
+				}
+
+				// Non-vanilla already included in-transfer amounts.
+				if (_reservedAmountBehavior == 0)
+				{
+					row.transferSrc = _base->getItemCountTransfers(rule, false);
+					row.qtySrc += row.transferSrc;
+				}
 			}
 		}
 
-			SellRow row = { TRANSFER_ITEM, rule, tr(*i), rule->getSellCost(), 0, 0, 0, rule->getListOrder(), 0, 0, 0, 0, 0, 0, 0, 0, 0};
-			row.qtySrc = qty;
-			row.size = rule->getSize();
-			row.totalSize = row.qtySrc * rule->getSize();
-			row.totalCost = (int64_t)row.qtySrc * rule->getSellCost();
-			if (_alternateScreen)
-			{
-				row.allocatedSrc = qtyAllocated;
-				row.protectedSrc = qtyProtected;
-			}
-
-		if (row.qtySrc + row.allocatedSrc > 0 && (Options::canSellLiveAliens || !rule->isAlien()))
+		if ((row.qtySrc > 0 || row.allocatedSrc > 0) && (Options::canSellLiveAliens || !rule->isAlien()))
 		{
+			row.type = TRANSFER_ITEM;
+			row.rule = rule;
+			row.name = tr(*i);
+			row.cost = rule->getSellCost();
+			row.listOrder = rule->getListOrder();
+			row.size = rule->getSize();
+			row.totalSize = row.qtySrc * row.size;
+			row.totalCost = (int64_t)row.qtySrc * row.cost;
+
 			if ((_debriefingState != 0) && (_game->getSavedGame()->getAutosell(rule)))
 			{
 				row.amount = row.qtySrc;
@@ -673,7 +683,7 @@ void SellState::updateList()
 		int64_t adjustedCost = _items[i].cost;
 		adjustedCost = adjustedCost * sellPriceCoefficient / 100;
 
-		if (_alternateScreen)
+		if (_reservedAmountBehavior > 0)
 		{
 			ssQty << _items[i].qtySrc - _items[i].amount + _items[i].protectedSrc;
 			std::ostringstream ssReserved;
@@ -1211,7 +1221,7 @@ void SellState::decrease()
 void SellState::updateItemStrings()
 {
 	std::ostringstream ss, ss2, ss3;
-	if (_alternateScreen)
+	if (_reservedAmountBehavior > 0)
 	{
 		ss2 << getRow().qtySrc - getRow().amount + getRow().protectedSrc;
 		_lstItems->setCellText(_sel, 1, ss2.str());
