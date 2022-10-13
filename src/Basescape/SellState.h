@@ -74,7 +74,8 @@ private:
 	bool belongsToCategory(int sel, const std::string &cat) const;
 	/// Gets the row of the current selection.
 	TransferRow &getRow() { return _items[_rows[_sel]]; }
-
+	/// Do we use the alternate base screen option?
+	bool _alternateScreen;
 	void updateSubtitleLine();
 public:
 	/// Creates the Sell state.
