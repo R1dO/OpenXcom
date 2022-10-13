@@ -21,6 +21,7 @@
 #include <sstream>
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
+#include "../Mod/Armor.h"
 #include "../Mod/Mod.h"
 #include "../Mod/RuleBaseFacility.h"
 #include "../Engine/Options.h"
@@ -30,7 +31,11 @@
 #include "../Interface/TextList.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/BaseFacility.h"
+#include "../Savegame/ItemContainer.h"
 #include "../Savegame/SavedGame.h"
+#include "../Savegame/Soldier.h"
+#include "../Savegame/Transfer.h"
+#include "../Savegame/Vehicle.h"
 
 namespace OpenXcom
 {
@@ -275,6 +280,10 @@ void MonthlyCostsDetailsState::drawBody()
 
 	switch (_currentCategory)
 	{
+	case CC_ITEMS:
+		ssTitle << tr("STR_OTHER_EMPLOYEES");
+		categoryItemMaintenance();
+		break;
 	case CC_FACILITIES:
 		ssTitle << tr("MCDS_TITEL_BASE_FACILITIES");
 		categoryFacilityMaintenance();
@@ -309,6 +318,170 @@ void MonthlyCostsDetailsState::drawBody()
 
 	_txtTitle->setText(ssTitle.str().c_str());
 	updateList();
+}
+
+/**
+ * Setup screen that displays items maintenance and item salary.
+ *
+ * Recognize 4 subtotals may exist:
+ * (0) Item Salary:      getMonthlySalary() > 0
+ * (1) Item Consulting:  getMonthlySalary() < 0
+ * (2) Item Maintenance: getMonthlyMaintenance() > 0.
+ * (3) Item Services     getMonthlyMaintenance() < 0.
+ *
+ * Logic based on: 'Base::getTotalOtherStaffAndInventoryCost()'.
+ */
+void MonthlyCostsDetailsState::categoryItemMaintenance()
+{
+	_txtQuantity->setVisible(true);
+
+	int idItem = 4; // Offset since vector is build up using elements and subtotals will be inserted later.
+	int idParent;   // Let parentId represent the numbers as described in method description.
+	int itemValue;  // Always positive, unless a subtotal.
+
+	for (auto transfer : *_base->getTransfers())
+	{
+		if (transfer->getType() == TRANSFER_ITEM)
+		{
+			auto ruleItem = _game->getMod()->getItem(transfer->getItems(), true);
+			if (ruleItem->getMonthlySalary() != 0)
+			{
+				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
+				itemValue = abs(ruleItem->getMonthlySalary());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), itemValue);
+			}
+			if (ruleItem->getMonthlyMaintenance() != 0)
+			{
+				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
+				itemValue = abs(ruleItem->getMonthlyMaintenance());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), itemValue);
+			}
+		}
+		else if (transfer->getType() == TRANSFER_SOLDIER)
+		{
+			auto ruleItem = transfer->getSoldier()->getArmor()->getStoreItem();
+			if (ruleItem && ruleItem->getMonthlySalary() != 0)
+			{
+				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
+				itemValue = abs(ruleItem->getMonthlySalary());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), itemValue);
+			}
+			if (ruleItem && ruleItem->getMonthlyMaintenance() != 0)
+			{
+				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
+				itemValue = abs(ruleItem->getMonthlyMaintenance());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), itemValue);
+			}
+		}
+	}
+	for (const auto& storeItem : *_base->getStorageItems()->getContents())
+	{
+		auto ruleItem = _game->getMod()->getItem(storeItem.first, true);
+		if (ruleItem->getMonthlySalary() != 0)
+		{
+			idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
+			itemValue = abs(ruleItem->getMonthlySalary());
+			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, storeItem.second, itemValue);
+		}
+		if (ruleItem->getMonthlyMaintenance() != 0)
+		{
+			idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
+			itemValue = abs(ruleItem->getMonthlyMaintenance());
+			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, storeItem.second, itemValue);
+		}
+	}
+	for (auto craft : *_base->getCrafts())
+	{
+		for (const auto &craftItem : *craft->getItems()->getContents())
+		{
+			auto ruleItem = _game->getMod()->getItem(craftItem.first, true);
+			if (ruleItem->getMonthlySalary() != 0)
+			{
+				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
+				itemValue = abs(ruleItem->getMonthlySalary());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, craftItem.second, itemValue);
+			}
+			if (ruleItem->getMonthlyMaintenance() != 0)
+			{
+				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
+				itemValue = abs(ruleItem->getMonthlyMaintenance());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, craftItem.second, itemValue);
+			}
+		}
+		for (auto vehicle : *craft->getVehicles())
+		{
+			auto ruleItem = vehicle->getRules();
+			if (ruleItem->getMonthlySalary() != 0)
+			{
+				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
+				itemValue = abs(ruleItem->getMonthlySalary());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, itemValue);
+			}
+			if (ruleItem->getMonthlyMaintenance() != 0)
+			{
+				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
+				itemValue = abs(ruleItem->getMonthlyMaintenance());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, itemValue);
+			}
+		}
+	}
+	for (auto soldier : *_base->getSoldiers())
+	{
+		auto ruleItem = soldier->getArmor()->getStoreItem();
+		if (ruleItem && ruleItem->getMonthlySalary() != 0)
+		{
+			idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
+			itemValue = abs(ruleItem->getMonthlySalary());
+			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, itemValue);
+		}
+		if (ruleItem && ruleItem->getMonthlyMaintenance() != 0)
+		{
+			idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
+			itemValue = abs(ruleItem->getMonthlyMaintenance());
+			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, itemValue);
+		}
+	}
+
+	// Prefer alphabetical listing of detailed rows.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return Unicode::naturalCompare(a.description, b.description);
+		}
+	);
+
+	BeanCounter row;
+	if (isSubtotalNeeded(0))
+	{
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_ITEM_SALARY"), 0, -1 * calculateSubtotalValue(0)};
+		_details.insert(_details.begin(), row);
+	}
+	if (isSubtotalNeeded(1))
+	{
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_ITEM_SALARY_INCOME"), 0, calculateSubtotalValue(1)};
+		_details.insert(_details.begin(), row);
+	}
+	if (isSubtotalNeeded(2))
+	{
+		row = {2, 2, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE"), 0, -1 * calculateSubtotalValue(2)};
+		_details.insert(_details.begin(), row);
+	}
+	if (isSubtotalNeeded(3))
+	{
+		row = {3, 3, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE_INCOME"), 0, calculateSubtotalValue(3)};
+		_details.insert(_details.begin(), row);
+	}
+	// Sort by parentId.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
+
+	// Allow for double checking, use a different formula (w.r.t. previous screen) to calculate total.
+	int screenTotal = calculateSubtotalValue(1) + calculateSubtotalValue(3) - calculateSubtotalValue(0) - calculateSubtotalValue(2);
+	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(screenTotal, true).c_str());
 }
 
 /**

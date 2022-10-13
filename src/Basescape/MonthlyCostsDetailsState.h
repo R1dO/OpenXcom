@@ -65,6 +65,7 @@ private:
 	size_t _sel;
 
 	void drawBody();
+	void categoryItemMaintenance();
 	void categoryFacilityMaintenance();
 	void categoryGlobalResult();
 	void updateList();

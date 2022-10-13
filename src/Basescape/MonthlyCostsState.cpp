@@ -18,8 +18,10 @@
  */
 #include "MonthlyCostsState.h"
 #include <sstream>
+#include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Mod/Mod.h"
+#include "../Engine/Font.h"
 #include "../Engine/LocalizedText.h"
 #include "../Engine/Options.h"
 #include "../Engine/Unicode.h"
@@ -107,6 +109,7 @@ MonthlyCostsState::MonthlyCostsState(Base *base) : _base(base), _alternateScreen
 	if(_alternateScreen)
 	{
 		_txtIncome->setVisible(false);
+		_lstSalaries->onMouseClick((ActionHandler)&MonthlyCostsState::lstSalariesClick, SDL_BUTTON_RIGHT);
 		_txtMaintenance->setVisible(false);
 		_lstMaintenance->onMouseClick((ActionHandler)&MonthlyCostsState::lstFacilitiesClick, SDL_BUTTON_RIGHT);
 		_lstGlobalResult->onMouseClick((ActionHandler)&MonthlyCostsState::lstGlobalResultClick, SDL_BUTTON_RIGHT);
@@ -263,6 +266,41 @@ MonthlyCostsState::~MonthlyCostsState()
 void MonthlyCostsState::btnOkClick(Action *)
 {
 	_game->popState();
+}
+
+/**
+ * Open the global details sub-window, based on the mouse-over row.
+ * @param action Pointer to an action.
+ */
+void MonthlyCostsState::lstSalariesClick(Action *action)
+{
+	if (!_alternateScreen) return;
+
+	// Implement own row selector. To prevent setting 'selectable' property on
+	// the list, which comes with a change in background upon mouse-over.
+	// Based on: 'void TextList::mouseOver()'.
+	int rowHeight = _game->getMod()->getFont("FONT_SMALL")->getHeight() + _game->getMod()->getFont("FONT_SMALL")->getSpacing();
+	int mouseInList = floor(action->getRelativeYMouse() / (rowHeight * action->getYScale()));
+	int currentScroll = _lstSalaries->getScroll();
+	size_t sel = std::max(0, currentScroll + mouseInList);
+
+	switch (sel)
+	{
+	case 0:
+		_game->pushState(new MonthlyCostsDetailsState(_base, CC_SOLDIERS));
+		break;
+	case 1:
+		_game->pushState(new MonthlyCostsDetailsState(_base, CC_SCIENTISTS));
+		break;
+	case 2:
+		_game->pushState(new MonthlyCostsDetailsState(_base, CC_ENGINEERS));
+		break;
+	case 3:
+		_game->pushState(new MonthlyCostsDetailsState(_base, CC_ITEMS));
+		break;
+	default:
+		break;
+	}
 }
 
 /**

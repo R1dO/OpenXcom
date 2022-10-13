@@ -46,7 +46,8 @@ private:
 	/// Do we use the alternate base screen option?
 	bool _alternateScreen;
 
-	void lstFacilitiesClick(Action *);
+	void lstSalariesClick(Action *action);
+	void lstFacilitiesClick(Action *action);
 	void lstGlobalResultClick(Action *action);
 
 public:
