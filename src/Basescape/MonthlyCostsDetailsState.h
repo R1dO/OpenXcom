@@ -36,12 +36,12 @@ enum CostCategory {
 struct BeanCounter
 {
 	// Use parent-child relation to enable collapsable details.
-	int id;         // We have a subtotal if 'id == parentId'.
-	int parentId;   // To allow collapsing of child rows.
-	bool isVisible; // By default children are hidden unless unfolded.
+	int id;             // We have a subtotal if 'id == parentId'.
+	int parentId;       // To allow collapsing of child rows.
+	bool isVisible;     // By default children are hidden unless unfolded.
 	std::string description;
-	int amount;     // How many times a contribution is present on the base. Zero is used to indicate: Don't draw this column.
-	int64_t value;  // Cost or Income per element.
+	int amount;         // Display only: How many times a contribution is present on the base (-1 indicates: do not draw).
+	int64_t totalValue; // Total value for this contribution
 };
 
 /**
@@ -71,7 +71,7 @@ private:
 
 	BeanCounter &getRow() {return _details[_rows[_sel]];}
 	void lstDetailsMousePress(Action *action);
-	int addToDetailsVector(std::string description, int parentId, int itemId, int amount, int64_t value, bool updateValue = false);
+	int addToDetailsVector(std::string description, int parentId, int itemId, int amount, int64_t value);
 	bool isSubtotalNeeded(int parentId);
 	int64_t calculateSubtotalValue(int parentId);
 

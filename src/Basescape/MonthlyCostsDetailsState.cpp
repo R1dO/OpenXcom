@@ -229,10 +229,9 @@ void MonthlyCostsDetailsState::lstDetailsMousePress(Action *action)
  * @param itemId      Unique identifier for this contribution (although uniqueness is not enforced).
  * @param amount      How many times this contribution has been found.
  * @param value       Cost (or income) of a single contribution.
- * @param updateValue Controls if value field or amount field is updated.
  * @return Unique identifier for the next element in the list (!not the vector's rowid!).
  */
-int MonthlyCostsDetailsState::addToDetailsVector(std::string description, int parentId, int itemId, int amount, int64_t value, bool updateValue)
+int MonthlyCostsDetailsState::addToDetailsVector(std::string description, int parentId, int itemId, int amount, int64_t value)
 {
 	for (auto &bean : _details)
 	{
@@ -240,9 +239,8 @@ int MonthlyCostsDetailsState::addToDetailsVector(std::string description, int pa
 		// Therefore it is possible an element belongs to 2 parents.
 		if (bean.description == description && bean.parentId == parentId)
 		{
-			if (updateValue)
-				bean.value += value;
-			else
+			bean.totalValue += value;
+			if (bean.amount > -1)
 				bean.amount += amount;
 			return itemId;
 		}
@@ -281,7 +279,7 @@ int64_t MonthlyCostsDetailsState::calculateSubtotalValue(int parentId)
 	{
 		if (element.parentId == parentId)
 		{
-			total += element.amount * element.value;
+			total += element.totalValue;
 		}
 	}
 	return total;
@@ -356,7 +354,7 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 {
 	int idItem = 4; // Offset since vector is build up using elements and subtotals will be inserted later.
 	int idParent;   // Let parentId represent the numbers as described in method description.
-	int itemValue;  // Always positive, unless a subtotal.
+	int totalValue;  // Always positive, unless a subtotal.
 
 	for (auto transfer : *_base->getTransfers())
 	{
@@ -366,14 +364,14 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 			if (ruleItem->getMonthlySalary() != 0)
 			{
 				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
-				itemValue = abs(ruleItem->getMonthlySalary());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), itemValue);
+				totalValue = transfer->getQuantity() * abs(ruleItem->getMonthlySalary());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), totalValue);
 			}
 			if (ruleItem->getMonthlyMaintenance() != 0)
 			{
 				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
-				itemValue = abs(ruleItem->getMonthlyMaintenance());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), itemValue);
+				totalValue = transfer->getQuantity() * abs(ruleItem->getMonthlyMaintenance());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), totalValue);
 			}
 		}
 		else if (transfer->getType() == TRANSFER_SOLDIER)
@@ -382,14 +380,14 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 			if (ruleItem && ruleItem->getMonthlySalary() != 0)
 			{
 				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
-				itemValue = abs(ruleItem->getMonthlySalary());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), itemValue);
+				totalValue = transfer->getQuantity() * abs(ruleItem->getMonthlySalary());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), totalValue);
 			}
 			if (ruleItem && ruleItem->getMonthlyMaintenance() != 0)
 			{
 				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
-				itemValue = abs(ruleItem->getMonthlyMaintenance());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), itemValue);
+				totalValue = transfer->getQuantity() * abs(ruleItem->getMonthlyMaintenance());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, transfer->getQuantity(), totalValue);
 			}
 		}
 	}
@@ -399,14 +397,14 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 		if (ruleItem->getMonthlySalary() != 0)
 		{
 			idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
-			itemValue = abs(ruleItem->getMonthlySalary());
-			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, storeItem.second, itemValue);
+			totalValue = storeItem.second * abs(ruleItem->getMonthlySalary());
+			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, storeItem.second, totalValue);
 		}
 		if (ruleItem->getMonthlyMaintenance() != 0)
 		{
 			idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
-			itemValue = abs(ruleItem->getMonthlyMaintenance());
-			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, storeItem.second, itemValue);
+			totalValue = storeItem.second * abs(ruleItem->getMonthlyMaintenance());
+			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, storeItem.second, totalValue);
 		}
 	}
 	for (auto craft : *_base->getCrafts())
@@ -417,14 +415,14 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 			if (ruleItem->getMonthlySalary() != 0)
 			{
 				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
-				itemValue = abs(ruleItem->getMonthlySalary());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, craftItem.second, itemValue);
+				totalValue = craftItem.second * abs(ruleItem->getMonthlySalary());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, craftItem.second, totalValue);
 			}
 			if (ruleItem->getMonthlyMaintenance() != 0)
 			{
 				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
-				itemValue = abs(ruleItem->getMonthlyMaintenance());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, craftItem.second, itemValue);
+				totalValue = craftItem.second * abs(ruleItem->getMonthlyMaintenance());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, craftItem.second, totalValue);
 			}
 		}
 		for (auto vehicle : *craft->getVehicles())
@@ -433,14 +431,14 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 			if (ruleItem->getMonthlySalary() != 0)
 			{
 				idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
-				itemValue = abs(ruleItem->getMonthlySalary());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, itemValue);
+				totalValue = 1 * abs(ruleItem->getMonthlySalary());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, totalValue);
 			}
 			if (ruleItem->getMonthlyMaintenance() != 0)
 			{
 				idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
-				itemValue = abs(ruleItem->getMonthlyMaintenance());
-				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, itemValue);
+				totalValue = 1 * abs(ruleItem->getMonthlyMaintenance());
+				idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, totalValue);
 			}
 		}
 	}
@@ -450,14 +448,14 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 		if (ruleItem && ruleItem->getMonthlySalary() != 0)
 		{
 			idParent = ruleItem->getMonthlySalary() > 0 ? 0 : 1;
-			itemValue = abs(ruleItem->getMonthlySalary());
-			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, itemValue);
+			totalValue = 1 * abs(ruleItem->getMonthlySalary());
+			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, totalValue);
 		}
 		if (ruleItem && ruleItem->getMonthlyMaintenance() != 0)
 		{
 			idParent = ruleItem->getMonthlyMaintenance() > 0 ? 2 : 3;
-			itemValue = abs(ruleItem->getMonthlyMaintenance());
-			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, itemValue);
+			totalValue = 1 * abs(ruleItem->getMonthlyMaintenance());
+			idItem = addToDetailsVector(tr(ruleItem->getName()), idParent, idItem, 1, totalValue);
 		}
 	}
 	// Prefer alphabetical listing of detailed rows.
@@ -471,22 +469,22 @@ void MonthlyCostsDetailsState::categoryItemMaintenance()
 	BeanCounter row;
 	if (isSubtotalNeeded(0))
 	{
-		row = {0, 0, true, tr("MCDS_SUBTOTAL_ITEM_SALARY"), 0, -1 * calculateSubtotalValue(0)};
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_ITEM_SALARY"), -1, -1 * calculateSubtotalValue(0)};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(1))
 	{
-		row = {1, 1, true, tr("MCDS_SUBTOTAL_ITEM_SALARY_INCOME"), 0, calculateSubtotalValue(1)};
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_ITEM_SALARY_INCOME"), -1, calculateSubtotalValue(1)};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(2))
 	{
-		row = {2, 2, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE"), 0, -1 * calculateSubtotalValue(2)};
+		row = {2, 2, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE"), -1, -1 * calculateSubtotalValue(2)};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(3))
 	{
-		row = {3, 3, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE_INCOME"), 0, calculateSubtotalValue(3)};
+		row = {3, 3, true, tr("MCDS_SUBTOTAL_ITEM_MAINTENANCE_INCOME"), -1, calculateSubtotalValue(3)};
 		_details.insert(_details.begin(), row);
 	}
 	// Ensure elements are shown below appropriate subtotal.
@@ -535,12 +533,12 @@ void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 	BeanCounter row;
 	if (isSubtotalNeeded(0))
 	{
-		row = {0, 0, true, tr("MCDS_SUBTOTAL_FACILITY_MAINTENANCE"), 0, -1 * calculateSubtotalValue(0)};
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_FACILITY_MAINTENANCE"), -1, -1 * calculateSubtotalValue(0)};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(1))
 	{
-		row = {1, 1, true, tr("MCDS_SUBTOTAL_FACILITY_REVENUE"), 0, calculateSubtotalValue(1)};
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_FACILITY_REVENUE"), -1, calculateSubtotalValue(1)};
 		_details.insert(_details.begin(), row);
 	}
 	// Ensure elements are shown below appropriate subtotal.
@@ -553,7 +551,7 @@ void MonthlyCostsDetailsState::categoryFacilityMaintenance()
 
 	// Allow for double checking, use a different formula (w.r.t. previous screen) to calculate total.
 	int screenTotal = calculateSubtotalValue(1) - calculateSubtotalValue(0);
-	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(screenTotal).c_str());
+	_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(screenTotal, true).c_str());
 }
 
 
@@ -578,7 +576,7 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 		int funding = country->getFunding().back();
 		std::string description = funding >= 0 ? tr("MCDS_DETAIL_COUNTRIES_INCOME") : tr("MCDS_DETAIL_COUNTRIES_PAYBACK");
 		idParent = funding >= 0 ? 0 : 1;
-		idItem = addToDetailsVector(description, idParent, idItem, 1, abs(funding), true);
+		idItem = addToDetailsVector(description, idParent, idItem, 1, abs(funding));
 
 		///NOTE:
 		// Can theoretically be broken down further:
@@ -607,7 +605,7 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 		// - research scores
 		// - bookkeeping correction to prevent negative income?
 		// But that can easily become misleading.
-		// It would also benefit from an adapted spreadsheet header column: [description][score][value]
+		// It would also benefit from an adapted spreadsheet header column: [description][score][totalValue]
 		// It is also impossible to break down research scores since it is a running number
 		// with no concept of topics researched *this* month.
 	}
@@ -616,9 +614,8 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 	{
 		idParent = base->getMonthlyMaintenace() >= 0 ? 2 : 3;
 		itemValue = abs(base->getMonthlyMaintenace());
-		idItem = addToDetailsVector(base->getName(), idParent, idItem, 1, itemValue, true); // In case player cannot think of unique names.
+		idItem = addToDetailsVector(base->getName(), idParent, idItem, 1, itemValue); // In case player does not use unique base names.
 	}
-
 	// Prefer alphabetical listing of detailed rows.
 	std::stable_sort(_details.begin(), _details.end(),
 		[](const BeanCounter a, const BeanCounter b)
@@ -630,22 +627,22 @@ void MonthlyCostsDetailsState::categoryGlobalResult()
 	BeanCounter row;
 	if (isSubtotalNeeded(0))
 	{
-		row = {0, 0, true, tr("MCDS_SUBTOTAL_GEO_INCOME"), 0, calculateSubtotalValue(0)};
+		row = {0, 0, true, tr("MCDS_SUBTOTAL_GEO_INCOME"), -1, calculateSubtotalValue(0)};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(1))
 	{
-		row = {1, 1, true, tr("MCDS_SUBTOTAL_GEO_PAYBACK"), 0, -1 * calculateSubtotalValue(1)};
+		row = {1, 1, true, tr("MCDS_SUBTOTAL_GEO_PAYBACK"), -1, -1 * calculateSubtotalValue(1)};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(2))
 	{
-		row = {2, 2, true, tr("MCDS_SUBTOTAL_BASES_MAINTENANCE"), 0, -1 * calculateSubtotalValue(2)};
+		row = {2, 2, true, tr("MCDS_SUBTOTAL_BASES_MAINTENANCE"), -1, -1 * calculateSubtotalValue(2)};
 		_details.insert(_details.begin(), row);
 	}
 	if (isSubtotalNeeded(3))
 	{
-		row = {3, 3, true, tr("MCDS_SUBTOTAL_BASES_REVENUE"), 0, calculateSubtotalValue(3)};
+		row = {3, 3, true, tr("MCDS_SUBTOTAL_BASES_REVENUE"), -1, calculateSubtotalValue(3)};
 		_details.insert(_details.begin(), row);
 	}
 	// Ensure elements are shown below appropriate subtotal.
@@ -686,9 +683,9 @@ void MonthlyCostsDetailsState::updateList()
 			unconditionallyShowSign = false;
 		}
 		ssAmount << _details[i].amount;
-		ssValue << Unicode::formatFunding(_details[i].value * std::max(1,_details[i].amount), unconditionallyShowSign);
+		ssValue << Unicode::formatFunding(_details[i].totalValue, unconditionallyShowSign);
 
-		if (_details[i].amount > 0)
+		if (_details[i].amount > -1)
 		{
 			_lstDetails->addRow(3, description.c_str(), ssAmount.str().c_str(), ssValue.str().c_str());
 		}
