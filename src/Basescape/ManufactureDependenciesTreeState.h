@@ -39,7 +39,8 @@ private:
 	TextButton *_btnOk, *_btnShowAll;
 	std::string _selectedItem;
 	bool _showAll;
-	void initList();
+	void screenDependencies();
+	void screenProviders();
 public:
 	/// Creates the ManufactureDependenciesTree state.
 	ManufactureDependenciesTreeState(const std::string &selectedItem);

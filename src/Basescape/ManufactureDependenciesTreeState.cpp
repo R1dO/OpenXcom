@@ -102,7 +102,7 @@ void ManufactureDependenciesTreeState::init()
 
 	if (!Options::oxceDisableProductionDependencyTree)
 	{
-		initList();
+		screenDependencies();
 	}
 }
 
@@ -125,13 +125,13 @@ void ManufactureDependenciesTreeState::btnShowAllClick(Action *)
 	_btnOk->setWidth(_btnOk->getX() - _btnShowAll->getX() + _btnOk->getWidth());
 	_btnOk->setX(_btnShowAll->getX());
 	_btnShowAll->setVisible(false);
-	initList();
+	screenDependencies();
 }
 
 /**
-* Shows the tree.
+* Shows the dependencies tree.
 */
-void ManufactureDependenciesTreeState::initList()
+void ManufactureDependenciesTreeState::screenDependencies()
 {
 	_lstTopics->clearList();
 
