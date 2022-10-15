@@ -424,4 +424,3 @@ en-US:
   STR_RESERVED_BEHAVIOR: "DEMO: Behavior of reserved items column (buy/sell/transfer)"
   STR_RESERVED_BEHAVIOR_DESC: "0: Do not use, 1: Claimed by soldiers, 2: Claimed by crafts/engineering/research, 3: Greedy (max of 1 and 2). All options >0 change buy/sell/transfer/craftEquipment screens."
 # SellState.cpp
-  STR_CAN_BUY_OR_MANUFACTURE: "Can buy or build"
