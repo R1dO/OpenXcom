@@ -40,10 +40,10 @@ namespace OpenXcom
 /**
  * Initializes all the elements on the UI.
  */
-ManufactureDependenciesTreeState::ManufactureDependenciesTreeState(const std::string &selectedItem) : _selectedItem(selectedItem), _showAll(false)
+ManufactureDependenciesTreeState::ManufactureDependenciesTreeState(const std::string &selectedItem, ScreenType screen) : _selectedItem(selectedItem), _showAll(false)
 {
 	_screen = false;
-	_currentScreen = ST_DEPENDENCIES;
+	_currentScreen = screen;
 
 	_window = new Window(this, 222, 144, 49, 32);
 	_txtTitle = new Text(182, 9, 53, 42);
@@ -111,7 +111,14 @@ void ManufactureDependenciesTreeState::init()
 
 	if (!Options::oxceDisableProductionDependencyTree)
 	{
-		screenDependencies();
+		if (_currentScreen == ST_DEPENDENCIES)
+		{
+			screenDependencies();
+		}
+		else
+		{
+			screenProviders();
+		}
 	}
 }
 

@@ -47,7 +47,7 @@ private:
 	ScreenType _currentScreen;
 public:
 	/// Creates the ManufactureDependenciesTree state.
-	ManufactureDependenciesTreeState(const std::string &selectedItem);
+	ManufactureDependenciesTreeState(const std::string &selectedItem, ScreenType screen = ST_DEPENDENCIES);
 	/// Cleans up the ManufactureDependenciesTree state
 	~ManufactureDependenciesTreeState();
 	/// Initializes the state.
