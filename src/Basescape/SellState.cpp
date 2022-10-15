@@ -398,7 +398,8 @@ void SellState::delayedInit()
 			}
 		}
 
-		if (row.qtySrc > 0 || row.allocatedSrc > 0)
+		//if (!(row.qtySrc > 0 || row.allocatedSrc > 0))
+		if (true)
 		{
 			row.type = TRANSFER_ITEM;
 			row.rule = rule;
@@ -468,6 +469,7 @@ void SellState::delayedInit()
 		{
 			_cats.push_back("STR_UNASSIGNED");
 		}
+		_cats.push_back("STR_NOT_ON_BASE");
 	}
 
 	_cbxCategory->setOptions(_cats, true);
@@ -628,6 +630,7 @@ void SellState::updateList()
 	const std::string selectedCategory = _cats[selCategory];
 	bool categoryFilterEnabled = (selectedCategory != "STR_ALL_ITEMS");
 	bool categoryUnassigned = (selectedCategory == "STR_UNASSIGNED");
+	bool categoryNotOnBase = (selectedCategory == "STR_NOT_ON_BASE");
 
 	if (_previousSort != _currentSort)
 	{
@@ -644,7 +647,64 @@ void SellState::updateList()
 	for (size_t i = 0; i < _items.size(); ++i)
 	{
 		// filter
-		if (selCategory >= _vanillaCategories)
+		if (categoryNotOnBase)
+		{
+			if(_items[i].qtySrc > 0 || _items[i].allocatedSrc > 0)
+				continue;
+
+			// Prevent exposing too much.
+			// Computational expensive, hence this filter only and as late as possible.
+			RuleItem* rule = (RuleItem*) _items[i].rule;
+			if(!_game->getSavedGame()->isResearched(rule->getRequirements()))
+				continue;
+
+			auto canManufacture = [&](RuleItem* item) -> bool
+			{
+				const std::vector<std::string> &manufactureProjects = _game->getMod()->getManufactureList();
+				for (auto project : manufactureProjects)
+				{
+					RuleManufacture *ruleProject = _game->getMod()->getManufacture(project);
+					// Only consider researched projects
+					if (!_game->getSavedGame()->isResearched(ruleProject->getRequirements()))
+						continue;
+
+					for (auto& ruleNormal : ruleProject->getProducedItems())
+					{
+						//std::map<const RuleItem*, int>
+						if (ruleNormal.first == item)
+						{
+							return true;
+						}
+					}
+					// Random production might give acces to item
+					for (auto& ruleRandom : ruleProject->getRandomProducedItems())
+					{
+						//std::vector<std::pair<int, std::map<const RuleItem*, int> > >
+						for (auto itemRandom : ruleRandom.second)
+						{
+							if (itemRandom.first == item)
+							{
+								return true;
+							}
+						}
+					}
+				}
+				return false;
+			};
+
+			// Exclude anything we can't buy or manufacture
+			if (!canManufacture(rule) && (rule->getBuyCost() == 0 || !_game->getSavedGame()->isResearched(rule->getBuyRequirements())))
+			{
+				continue;
+			}
+		}
+		else
+		{
+			if (!(_items[i].qtySrc > 0 || _items[i].allocatedSrc > 0))
+				continue;
+		}
+
+		if (selCategory >= _vanillaCategories && !categoryNotOnBase)
 		{
 			if (categoryUnassigned && _items[i].type == TRANSFER_ITEM)
 			{
@@ -654,12 +714,12 @@ void SellState::updateList()
 					continue;
 				}
 			}
-			else if (categoryFilterEnabled && !belongsToCategory(i, selectedCategory))
+			else if (!categoryFilterEnabled && !belongsToCategory(i, selectedCategory))
 			{
 				continue;
 			}
 		}
-		else
+		else if (!categoryNotOnBase)
 		{
 			if (categoryFilterEnabled && selectedCategory != getCategory(i))
 			{
