@@ -472,16 +472,23 @@ void ManufactureDependenciesTreeState::screenProviders()
 		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
 		++row;
 
+		bool hasHiddenRows = false;
 		for (auto directManufacture : providerDirect)
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture(directManufacture)->getRequirements()))
 			{
 				_lstTopics->addRow(1, tr(directManufacture).c_str());
+				++row;
 			}
 			else
 			{
-				_lstTopics->addRow(1, "***");
+				hasHiddenRows = true;
 			}
+		}
+		// Expose less info, only tell there exist unlocked opportunities.
+		if (hasHiddenRows)
+		{
+			_lstTopics->addRow(1, "***");
 			++row;
 		}
 
@@ -496,16 +503,23 @@ void ManufactureDependenciesTreeState::screenProviders()
 		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
 		++row;
 
+		bool hasHiddenRows = false;
 		for (auto randomManufacture : providerRandom)
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture(randomManufacture)->getRequirements()))
 			{
 				_lstTopics->addRow(1, tr(randomManufacture).c_str());
+				++row;
 			}
 			else
 			{
-				_lstTopics->addRow(1, "***");
+				hasHiddenRows = true;
 			}
+		}
+		// Expose less info, only tell there exist unlocked opportunities.
+		if (hasHiddenRows)
+		{
+			_lstTopics->addRow(1, "***");
 			++row;
 		}
 
