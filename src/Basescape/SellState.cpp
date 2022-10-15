@@ -55,8 +55,6 @@
 #include "TransferBaseState.h"
 #include "TechTreeViewerState.h"
 #include "../Ufopaedia/Ufopaedia.h"
-#include "../Savegame/Country.h"
-#include "../Mod/RuleCountry.h"
 
 namespace OpenXcom
 {
@@ -189,7 +187,6 @@ void SellState::delayedInit()
 	_lstItems->setWordWrap(true);
 
 	_cats.push_back("STR_ALL_ITEMS");
-	_cats.push_back("STR_CAN_BUY_OR_MANUFACTURE");
 
 	SellRow row;
 	// Original behavior makes sense: No display of named soldiers assigned to craft or in-transfer.
@@ -403,50 +400,6 @@ void SellState::delayedInit()
 
 		if (row.qtySrc > 0 || row.allocatedSrc > 0)
 		{
-			// Check if we can buy/manufacture this item.
-			// Not taking into account base specific limitations
-			auto canBuyOrManufacture = [&](const RuleItem *item) -> bool
-			{
-				// Check Buy
-				if (item->getBuyCost() != 0 && _game->getSavedGame()->isResearched(item->getBuyRequirements()))
-				{
-					// Are we need good standing with required country.
-					if (!item->getRequiresBuyCountry().empty())
-					{
-						auto* countries = _game->getSavedGame()->getCountries();
-						for (auto* country : *countries)
-						{
-							if (!country->getPact() && country->getRules()->getType() == item->getRequiresBuyCountry())
-							{
-								return true;
-							}
-						}
-					}
-					else
-					{
-						return true;
-					}
-				}
-
-				// Check Manufacture
-				// Not taking into account random items, might give away too much info.
-				// Not checking if we have required items,
-				const std::vector<std::string> &projects = _game->getMod()->getManufactureList();
-				for (auto manuProject : projects)
-				{
-					RuleManufacture *manuRule = _game->getMod()->getManufacture(manuProject);
-					if (_game->getSavedGame()->isResearched(manuRule->getRequirements()))
-					{
-						for (auto manuItem : manuRule->getProducedItems())
-						{
-							if (manuItem.first == rule)
-								return true;
-						}
-					}
-				}
-				return false;
-			};
-
 			row.type = TRANSFER_ITEM;
 			row.rule = rule;
 			row.name = tr(*i);
@@ -455,7 +408,6 @@ void SellState::delayedInit()
 			row.size = rule->getSize();
 			row.totalSize = row.qtySrc * row.size;
 			row.totalCost = (int64_t)row.qtySrc * row.cost;
-			row.canAcquire = canBuyOrManufacture(rule);
 
 			if ((_debriefingState != 0) && (_game->getSavedGame()->getAutosell(rule)))
 			{
@@ -502,7 +454,6 @@ void SellState::delayedInit()
 		{
 			_cats.clear();
 			_cats.push_back("STR_ALL_ITEMS");
-			_cats.push_back("STR_CAN_BUY_OR_MANUFACTURE");
 			_vanillaCategories = _cats.size();
 		}
 		const std::vector<std::string> &categories = _game->getMod()->getItemCategoriesList();
@@ -677,7 +628,6 @@ void SellState::updateList()
 	const std::string selectedCategory = _cats[selCategory];
 	bool categoryFilterEnabled = (selectedCategory != "STR_ALL_ITEMS");
 	bool categoryUnassigned = (selectedCategory == "STR_UNASSIGNED");
-	bool categoryCanBuySell = (selectedCategory == "STR_CAN_BUY_OR_MANUFACTURE");
 
 	if (_previousSort != _currentSort)
 	{
@@ -694,12 +644,7 @@ void SellState::updateList()
 	for (size_t i = 0; i < _items.size(); ++i)
 	{
 		// filter
-		if (categoryCanBuySell)
-		{
-			if (!_items[i].canAcquire)
-				continue;
-		}
-		else if (selCategory >= _vanillaCategories)
+		if (selCategory >= _vanillaCategories)
 		{
 			if (categoryUnassigned && _items[i].type == TRANSFER_ITEM)
 			{

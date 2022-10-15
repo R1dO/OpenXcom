@@ -72,7 +72,6 @@ private:
 		int transferSrc, transferDst;   ///< Amount currently on route **to** Src/Dst.
 		int allocatedSrc, allocatedDst; ///< Display only: Currently allocated items.
 		int protectedSrc, protectedDst; ///< Display only: Add this amount to display of ``qtySrc``.
-		bool canAcquire;                ///< Filter only: Whether or not we can buy/manufacture this item
 	};
 
 	Base *_base;
