@@ -27,6 +27,8 @@ class Text;
 class TextButton;
 class TextList;
 
+enum ScreenType {ST_DEPENDENCIES, ST_PROVIDERS};
+
 /**
  * Window which displays manufacture dependencies tree.
  */
@@ -36,11 +38,13 @@ private:
 	Window *_window;
 	Text *_txtTitle;
 	TextList *_lstTopics;
-	TextButton *_btnOk, *_btnShowAll;
+	TextButton *_btnOk, *_btnShowAll, *_btnToggle;
 	std::string _selectedItem;
 	bool _showAll;
 	void screenDependencies();
 	void screenProviders();
+
+	ScreenType _currentScreen;
 public:
 	/// Creates the ManufactureDependenciesTree state.
 	ManufactureDependenciesTreeState(const std::string &selectedItem);
@@ -52,5 +56,7 @@ public:
 	void btnOkClick(Action *action);
 	/// Handler for clicking the [Show All] button.
 	void btnShowAllClick(Action *action);
+
+	void screenToggle(Action *action);
 };
 }

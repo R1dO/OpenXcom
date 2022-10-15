@@ -42,12 +42,14 @@ namespace OpenXcom
 ManufactureDependenciesTreeState::ManufactureDependenciesTreeState(const std::string &selectedItem) : _selectedItem(selectedItem), _showAll(false)
 {
 	_screen = false;
+	_currentScreen = ST_DEPENDENCIES;
 
 	_window = new Window(this, 222, 144, 49, 32);
 	_txtTitle = new Text(182, 9, 53, 42);
 	_lstTopics = new TextList(198, 96, 53, 54);
 	_btnShowAll = new TextButton(100, 16, 57, 153);
 	_btnOk = new TextButton(100, 16, 163, 153);
+	_btnToggle = new TextButton(28, 14, 235, 39);
 
 	// Set palette
 	setInterface("dependencyTree");
@@ -57,6 +59,7 @@ ManufactureDependenciesTreeState::ManufactureDependenciesTreeState(const std::st
 	add(_btnShowAll, "button", "dependencyTree");
 	add(_btnOk, "button", "dependencyTree");
 	add(_lstTopics, "list", "dependencyTree");
+	add(_btnToggle, "button", "dependencyTree");
 
 	centerAllSurfaces();
 
@@ -72,6 +75,10 @@ ManufactureDependenciesTreeState::ManufactureDependenciesTreeState(const std::st
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&ManufactureDependenciesTreeState::btnOkClick);
 	_btnOk->onKeyboardPress((ActionHandler)&ManufactureDependenciesTreeState::btnOkClick, Options::keyCancel);
+	_btnToggle->setText(">>");
+	_btnToggle->onMouseClick((ActionHandler)&ManufactureDependenciesTreeState::screenToggle);
+	_btnToggle->onKeyboardPress((ActionHandler)&ManufactureDependenciesTreeState::screenToggle, Options::keyBattleNextUnit);
+	_btnToggle->onKeyboardPress((ActionHandler)&ManufactureDependenciesTreeState::screenToggle, Options::keyBattlePrevUnit);
 
 	_lstTopics->setColumns(1, 182);
 	_lstTopics->setBackground(_window);
@@ -85,6 +92,7 @@ ManufactureDependenciesTreeState::ManufactureDependenciesTreeState(const std::st
 		_txtTitle->setText(tr("STR_THIS_FEATURE_IS_DISABLED_3"));
 		_btnShowAll->setVisible(false);
 		_lstTopics->setVisible(false);
+		_btnToggle->setVisible(false);
 		return;
 	}
 }
@@ -116,6 +124,24 @@ void ManufactureDependenciesTreeState::btnOkClick(Action *)
 }
 
 /**
+ * Goes to the next screen on item's manufacture
+ * @param action Pointer to an action.
+ */
+void ManufactureDependenciesTreeState::screenToggle(Action *)
+{
+	if (_currentScreen == ST_DEPENDENCIES)
+	{
+		screenProviders();
+		_currentScreen = ST_PROVIDERS;
+	}
+	else
+	{
+		screenDependencies();
+		_currentScreen = ST_DEPENDENCIES;
+	}
+}
+
+/**
 * Shows spoilers.
 * @param action Pointer to an action.
 */
@@ -125,7 +151,11 @@ void ManufactureDependenciesTreeState::btnShowAllClick(Action *)
 	_btnOk->setWidth(_btnOk->getX() - _btnShowAll->getX() + _btnOk->getWidth());
 	_btnOk->setX(_btnShowAll->getX());
 	_btnShowAll->setVisible(false);
-	screenDependencies();
+
+	if (_currentScreen == ST_DEPENDENCIES)
+		screenDependencies();
+	else
+		screenProviders();
 }
 
 /**
@@ -354,6 +384,116 @@ void ManufactureDependenciesTreeState::screenDependencies()
 	_lstTopics->addRow(1, tr("STR_MORE_DEPENDENCIES").c_str());
 	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
 	++row;
+}
+
+/**
+ * Shows the providers tree.
+ *
+ * Only shows direct ways of acquiring (no levels)
+ *
+ * Recognize 4 possible categories
+ * (0) Get from Manufacture directly
+ * (1) Get from Manufacture as random item
+ * (2) Get from facilities : Mechanic does not exist
+ * (3) Get from direct buy : Outside scope for this screen
+*/
+void ManufactureDependenciesTreeState::screenProviders()
+{
+	_lstTopics->clearList();
+
+	// provider: Vector of manufacture projects that (might) provide this item.
+	std::vector<std::string> providerDirect, providerRandom;
+
+	const std::vector<std::string> &manufactureProjects = _game->getMod()->getManufactureList();
+	for (std::vector<std::string>::const_iterator i = manufactureProjects.begin(); i != manufactureProjects.end(); ++i)
+	{
+		RuleManufacture *ruleProject = _game->getMod()->getManufacture((*i));
+		for (auto& ruleNormal : ruleProject->getProducedItems())
+		{
+			//std::map<const RuleItem*, int>
+			if (ruleNormal.first->getType() == _selectedItem)
+			{
+				providerDirect.push_back((*i));
+				break;
+			}
+		}
+		// Include random production, not sure if that does expose too much.
+		for (auto& ruleRandom : ruleProject->getRandomProducedItems())
+		{
+			//std::vector<std::pair<int, std::map<const RuleItem*, int> > >
+			for (auto itemRandom : ruleRandom.second)
+			{
+				if (itemRandom.first->getType() == _selectedItem)
+				{
+					// Prevent duplicates
+					if ( std::find(providerRandom.begin(), providerRandom.end(), *i) == providerRandom.end() )
+					{
+						providerRandom.push_back((*i));
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	int row = 0;
+	if (providerDirect.empty() && providerDirect.empty())
+	{
+		_lstTopics->addRow(1, tr("STR_NO_PROVIDERS").c_str());
+		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
+		++row;
+		return;
+	}
+	// Get from Manufacture directly
+	if (!providerDirect.empty())
+	{
+		_lstTopics->addRow(1, tr("STR_DIRECT_PROVIDERS").c_str());
+		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
+		++row;
+
+		for (auto directManufacture : providerDirect)
+		{
+			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture(directManufacture)->getRequirements()))
+			{
+				_lstTopics->addRow(1, tr(directManufacture).c_str());
+			}
+			else
+			{
+				_lstTopics->addRow(1, "***");
+			}
+			++row;
+		}
+
+		_lstTopics->addRow(1, "");
+		++row;
+	}
+
+	// Get from Manufacture as random item
+	if (!providerRandom.empty())
+	{
+		_lstTopics->addRow(1, tr("STR_RANDOM_PROVIDERS").c_str());
+		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
+		++row;
+
+		for (auto randomManufacture : providerRandom)
+		{
+			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture(randomManufacture)->getRequirements()))
+			{
+				_lstTopics->addRow(1, tr(randomManufacture).c_str());
+			}
+			else
+			{
+				_lstTopics->addRow(1, "***");
+			}
+			++row;
+		}
+
+		_lstTopics->addRow(1, "");
+		++row;
+	}
+
+	_lstTopics->addRow(1, tr("STR_END_OF_SEARCH").c_str());
+	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
 }
 
 }
