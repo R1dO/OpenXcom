@@ -32,6 +32,7 @@
 #include "../Savegame/SavedGame.h"
 #include <unordered_map>
 #include <unordered_set>
+#include <sstream>
 
 namespace OpenXcom
 {
@@ -389,7 +390,8 @@ void ManufactureDependenciesTreeState::screenDependencies()
 /**
  * Shows the providers tree.
  *
- * Only shows direct ways of acquiring (no levels)
+ * Only shows direct ways of acquiring (no levels).
+ * Only takes into account research checks not if base has required functionalities.
  *
  * Recognize 4 possible categories
  * (0) Get from Manufacture directly
@@ -401,6 +403,9 @@ void ManufactureDependenciesTreeState::screenProviders()
 {
 	_lstTopics->clearList();
 
+	RuleItem *ruleSelected = _game->getMod()->getItem(_selectedItem);
+	bool isBuyable = ruleSelected->getBuyCost() != 0;
+
 	// provider: Vector of manufacture projects that (might) provide this item.
 	std::vector<std::string> providerDirect, providerRandom;
 
@@ -411,7 +416,7 @@ void ManufactureDependenciesTreeState::screenProviders()
 		for (auto& ruleNormal : ruleProject->getProducedItems())
 		{
 			//std::map<const RuleItem*, int>
-			if (ruleNormal.first->getType() == _selectedItem)
+			if (ruleNormal.first == ruleSelected)
 			{
 				providerDirect.push_back((*i));
 				break;
@@ -423,7 +428,7 @@ void ManufactureDependenciesTreeState::screenProviders()
 			//std::vector<std::pair<int, std::map<const RuleItem*, int> > >
 			for (auto itemRandom : ruleRandom.second)
 			{
-				if (itemRandom.first->getType() == _selectedItem)
+				if (itemRandom.first == ruleSelected)
 				{
 					// Prevent duplicates
 					if ( std::find(providerRandom.begin(), providerRandom.end(), *i) == providerRandom.end() )
@@ -437,13 +442,29 @@ void ManufactureDependenciesTreeState::screenProviders()
 	}
 
 	int row = 0;
-	if (providerDirect.empty() && providerDirect.empty())
+	if (providerDirect.empty() && providerRandom.empty() && !isBuyable)
 	{
 		_lstTopics->addRow(1, tr("STR_NO_PROVIDERS").c_str());
 		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
 		++row;
 		return;
 	}
+
+	// Can we buy item
+	std::ostringstream ss;
+	if(_showAll || (_game->getSavedGame()->isResearched(ruleSelected->getRequirements()) && _game->getSavedGame()->isResearched(ruleSelected->getBuyRequirements())))
+	{
+		ss << Unicode::TOK_COLOR_FLIP << tr("STR_CAN_BUY").arg(isBuyable ? tr("STR_YES") : tr("STR_NO"));
+	}
+	else
+	{
+		ss << Unicode::TOK_COLOR_FLIP << tr("STR_CAN_BUY").arg(tr("STR_UNKNOWN"));
+	}
+	_lstTopics->addRow(1, ss.str().c_str());
+	++row;
+	_lstTopics->addRow(1, "");
+	++row;
+
 	// Get from Manufacture directly
 	if (!providerDirect.empty())
 	{
