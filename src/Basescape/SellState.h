@@ -45,6 +45,35 @@ class RuleItem;
 class SellState : public State
 {
 private:
+	/**
+	 * Tailored struct for the spreadsheet.
+	 */
+	struct SellRow
+	{
+		TransferType type;              ///< Item category.
+		const void *rule;               ///< Pointer to ruleset of item.
+		std::string name;               ///< Translated name of item.
+		int cost;                       ///< Sell value of item.
+		/** Starting amounts
+		 *
+		 * + Src: On base, anything that is allowed to be sold.
+		 * + Dst: On market, infinite is represented by '-1'.
+		 */
+		int qtySrc, qtyDst;
+		/** Requested change.
+		 *
+		 * + Positive values moves an item from Src to Dst (e.g. SELL).
+		 * + Negative values moves an item from Dst to Src (e.g UNDO).
+		 */
+		int amount;
+		int listOrder;                  ///< Controls position in the items list.
+		double size, totalSize;         ///< For sorting by (combined) item sizes?
+		int64_t totalCost;              ///< For Sorting by combined item cost?
+		int transferSrc, transferDst;   ///< Amount currently on route **to** Src/Dst.
+		int allocatedSrc, allocatedDst; ///< Display only: Currently allocated items.
+		int protectedSrc, protectedDst; ///< Display only: Add this amount to display of ``qtySrc/Dst``.
+	};
+
 	Base *_base;
 	DebriefingState *_debriefingState;
 	TextButton *_btnOk, *_btnCancel, *_btnTransfer;
@@ -53,7 +82,7 @@ private:
 	Text *_txtTitle, *_txtSales, *_txtFunds, *_txtQuantity, *_txtSell, *_txtValue, *_txtSpaceUsed;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
-	std::vector<TransferRow> _items;
+	std::vector<SellRow> _items;
 	std::vector<int> _rows;
 	std::vector<std::string> _cats;
 	size_t _vanillaCategories;
@@ -73,7 +102,10 @@ private:
 	/// Determines if the current selection belongs to a given category.
 	bool belongsToCategory(int sel, const std::string &cat) const;
 	/// Gets the row of the current selection.
-	TransferRow &getRow() { return _items[_rows[_sel]]; }
+	SellRow &getRow() { return _items[_rows[_sel]]; }
+	/// Controls spreadsheet reserved display values (0 = vanilla style)
+	int _reservedAmountBehavior;
+	void updateSubtitleLine();
 public:
 	/// Creates the Sell state.
 	SellState(Base *base, DebriefingState *debriefingState, OptionsOrigin origin = OPT_GEOSCAPE);
