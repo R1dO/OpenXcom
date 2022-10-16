@@ -44,6 +44,32 @@ class RuleItem;
 class PurchaseState : public State
 {
 private:
+	/**
+	 * Tailored struct to store variables of importance to the spreadsheet.
+	 */
+	struct PurchaseRow
+	{
+		TransferType type;      ///< Item category.
+		const void *rule;       ///< Pointer to ruleset of item.
+		std::string name;       ///< Translated name of item.
+		int cost;               ///< Purchase cost of item.
+		int qtySrc, qtyDst;     /**< Starting amounts
+		                         *
+		                         * + Src: On base (= in stores + reserved + en route)
+		                         * + Dst: On market (not used in this screen)
+		                        */
+		int amount;             /**< Requested change.
+		                         *
+		                         * + Positive values moves an item towards base stores (e.g BUY).
+		                         * + Negative values moves an item away from base stores (e.g. undo).
+		                         */
+		int listOrder;          /// Sorting: By original order?
+		double size, totalSize; /// Sorting: By (combined) item sizes?
+		int64_t totalCost;      /// Sorting: By combined item cost?
+		int inTransfer;         ///< Amount currently on route to base
+		int reserved;           ///< Reserved amount of items(s).
+	};
+
 	Base *_base;
 	CannotReequipState *_parent;
 	bool _autoBuyDone;
@@ -55,7 +81,7 @@ private:
 	Text *_txtTitle, *_txtFunds, *_txtPurchases, *_txtCost, *_txtQuantity, *_txtSpaceUsed;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
-	std::vector<TransferRow> _items;
+	std::vector<PurchaseRow> _items;
 	std::vector<int> _rows;
 	std::vector<std::string> _cats;
 	size_t _vanillaCategories;
@@ -74,7 +100,7 @@ private:
 	/// Checks for missing items
 	int getMissingQty(int sel) const;
 	/// Gets the row of the current selection.
-	TransferRow &getRow() { return _items[_rows[_sel]]; }
+	PurchaseRow &getRow() { return _items[_rows[_sel]]; }
 
 	bool _alternateScreen;
 	void updateSubtitleLine();

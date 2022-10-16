@@ -180,7 +180,14 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 		auto purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
 		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && (~providedBaseFunc & purchaseBaseFunc).none())
 		{
-			TransferRow row = { TRANSFER_SOLDIER, rule, tr(rule->getType()), rule->getBuyCost(), _base->getSoldierCountAndSalary(rule->getType()).first, 0, 0, -4, 0, 0, 0 };
+			PurchaseRow row = { TRANSFER_SOLDIER, rule, tr(rule->getType()), rule->getBuyCost(), 0, 0, 0, -4, 0, 0, 0, 0 ,0};
+
+			row.qtySrc = _base->getSoldierCountAndSalary(rule->getType()).first;
+			if (_alternateScreen)
+			{
+				row.inTransfer = row.qtySrc - _base->getSoldierCountAndSalary(rule->getType(), false).first;
+				row.reserved = _base->getSoldierAllocatedCount(rule->getType());
+			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -192,7 +199,14 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	if ((_game->getMod()->getHireScientistsUnlockResearch().empty() || _game->getSavedGame()->isResearched(_game->getMod()->getHireScientistsUnlockResearch(), true))
 		&& (~providedBaseFunc & _game->getMod()->getHireScientistsRequiresBaseFunc()).none())
 	{
-		TransferRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), _game->getMod()->getHireScientistCost(), _base->getTotalScientists(), 0, 0, -3, 0, 0, 0 };
+		PurchaseRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), _game->getMod()->getHireScientistCost(), 0, 0, 0, -3, 0, 0, 0, 0, 0};
+
+		row.qtySrc = _base->getTotalScientists();
+		if (_alternateScreen)
+		{
+			row.inTransfer = row.qtySrc - _base->getTotalScientists(false);
+			row.reserved = _base->getAllocatedScientists();
+		}
 		_items.push_back(row);
 		std::string cat = getCategory(_items.size() - 1);
 		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -203,7 +217,14 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	if ((_game->getMod()->getHireEngineersUnlockResearch().empty() || _game->getSavedGame()->isResearched(_game->getMod()->getHireEngineersUnlockResearch(), true))
 		&& (~providedBaseFunc & _game->getMod()->getHireEngineersRequiresBaseFunc()).none())
 	{
-		TransferRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), _game->getMod()->getHireEngineerCost(), _base->getTotalEngineers(), 0, 0, -2, 0, 0, 0 };
+		PurchaseRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), _game->getMod()->getHireEngineerCost(), 0, 0, 0, -2, 0, 0, 0, 0, 0};
+
+		row.qtySrc = _base->getTotalEngineers();
+		if (_alternateScreen)
+		{
+			row.inTransfer = row.qtySrc - _base->getTotalEngineers(false);
+			row.reserved = _base->getAllocatedEngineers();
+		}
 		_items.push_back(row);
 		std::string cat = getCategory(_items.size() - 1);
 		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -218,7 +239,14 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 		auto purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
 		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && (~providedBaseFunc & purchaseBaseFunc).none())
 		{
-			TransferRow row = { TRANSFER_CRAFT, rule, tr(rule->getType()), rule->getBuyCost(), _base->getCraftCount(rule), 0, 0, -1, 0, 0, 0 };
+			PurchaseRow row = { TRANSFER_CRAFT, rule, tr(rule->getType()), rule->getBuyCost(), 0, 0, 0, -1, 0, 0, 0, 0, 0};
+
+			row.qtySrc = _base->getCraftCount(rule);
+			if (_alternateScreen)
+			{
+				row.inTransfer = row.qtySrc - _base->getCraftCount(rule, false);
+				row.reserved = _base->getCraftCountForProduction(rule);
+			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -234,7 +262,26 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 		auto purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
 		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && _game->getSavedGame()->isResearched(rule->getBuyRequirements()) && (~providedBaseFunc & purchaseBaseFunc).none())
 		{
-			TransferRow row = { TRANSFER_ITEM, rule, tr(rule->getType()), rule->getBuyCost(), _base->getStorageItems()->getItem(rule), 0, 0, rule->getListOrder(), 0, 0, 0 };
+			PurchaseRow row = { TRANSFER_ITEM, rule, tr(rule->getType()), rule->getBuyCost(), 0, 0, 0, rule->getListOrder(), 0, 0, 0, 0, 0};
+
+			row.qtySrc = _base->getStorageItems()->getItem(rule->getType()); // Old definition (only what is in base storage)
+			if (_alternateScreen)
+			{
+				// Items on route to base..
+				row.inTransfer = _base->getItemCountTransfers(rule, true);
+
+				// Worn armor, can (theoretically) return to base stores.
+				int soldierArmor = _base->getItemClaimBySoldiers(rule, true, false)
+					- _base->getItemClaimBySoldiers(rule, true, true);
+
+				// Reserved amounts (for now it does not include non-refundable, future production and craft fuel).
+				row.reserved = _base->getItemClaimByResearch(rule, true)
+					+ _base->getItemClaimByManufacture(rule, true, true)
+					+ _base->getItemClaimByCrafts(rule, false, true, true)
+					+ soldierArmor;
+
+				row.qtySrc += row.reserved + row.inTransfer; // Use value as defined in struct.
+			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -251,7 +298,7 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 
 		// first find all relevant item categories
 		std::vector<std::string> tempCats;
-		for (std::vector<TransferRow>::iterator i = _items.begin(); i != _items.end(); ++i)
+		for (std::vector<PurchaseRow>::iterator i = _items.begin(); i != _items.end(); ++i)
 		{
 			if ((*i).type == TRANSFER_ITEM)
 			{
@@ -693,7 +740,7 @@ void PurchaseState::btnOkClick(Action *)
 	}
 
 	_game->getSavedGame()->setFunds(_game->getSavedGame()->getFunds() - _total);
-	for (std::vector<TransferRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	for (std::vector<PurchaseRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
 		if (i->amount > 0)
 		{
