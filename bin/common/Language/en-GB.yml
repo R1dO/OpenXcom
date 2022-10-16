@@ -430,6 +430,12 @@ en-GB:
 # InventoryState.cpp
   STR_POWER_SHORT: "Pwr>{ALT}{0}"
   STR_ROUNDS_SHORT: "Ammo>{ALT}{0}"
+# ManufactureDependenciesTreeState.cpp
+  STR_NO_PROVIDERS: "Cannot Buy/Manufacture"
+  STR_CAN_BUY: "Buyable> {ALT}{0}"
+  STR_CAN_RESEARCH: "Has research potential> {ALT}{0}"
+  STR_DIRECT_PROVIDERS: "Get from direct Manufacturing"
+  STR_RANDOM_PROVIDERS: "Get from random Manufacturing"
 # MonthlyCostsDetailsState (is there some guideline to name screen specific strings?)
   MCDS_DOTTED_INDENTATION: ".." # Screen specific, abuses '..' ~= ' ' and '..' ~= '+' for the default font
   MCDS_TITLE_CRAFT_MAINTENANCE: "Crafts"
