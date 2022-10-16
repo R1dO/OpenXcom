@@ -228,18 +228,19 @@ void ManufactureDependenciesTreeState::screenDependencies()
 	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
 	++row;
 
+	bool hasHiddenRows = false;
 	// first list all the dependent base facilities
 	for (auto& i : facilitiesLevel)
 	{
 		if (_showAll || _game->getSavedGame()->isResearched(i->getRequirements()))
 		{
 			_lstTopics->addRow(1, tr(i->getType()).c_str());
+			++row;
 		}
 		else
 		{
-			_lstTopics->addRow(1, "***");
+			hasHiddenRows = true;
 		}
-		++row;
 	}
 
 	for (std::vector<std::string>::const_iterator i = firstLevel.begin(); i != firstLevel.end(); ++i)
@@ -247,12 +248,12 @@ void ManufactureDependenciesTreeState::screenDependencies()
 		if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 		{
 			_lstTopics->addRow(1, tr((*i)).c_str());
+			++row;
 		}
 		else
 		{
-			_lstTopics->addRow(1, "***");
+			hasHiddenRows = true;
 		}
-		++row;
 
 		const std::vector<std::string> goDeeper = deps[(*i)];
 		for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
@@ -263,6 +264,12 @@ void ManufactureDependenciesTreeState::screenDependencies()
 				alreadyVisited.insert((*j));
 			}
 		}
+	}
+	// Expose less info, only tell there exist unlocked opportunities.
+	if (hasHiddenRows)
+	{
+		_lstTopics->addRow(1, "***");
+		++row;
 	}
 
 	_lstTopics->addRow(1, "");
@@ -280,17 +287,18 @@ void ManufactureDependenciesTreeState::screenDependencies()
 	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
 	++row;
 
+	hasHiddenRows = false;
 	for (std::vector<std::string>::const_iterator i = secondLevel.begin(); i != secondLevel.end(); ++i)
 	{
 		if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 		{
 			_lstTopics->addRow(1, tr((*i)).c_str());
+			++row;
 		}
 		else
 		{
-			_lstTopics->addRow(1, "***");
+			hasHiddenRows = true;
 		}
-		++row;
 
 		const std::vector<std::string> goDeeper = deps[(*i)];
 		for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
@@ -301,6 +309,12 @@ void ManufactureDependenciesTreeState::screenDependencies()
 				alreadyVisited.insert((*j));
 			}
 		}
+	}
+	// Expose less info, only tell there exist unlocked opportunities.
+	if (hasHiddenRows)
+	{
+		_lstTopics->addRow(1, "***");
+		++row;
 	}
 
 	_lstTopics->addRow(1, "");
@@ -318,17 +332,18 @@ void ManufactureDependenciesTreeState::screenDependencies()
 	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
 	++row;
 
+	hasHiddenRows = false;
 	for (std::vector<std::string>::const_iterator i = thirdLevel.begin(); i != thirdLevel.end(); ++i)
 	{
 		if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 		{
 			_lstTopics->addRow(1, tr((*i)).c_str());
+			++row;
 		}
 		else
 		{
-			_lstTopics->addRow(1, "***");
+			hasHiddenRows = true;
 		}
-		++row;
 
 		const std::vector<std::string> goDeeper = deps[(*i)];
 		for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
@@ -339,6 +354,12 @@ void ManufactureDependenciesTreeState::screenDependencies()
 				alreadyVisited.insert((*j));
 			}
 		}
+	}
+	// Expose less info, only tell there exist unlocked opportunities.
+	if (hasHiddenRows)
+	{
+		_lstTopics->addRow(1, "***");
+		++row;
 	}
 
 	_lstTopics->addRow(1, "");
@@ -356,17 +377,18 @@ void ManufactureDependenciesTreeState::screenDependencies()
 	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
 	++row;
 
+	hasHiddenRows = false;
 	for (std::vector<std::string>::const_iterator i = fourthLevel.begin(); i != fourthLevel.end(); ++i)
 	{
 		if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 		{
 			_lstTopics->addRow(1, tr((*i)).c_str());
+			++row;
 		}
 		else
 		{
-			_lstTopics->addRow(1, "***");
+			hasHiddenRows = true;
 		}
-		++row;
 
 		const std::vector<std::string> goDeeper = deps[(*i)];
 		for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
@@ -377,6 +399,12 @@ void ManufactureDependenciesTreeState::screenDependencies()
 				alreadyVisited.insert((*j));
 			}
 		}
+	}
+	// Expose less info, only tell there exist unlocked opportunities.
+	if (hasHiddenRows)
+	{
+		_lstTopics->addRow(1, "***");
+		++row;
 	}
 
 	_lstTopics->addRow(1, "");
