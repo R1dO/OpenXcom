@@ -61,7 +61,7 @@ namespace OpenXcom
  * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  */
-PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(base), _parent(parent), _sel(0), _total(0), _pQty(0), _cQty(0), _iQty(0.0), _ammoColor(0)
+PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(base), _parent(parent), _sel(0), _total(0), _pQty(0), _cQty(0), _iQty(0.0), _ammoColor(0), _reservedAmountBehavior(0)
 {
 	_autoBuyDone = false;
 	if (_parent)
@@ -79,6 +79,8 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 		}
 	}
 
+	_reservedAmountBehavior = Options::reservedAmountBehavior;
+
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
 	_btnQuickSearch = new TextEdit(this, 48, 9, 10, 13);
@@ -92,6 +94,10 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	_txtQuantity = new Text(60, 9, 256, 44);
 	_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
 	_lstItems = new TextList(287, 120, 8, 54);
+	if (_reservedAmountBehavior > 0)
+	{
+		_lstItems->setWidth(290);
+	}
 
 	// Set palette
 	setInterface("buyMenu");
@@ -129,20 +135,24 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	_txtTitle->setText(tr("STR_PURCHASE_HIRE_PERSONNEL"));
 
 	_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
-
-	_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
-
 	_txtSpaceUsed->setVisible(Options::storageLimitsEnforced);
-	std::ostringstream ss;
-	ss << _base->getUsedStores() << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
 
 	_txtCost->setText(tr("STR_COST_PER_UNIT_UC"));
 
 	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
 
-	_lstItems->setArrowColumn(227, ARROW_VERTICAL);
-	_lstItems->setColumns(4, 150, 55, 50, 32);
+	if (_reservedAmountBehavior > 0)
+	{
+		_lstItems->setArrowColumn(239, ARROW_VERTICAL);
+		// Allow arbitrary cell text alignment by reserving space (25) for an empty (arrow) column.
+		_lstItems->setColumns(6, 134, 54, 24, 25, 25, 30);
+		_lstItems->setScrolling(true, 1); // default = 4
+	}
+	else
+	{
+		_lstItems->setArrowColumn(227, ARROW_VERTICAL);
+		_lstItems->setColumns(4, 150, 55, 50, 32);
+	}
 	_lstItems->setSelectable(true);
 	_lstItems->setBackground(_window);
 	_lstItems->setMargin(2);
@@ -153,6 +163,7 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	_lstItems->onRightArrowRelease((ActionHandler)&PurchaseState::lstItemsRightArrowRelease);
 	_lstItems->onRightArrowClick((ActionHandler)&PurchaseState::lstItemsRightArrowClick);
 	_lstItems->onMousePress((ActionHandler)&PurchaseState::lstItemsMousePress);
+	_lstItems->setWordWrap(true);
 
 	_cats.push_back("STR_ALL_ITEMS");
 	_cats.push_back("STR_FILTER_HIDDEN");
@@ -162,6 +173,7 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	}
 
 	auto providedBaseFunc = _base->getProvidedBaseFunc({});
+	PurchaseRow row;
 	const std::vector<std::string> &soldiers = _game->getMod()->getSoldiersList();
 	for (std::vector<std::string>::const_iterator i = soldiers.begin(); i != soldiers.end(); ++i)
 	{
@@ -169,7 +181,34 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 		auto purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
 		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && (~providedBaseFunc & purchaseBaseFunc).none())
 		{
-			TransferRow row = { TRANSFER_SOLDIER, rule, tr(rule->getType()), rule->getBuyCost(), _base->getSoldierCountAndSalary(rule->getType()).first, 0, 0, -4, 0, 0, 0 };
+			row = {};
+			row.type = TRANSFER_SOLDIER;
+			row.rule = rule;
+			row.name = tr(rule->getType());
+			row.cost = rule->getBuyCost();
+			row.listOrder = -4;
+			row.qtyDst = -1; // Infinite
+
+			// Vanilla display includes transfers (and allocated).
+			row.qtySrc = _base->getSoldierCountAndSalary(rule->getType(), true).first;
+
+			if (_reservedAmountBehavior > 0)
+			{
+				row.transferSrc = row.qtySrc - _base->getSoldierCountAndSalary(rule->getType(), false).first;
+			}
+			// Soldiers claiming other soldiers is a different kind of game.
+			if (_reservedAmountBehavior > 1)
+			{
+				row.allocatedSrc = _base->getSoldierAllocatedCount(rule->getType());
+			}
+
+			// Purchase limits
+			if (rule->getMonthlyBuyLimit() > 0)
+			{
+				auto& purchaseLimitLog = _game->getSavedGame()->getMonthlyPurchaseLimitLog();
+				row.qtyDst = std::max(0, rule->getMonthlyBuyLimit() - purchaseLimitLog[rule->getType()]);
+			}
+
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -178,10 +217,32 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 			}
 		}
 	}
+
 	if ((_game->getMod()->getHireScientistsUnlockResearch().empty() || _game->getSavedGame()->isResearched(_game->getMod()->getHireScientistsUnlockResearch(), true))
 		&& (~providedBaseFunc & _game->getMod()->getHireScientistsRequiresBaseFunc()).none())
 	{
-		TransferRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), _game->getMod()->getHireScientistCost(), _base->getTotalScientists(), 0, 0, -3, 0, 0, 0 };
+		row = {};
+		row.type = TRANSFER_SCIENTIST;
+		row.name = tr("STR_SCIENTIST");
+		row.cost = _game->getMod()->getHireScientistCost();
+		row.listOrder = -3;
+		row.qtyDst = -1; // Infinite
+
+		// Vanilla display includes transfers (and allocated).
+		row.qtySrc = _base->getTotalScientists();
+
+		if (_reservedAmountBehavior > 0)
+		{
+			row.transferSrc = row.qtySrc - _base->getTotalScientists(false);
+		}
+		// Soldiers claiming scientists is a different kind of game.
+		if (_reservedAmountBehavior > 1)
+		{
+			row.allocatedSrc = _base->getAllocatedScientists();
+		}
+
+		// No concept of purchase limits for scientists ... yet.
+
 		_items.push_back(row);
 		std::string cat = getCategory(_items.size() - 1);
 		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -189,10 +250,32 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 			_cats.push_back(cat);
 		}
 	}
+
 	if ((_game->getMod()->getHireEngineersUnlockResearch().empty() || _game->getSavedGame()->isResearched(_game->getMod()->getHireEngineersUnlockResearch(), true))
 		&& (~providedBaseFunc & _game->getMod()->getHireEngineersRequiresBaseFunc()).none())
 	{
-		TransferRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), _game->getMod()->getHireEngineerCost(), _base->getTotalEngineers(), 0, 0, -2, 0, 0, 0 };
+		row = {};
+		row.type = TRANSFER_ENGINEER;
+		row.name = tr("STR_ENGINEER");
+		row.cost = _game->getMod()->getHireEngineerCost();
+		row.listOrder = -2;
+		row.qtyDst = -1; // Infinite
+
+		// Vanilla display includes transfers (and allocated).
+		row.qtySrc = _base->getTotalEngineers();
+
+		if (_reservedAmountBehavior > 0)
+		{
+			row.transferSrc = row.qtySrc - _base->getTotalEngineers(false);
+		}
+		// Soldiers claiming engineers ... by now you should get the drill.
+		if (_reservedAmountBehavior > 1)
+		{
+			row.allocatedSrc = _base->getAllocatedEngineers();
+		}
+
+		// No concept of purchase limits for engineers ... yet.
+
 		_items.push_back(row);
 		std::string cat = getCategory(_items.size() - 1);
 		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -200,6 +283,7 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 			_cats.push_back(cat);
 		}
 	}
+
 	const std::vector<std::string> &crafts = _game->getMod()->getCraftsList();
 	for (std::vector<std::string>::const_iterator i = crafts.begin(); i != crafts.end(); ++i)
 	{
@@ -207,7 +291,35 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 		auto purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
 		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && (~providedBaseFunc & purchaseBaseFunc).none())
 		{
-			TransferRow row = { TRANSFER_CRAFT, rule, tr(rule->getType()), rule->getBuyCost(), _base->getCraftCount(rule), 0, 0, -1, 0, 0, 0 };
+			row = {};
+			row.type = TRANSFER_CRAFT;
+			row.rule = rule;
+			row.name = tr(rule->getType());
+			row.cost = rule->getBuyCost();
+			row.listOrder = -1;
+			row.qtyDst = -1; // Infinite
+
+			// Vanilla display includes transfers (and allocated).
+			row.qtySrc = _base->getCraftCount(rule);
+
+			if (_reservedAmountBehavior > 0)
+			{
+				// Need transfers first (_base->allocatedCraft() does not exist)
+				row.transferSrc = row.qtySrc - _base->getCraftCount(rule, false);
+			}
+			// Soldiers claiming a craft are called pilots.
+			if (_reservedAmountBehavior > 1)
+			{
+				row.allocatedSrc = row.qtySrc - row.transferSrc - _base->getCraftCountForProduction(rule);
+			}
+
+			// Purchase limits
+			if (rule->getMonthlyBuyLimit() > 0)
+			{
+				auto& purchaseLimitLog = _game->getSavedGame()->getMonthlyPurchaseLimitLog();
+				row.qtyDst = std::max(0, rule->getMonthlyBuyLimit() - purchaseLimitLog[rule->getType()]);
+			}
+
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -216,6 +328,7 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 			}
 		}
 	}
+
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
 	{
@@ -223,7 +336,76 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 		auto purchaseBaseFunc = rule->getRequiresBuyBaseFunc();
 		if (rule->getBuyCost() != 0 && _game->getSavedGame()->isResearched(rule->getRequirements()) && _game->getSavedGame()->isResearched(rule->getBuyRequirements()) && (~providedBaseFunc & purchaseBaseFunc).none())
 		{
-			TransferRow row = { TRANSFER_ITEM, rule, tr(rule->getType()), rule->getBuyCost(), _base->getStorageItems()->getItem(rule), 0, 0, rule->getListOrder(), 0, 0, 0 };
+			row = {};
+			row.type = TRANSFER_ITEM;
+			row.rule = rule;
+			row.name = tr(rule->getType());
+			row.cost = rule->getBuyCost();
+			row.listOrder = rule->getListOrder();
+			row.qtyDst = -1; // Infinite
+
+			// Vanilla only shows what is in base stores.
+			row.qtySrc = _base->getStorageItems()->getItem(rule);
+
+			if (_reservedAmountBehavior > 0)
+			{
+				// We want to see *every* item on route.
+				row.transferSrc = _base->getItemCountTransfers(rule, true);
+
+				// Worn armor, can (theoretically) return to base stores.
+				int soldierArmor = _base->getItemClaimBySoldiers(rule, true, false)
+					- _base->getItemClaimBySoldiers(rule, true, true);
+
+				// Reserved amounts (includes non-refundable, future production and craft fuel).
+				row.allocatedSrc = _base->getItemClaimByResearch(rule, false)
+					+ _base->getItemClaimByManufacture(rule, false, false)
+					+ _base->getItemClaimByCrafts(rule, false, true, false)
+					+ soldierArmor;
+				// No 'on-base' display of the following categories:
+				// * Fuel: Cannot return to base stores.
+				// * Future production: Has not yet been taken from base stores.
+				// * Non-refundable: Gone forever or not taken from base stores in first place.
+				row.protectedSrc = _base->getItemClaimByResearch(rule, true)
+					+ _base->getItemClaimByManufacture(rule, true, true)
+					+ _base->getItemClaimByCrafts(rule, true, true, true)
+					+ soldierArmor;
+
+				row.qtySrc += row.transferSrc;
+			}
+			if (_reservedAmountBehavior == 1) // soldier items only
+			{
+				row.allocatedSrc = _base->getItemClaimBySoldiers(rule, true, false);
+			}
+			if (_reservedAmountBehavior == 3) // greedy
+			{
+				int soldiersClaim = _base->getItemClaimBySoldiers(rule, true, false);
+				row.allocatedSrc = std::max(row.allocatedSrc, soldiersClaim);
+			}
+
+			// Purchase limits
+			if (rule->getMonthlyBuyLimit() > 0)
+			{
+				auto& purchaseLimitLog = _game->getSavedGame()->getMonthlyPurchaseLimitLog();
+				row.qtyDst = std::max(0, rule->getMonthlyBuyLimit() - purchaseLimitLog[rule->getType()]);
+			}
+			// Country's favor factor
+			// Allow display of item if still on base (bought before relations deteriorated).
+			// Bit of rubbing it in ... but at least it informs the player why
+			// some item is no longer available on the market.
+			if (!rule->getRequiresBuyCountry().empty())
+			{
+				auto* countries = _game->getSavedGame()->getCountries();
+				for (auto* country : *countries)
+				{
+					if (country->getPact() && country->getRules()->getType() == rule->getRequiresBuyCountry())
+					{
+						row.qtyDst = 0; // Can lead to confusing error message though (purchase limit).
+						// allied = false;
+						break;
+					}
+				}
+			}
+
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
 			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
@@ -240,7 +422,7 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 
 		// first find all relevant item categories
 		std::vector<std::string> tempCats;
-		for (std::vector<TransferRow>::iterator i = _items.begin(); i != _items.end(); ++i)
+		for (std::vector<PurchaseRow>::iterator i = _items.begin(); i != _items.end(); ++i)
 		{
 			if ((*i).type == TRANSFER_ITEM)
 			{
@@ -300,26 +482,13 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	updateList();
 
 	_autoBuyDone = true;
-	if (!_missingItemsMap.empty())
-	{
-		_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
-		std::ostringstream ss5;
-		ss5 << _base->getUsedStores();
-		if (std::abs(_iQty) > 0.05)
-		{
-			ss5 << "(";
-			if (_iQty > 0.05)
-				ss5 << "+";
-			ss5 << std::fixed << std::setprecision(1) << _iQty << ")";
-		}
-		ss5 << ":" << _base->getAvailableStores();
-		_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss5.str()));
-	}
 
 	_timerInc = new Timer(250);
 	_timerInc->onTimer((StateHandler)&PurchaseState::increase);
 	_timerDec = new Timer(250);
 	_timerDec->onTimer((StateHandler)&PurchaseState::decrease);
+
+	updateSubtitleLine();
 }
 
 /**
@@ -621,24 +790,6 @@ void PurchaseState::updateList()
 		if (_items[i].type == TRANSFER_ITEM)
 		{
 			RuleItem *rule = (RuleItem*)_items[i].rule;
-			if (!rule->getRequiresBuyCountry().empty())
-			{
-				// required allied country
-				bool allied = true;
-				auto* countries = _game->getSavedGame()->getCountries();
-				for (auto* country : *countries)
-				{
-					if (country->getPact() && country->getRules()->getType() == rule->getRequiresBuyCountry())
-					{
-						allied = false;
-						break;
-					}
-				}
-				if (!allied)
-				{
-					continue;
-				}
-			}
 			ammo = (rule->getBattleType() == BT_AMMO || (rule->getBattleType() == BT_NONE && rule->getClipSize() > 0));
 			if (ammo)
 			{
@@ -646,9 +797,40 @@ void PurchaseState::updateList()
 			}
 		}
 		std::ostringstream ssQty, ssAmount;
-		ssQty << _items[i].qtySrc;
-		ssAmount << _items[i].amount;
-		_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
+		if (_reservedAmountBehavior > 0)
+		{
+			// Only show values if there is one (I kinda dislike lots of '0's)
+			if (_items[i].qtySrc > 0 || _items[i].allocatedSrc > 0)
+			{
+				// 3rd column: In stores + what is currently claimed.
+				ssQty << _items[i].qtySrc + _items[i].protectedSrc - _items[i].transferSrc;
+			}
+			if (_items[i].amount > 0 || _items[i].transferSrc > 0 || _items[i].qtyDst >= 0)
+			{
+				// 5th column: Show current + future transfers AND purchase limits
+				ssAmount << _items[i].transferSrc + _items[i].amount;
+				if (_items[i].qtyDst >= 0)
+				{
+					ssAmount << ":" << _items[i].transferSrc + _items[i].qtyDst;
+				}
+			}
+			std::ostringstream ssReserved;
+			if (_items[i].allocatedSrc > 0)
+			{
+				// 4th column: Show which part of 3rd column is currently allocated (hence the brackets).
+				// This includes cosmetic items like fuel or future production
+				ssReserved << "(" << _items[i].allocatedSrc << ")";
+			}
+			//_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(99999999).c_str(), "9999", "(999)", "", "99:99");
+			_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssReserved.str().c_str(), "", ssAmount.str().c_str());
+		}
+		else
+		{
+			// Vanilla display. Constructor handles special case for items.
+			ssQty << _items[i].qtySrc;
+			ssAmount << _items[i].amount;
+			_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
+		}
 		_rows.push_back(i);
 		if (_items[i].amount > 0)
 		{
@@ -687,7 +869,7 @@ void PurchaseState::btnOkClick(Action *)
 	}
 
 	_game->getSavedGame()->setFunds(_game->getSavedGame()->getFunds() - _total);
-	for (std::vector<TransferRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	for (std::vector<PurchaseRow>::const_iterator i = _items.begin(); i != _items.end(); ++i)
 	{
 		if (i->amount > 0)
 		{
@@ -971,20 +1153,12 @@ void PurchaseState::increaseByValue(int change)
 	else
 	{
 		RuleItem *rule = nullptr;
-		RuleSoldier* ruleS = nullptr;
-		RuleCraft* ruleC = nullptr;
 		switch (getRow().type)
 		{
 		case TRANSFER_SOLDIER:
-			ruleS = (RuleSoldier*)getRow().rule;
-			if (ruleS->getMonthlyBuyLimit() > 0)
+			if (getRow().qtyDst >= 0 && getRow().amount >= getRow().qtyDst)
 			{
-				auto& soldierHireLimitLog = _game->getSavedGame()->getMonthlyPurchaseLimitLog();
-				int maxByLimit = std::max(0, ruleS->getMonthlyBuyLimit() - soldierHireLimitLog[ruleS->getType()] - getRow().amount);
-				if (maxByLimit <= 0)
-				{
-					errorMessage = tr("STR_MONTHLY_SOLDIER_HIRING_LIMIT_EXCEEDED");
-				}
+				errorMessage = tr("STR_MONTHLY_SOLDIER_HIRING_LIMIT_EXCEEDED");
 			}
 			// fall-through
 		case TRANSFER_SCIENTIST:
@@ -995,19 +1169,13 @@ void PurchaseState::increaseByValue(int change)
 			}
 			break;
 		case TRANSFER_CRAFT:
-			ruleC = (RuleCraft*)getRow().rule;
 			if (_cQty + 1 > _base->getAvailableHangars() - _base->getUsedHangars())
 			{
 				errorMessage = tr("STR_NO_FREE_HANGARS_FOR_PURCHASE");
 			}
-			else if (ruleC->getMonthlyBuyLimit() > 0)
+			else if (getRow().qtyDst >= 0 && getRow().amount >= getRow().qtyDst)
 			{
-				auto& craftPurchaseLimitLog = _game->getSavedGame()->getMonthlyPurchaseLimitLog();
-				int maxByLimit = std::max(0, ruleC->getMonthlyBuyLimit() - craftPurchaseLimitLog[ruleC->getType()] - getRow().amount);
-				if (maxByLimit <= 0)
-				{
-					errorMessage = tr("STR_MONTHLY_CRAFT_PURCHASE_LIMIT_EXCEEDED");
-				}
+				errorMessage = tr("STR_MONTHLY_CRAFT_PURCHASE_LIMIT_EXCEEDED");
 			}
 			break;
 		case TRANSFER_ITEM:
@@ -1024,14 +1192,12 @@ void PurchaseState::increaseByValue(int change)
 					errorMessage = trAlt("STR_NOT_ENOUGH_PRISON_SPACE", p);
 				}
 			}
-			else if (rule->getMonthlyBuyLimit() > 0)
+			// Side effect: Will also activate on country specific items from
+			// countries that are no longer allied.
+			// Technically true, but can be kinda confusing.
+			else if (getRow().qtyDst >= 0 && getRow().amount >= getRow().qtyDst)
 			{
-				auto& itemPurchaseLimitLog = _game->getSavedGame()->getMonthlyPurchaseLimitLog();
-				int maxByLimit = std::max(0, rule->getMonthlyBuyLimit() - itemPurchaseLimitLog[rule->getType()] - getRow().amount);
-				if (maxByLimit <= 0)
-				{
-					errorMessage = tr("STR_MONTHLY_ITEM_PURCHASE_LIMIT_EXCEEDED");
-				}
+				errorMessage = tr("STR_MONTHLY_ITEM_PURCHASE_LIMIT_EXCEEDED");
 			}
 			break;
 		}
@@ -1042,19 +1208,15 @@ void PurchaseState::increaseByValue(int change)
 		int maxByMoney = (_game->getSavedGame()->getFunds() - _total) / getRow().cost;
 		if (maxByMoney >= 0)
 			change = std::min(maxByMoney, change);
+		if (getRow().qtyDst >= 0)
+		{
+			int maxByLimit = std::max(0, getRow().qtyDst - getRow().amount);
+			change = std::min(maxByLimit, change);
+		}
+
 		switch (getRow().type)
 		{
 		case TRANSFER_SOLDIER:
-			{
-				RuleSoldier *ruleS = (RuleSoldier*)getRow().rule;
-				if (ruleS->getMonthlyBuyLimit() > 0)
-				{
-					auto& soldierHireLimitLog = _game->getSavedGame()->getMonthlyPurchaseLimitLog();
-					int maxByLimit = std::max(0, ruleS->getMonthlyBuyLimit() - soldierHireLimitLog[ruleS->getType()] - getRow().amount);
-					change = std::min(maxByLimit, change);
-				}
-			}
-			// fall-through
 		case TRANSFER_SCIENTIST:
 		case TRANSFER_ENGINEER:
 			{
@@ -1065,13 +1227,6 @@ void PurchaseState::increaseByValue(int change)
 			break;
 		case TRANSFER_CRAFT:
 			{
-				RuleCraft *ruleC = (RuleCraft*)getRow().rule;
-				if (ruleC->getMonthlyBuyLimit() > 0)
-				{
-					auto& craftPurchaseLimitLog = _game->getSavedGame()->getMonthlyPurchaseLimitLog();
-					int maxByLimit = std::max(0, ruleC->getMonthlyBuyLimit() - craftPurchaseLimitLog[ruleC->getType()] - getRow().amount);
-					change = std::min(maxByLimit, change);
-				}
 				int maxByHangars = _base->getAvailableHangars() - _base->getUsedHangars() - _cQty;
 				change = std::min(maxByHangars, change);
 				_cQty += change;
@@ -1080,12 +1235,6 @@ void PurchaseState::increaseByValue(int change)
 		case TRANSFER_ITEM:
 			{
 				RuleItem *rule = (RuleItem*)getRow().rule;
-				if (rule->getMonthlyBuyLimit() > 0)
-				{
-					auto& itemPurchaseLimitLog = _game->getSavedGame()->getMonthlyPurchaseLimitLog();
-					int maxByLimit = std::max(0, rule->getMonthlyBuyLimit() - itemPurchaseLimitLog[rule->getType()] - getRow().amount);
-					change = std::min(maxByLimit, change);
-				}
 				int p = rule->getPrisonType();
 				if (rule->isAlien())
 				{
@@ -1172,10 +1321,27 @@ void PurchaseState::decreaseByValue(int change)
  */
 void PurchaseState::updateItemStrings()
 {
-	_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
-	std::ostringstream ss, ss5;
-	ss << getRow().amount;
-	_lstItems->setCellText(_sel, 3, ss.str());
+	std::ostringstream ss;
+	if (_reservedAmountBehavior > 0)
+	{
+		// Only show a value if there is a transfer (I kinda dislike lots of '0's)
+		if (getRow().amount > 0 || getRow().transferSrc > 0 || getRow().qtyDst >= 0)
+		{
+			// 5th column: Show current + future transfers AND purchase limits
+			ss << getRow().amount + getRow().transferSrc;
+			if (getRow().qtyDst >= 0)
+			{
+				ss << ":" << getRow().transferSrc + getRow().qtyDst;
+			}
+		}
+		_lstItems->setCellText(_sel, 5, ss.str());
+	}
+	else
+	{
+		ss << getRow().amount;
+		_lstItems->setCellText(_sel, 3, ss.str());
+	}
+
 	if (getRow().amount > 0)
 	{
 		_lstItems->setRowColor(_sel, _lstItems->getSecondaryColor());
@@ -1192,16 +1358,7 @@ void PurchaseState::updateItemStrings()
 			}
 		}
 	}
-	ss5 << _base->getUsedStores();
-	if (std::abs(_iQty) > 0.05)
-	{
-		ss5 << "(";
-		if (_iQty > 0.05)
-			ss5 << "+";
-		ss5 << std::fixed << std::setprecision(1) << _iQty << ")";
-	}
-	ss5 << ":" << _base->getAvailableStores();
-	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss5.str()));
+	updateSubtitleLine();
 }
 
 /**
@@ -1210,6 +1367,26 @@ void PurchaseState::updateItemStrings()
 void PurchaseState::cbxCategoryChange(Action *)
 {
 	updateList();
+}
+
+/**
+ * Updates variable texts between screen title and spreadsheet.
+ */
+void PurchaseState::updateSubtitleLine()
+{
+	_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
+
+	std::ostringstream ss;
+	ss << _base->getUsedStores();
+	if (std::abs(_iQty) > 0.05)
+	{
+		ss << "(";
+		if (_iQty > 0.05)
+			ss << "+";
+		ss << std::fixed << std::setprecision(1) << _iQty << ")";
+	}
+	ss << ":" << _base->getAvailableStores();
+	_txtSpaceUsed->setText(tr("STR_SPACE_USED").arg(ss.str()));
 }
 
 }
