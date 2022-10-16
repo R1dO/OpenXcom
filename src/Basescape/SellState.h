@@ -71,7 +71,7 @@ private:
 		int64_t totalCost;              ///< For Sorting by combined item cost?
 		int transferSrc, transferDst;   ///< Amount currently on route **to** Src/Dst.
 		int allocatedSrc, allocatedDst; ///< Display only: Currently allocated items.
-		int protectedSrc, protectedDst; ///< Display only: Add this amount to display of ``qtySrc``.
+		int protectedSrc, protectedDst; ///< Display only: Add this amount to display of ``qtySrc/Dst``.
 	};
 
 	Base *_base;

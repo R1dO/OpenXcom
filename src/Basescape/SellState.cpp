@@ -214,7 +214,7 @@ void SellState::delayedInit()
 	}
 
 	// Original behavior makes sense: No display of named aircraft currently on a mission or in-transfer.
-	// Prevents display clutter.
+	// Prevents display clutter (no need for reserved amounts).
 	for (std::vector<Craft*>::iterator i = _base->getCrafts()->begin(); i != _base->getCrafts()->end(); ++i)
 	{
 		if (_debriefingState) break;
@@ -250,11 +250,15 @@ void SellState::delayedInit()
 		if (_reservedAmountBehavior > 0)
 		{
 			row.transferSrc = _base->getTotalScientists() - _base->getTotalScientists(false);
-			row.allocatedSrc = _base->getAllocatedScientists();
-			// This screen does not support removing scientists from research projects.
-			row.qtySrc += row.transferSrc;
-			row.protectedSrc = row.allocatedSrc;
 		}
+		if (_reservedAmountBehavior > 1)
+		{
+			// Soldiers claiming scientists is a different kind of game.
+			row.allocatedSrc = _base->getAllocatedScientists();
+		}
+		// This screen does not support removing scientists from research projects.
+		row.qtySrc += row.transferSrc;
+		row.protectedSrc = row.allocatedSrc;
 
 		if (row.qtySrc > 0 || row.allocatedSrc > 0)
 		{
@@ -281,11 +285,15 @@ void SellState::delayedInit()
 		if (_reservedAmountBehavior > 0)
 		{
 			row.transferSrc = _base->getTotalEngineers() - _base->getTotalEngineers(false);
-			row.allocatedSrc = _base->getAllocatedEngineers();
-			// This screen does not support removing engineers from projects.
-			row.qtySrc += row.transferSrc;
-			row.protectedSrc = row.allocatedSrc;
 		}
+		// Soldiers claiming engineers ... by now you should get the drill.
+		if (_reservedAmountBehavior > 1)
+		{
+			row.allocatedSrc = _base->getAllocatedEngineers();
+		}
+		// This screen does not support removing engineers from projects.
+		row.qtySrc += row.transferSrc;
+		row.protectedSrc = row.allocatedSrc;
 
 		if (row.qtySrc > 0 || row.allocatedSrc > 0)
 		{
