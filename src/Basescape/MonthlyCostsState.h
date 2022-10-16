@@ -18,6 +18,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "../Engine/State.h"
+#include "MonthlyCostsDetailsState.h"
 
 namespace OpenXcom
 {
@@ -40,7 +41,16 @@ private:
 	TextButton *_btnOk;
 	Window *_window;
 	Text *_txtTitle, *_txtCost, *_txtQuantity, *_txtTotal, *_txtRental, *_txtSalaries, *_txtIncome, *_txtMaintenance;
-	TextList *_lstCrafts, *_lstSalaries, *_lstMaintenance, *_lstTotal;
+	TextList *_lstCrafts, *_lstSalaries, *_lstMaintenance, *_lstTotal, *_lstGlobalResult;
+
+	/// Do we use the alternate base screen option?
+	bool _alternateScreen;
+
+	void lstCraftsClick(Action *action);
+	void lstSalariesClick(Action *action);
+	void lstFacilitiesClick(Action *action);
+	void lstGlobalResultClick(Action *action);
+
 public:
 	/// Creates the Monthly Costs state.
 	MonthlyCostsState(Base *base);
