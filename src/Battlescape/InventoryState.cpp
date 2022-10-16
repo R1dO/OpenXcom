@@ -59,6 +59,7 @@
 #include "TileEngine.h"
 #include "../Mod/RuleInterface.h"
 #include "../Ufopaedia/Ufopaedia.h"
+#include <climits>
 
 namespace OpenXcom
 {
@@ -73,9 +74,10 @@ static const int _applyTemplateBtnY  = 113;
  * @param tu Does Inventory use up Time Units?
  * @param parent Pointer to parent Battlescape.
  */
-InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bool noCraft) : _tu(tu), _noCraft(noCraft), _parent(parent), _base(base), _reloadUnit(false), _globalLayoutIndex(-1)
+InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bool noCraft) : _tu(tu), _noCraft(noCraft), _parent(parent), _base(base), _reloadUnit(false), _globalLayoutIndex(-1), _alternateScreen(false)
 {
 	_battleGame = _game->getSavedGame()->getSavedBattle();
+	_alternateScreen = Options::alternateBaseScreens;
 
 	if (Options::maximizeInfoScreens)
 	{
@@ -163,8 +165,6 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bo
 
 	centerAllSurfaces();
 
-
-
 	_txtName->setBig();
 	_txtName->setHighContrast(true);
 	_txtName->onChange((ActionHandler)&InventoryState::edtSoldierChange);
@@ -186,6 +186,10 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bo
 
 	_txtAmmo->setAlign(ALIGN_CENTER);
 	_txtAmmo->setHighContrast(true);
+	if (_alternateScreen)
+	{
+		_txtAmmo->setVerticalAlign(ALIGN_BOTTOM);
+	}
 
 	_btnOk->onMouseClick((ActionHandler)&InventoryState::btnOkClick);
 	_btnOk->onKeyboardPress((ActionHandler)&InventoryState::btnOkClick, Options::keyCancel);
@@ -220,6 +224,7 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bo
 
 	_btnUnload->onMouseClick((ActionHandler)&InventoryState::btnUnloadClick);
 	_btnUnload->setTooltip("STR_UNLOAD_WEAPON");
+	_btnUnload->onMouseOver((ActionHandler)&InventoryState::btnUnloadMouseOver);
 	_btnUnload->onMouseIn((ActionHandler)&InventoryState::txtTooltipIn);
 	_btnUnload->onMouseOut((ActionHandler)&InventoryState::txtTooltipOut);
 
@@ -292,6 +297,7 @@ InventoryState::InventoryState(bool tu, BattlescapeState *parent, Base *base, bo
 	_inv->onMouseClick((ActionHandler)&InventoryState::invClick, 0);
 	_inv->onMouseOver((ActionHandler)&InventoryState::invMouseOver);
 	_inv->onMouseOut((ActionHandler)&InventoryState::invMouseOut);
+	_inv->onMouseIn((ActionHandler)&InventoryState::invMouseIn);
 
 	if (_battleGame->getDebugMode() && _game->isShiftPressed())
 	{
@@ -585,19 +591,6 @@ void InventoryState::updateStats()
 {
 	BattleUnit *unit = _battleGame->getSelectedUnit();
 
-	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(unit->getTimeUnits()));
-
-	int weight = unit->getCarriedWeight(_inv->getSelectedItem());
-	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(unit->getBaseStats()->strength));
-	if (weight > unit->getBaseStats()->strength)
-	{
-		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
-	}
-	else
-	{
-		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
-	}
-
 	auto psiSkillWithoutAnyBonuses = unit->getBaseStats()->psiSkill;
 	if (unit->getGeoscapeSoldier())
 	{
@@ -662,6 +655,8 @@ void InventoryState::updateStats()
 	updateStatLine(_txtStatLine2, "textStatLine2");
 	updateStatLine(_txtStatLine3, "textStatLine3");
 	updateStatLine(_txtStatLine4, "textStatLine4");
+	updateSoldierStatTu();
+	updateSoldierStatWeight();
 }
 
 /**
@@ -1093,11 +1088,143 @@ void InventoryState::btnUnloadClick(Action *)
 	if (_inv->unload(false))
 	{
 		_txtItem->setText("");
-		_txtAmmo->setText("");
-		_selAmmo->clear();
+		updateItemStats();
 		updateStats();
 		_game->getMod()->getSoundByDepth(0, Mod::ITEM_DROP)->play();
 	}
+}
+
+/**
+ * Preview of Unload button result.
+ *
+ * Updates TU and Weight (when visible).
+ *
+ * Adapted logic from 'Inventory::unload()'.
+ * + Only interested in what could happen upon unload, no error messages.
+ * + Does not recognise "shift unload" modifier.
+ * + In preview mode negative TU is allowed.
+ *
+ * @param action Pointer to an action.
+ */
+void InventoryState::btnUnloadMouseOver(Action *action)
+{
+	if (!_txtTus->getVisible() && !_txtWeight->getVisible())
+		return; // Nothing to draw
+
+	BattleItem *grabbedItem = _inv->getSelectedItem();
+	BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!grabbedItem || !currentUnit)
+		return; // Cannot compute
+
+	const auto type = grabbedItem->getRules()->getBattleType();
+	const bool grenade = type == BT_GRENADE || type == BT_PROXIMITYGRENADE;
+	const bool weapon = type == BT_FIREARM || type == BT_MELEE;
+	int slotForAmmoUnload = -1;
+	int tuForAmmoUnload = 0;
+	int weightOfAmmoUnload = 0;
+
+	// Item should be able to unload or unprimed.
+	if (grenade)
+	{
+		// Item must be primed
+		if (grabbedItem->getFuseTimer() == -1)
+			return;
+		if (grabbedItem->getRules()->getFuseTimerType() == BFT_NONE)
+			return;
+	}
+	else if (weapon)
+	{
+		// lambda to check if a slot is loaded
+		auto checkSlot = [&](int slot)
+		{
+			// No ammo in slot
+			if (!grabbedItem->needsAmmoForSlot(slot))
+				return false;
+
+			// tu=0 means unable to unload (fixed ammo)?
+			auto tu = grabbedItem->getRules()->getTUUnload(slot);
+			if (tu == 0 && !_tu)
+				return false;
+
+			auto ammo = grabbedItem->getAmmoForSlot(slot);
+			if (ammo)
+			{
+				tuForAmmoUnload = tu;
+				slotForAmmoUnload = slot;
+				weightOfAmmoUnload = ammo->getRules()->getWeight();
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		};
+
+		// We can only unload 1 slot at the time, first one wins.
+		for (int slot = 0; slot < RuleItem::AmmoSlotMax; ++slot)
+		{
+			if (checkSlot(slot))
+				break;
+		}
+
+		if (slotForAmmoUnload == -1)
+			return; // No ammo present.
+	}
+	else
+	{
+		return; // not weapon or grenade, can't use unload button
+	}
+
+	// Check which hands are free.
+	RuleInventory *FirstFreeHand = _game->getMod()->getInventoryRightHand();
+	RuleInventory *SecondFreeHand = _game->getMod()->getInventoryLeftHand();
+
+	for (std::vector<BattleItem*>::iterator i = currentUnit->getInventory()->begin(); i != currentUnit->getInventory()->end(); ++i)
+	{
+		if ((*i)->getSlot()->getType() == INV_HAND && (*i) != grabbedItem)
+		{
+			if ((*i)->getSlot() == SecondFreeHand)
+				SecondFreeHand = nullptr;
+			if ((*i)->getSlot() == FirstFreeHand)
+				FirstFreeHand = nullptr;
+		}
+	}
+
+	if (FirstFreeHand == nullptr)
+	{
+		FirstFreeHand = SecondFreeHand;
+		SecondFreeHand = nullptr;
+	}
+	if (FirstFreeHand == nullptr)
+		return; // No free hand
+
+	BattleActionCost cost { BA_NONE, currentUnit, grabbedItem };
+	if (grenade)
+	{
+		cost.type = BA_UNPRIME;
+		cost.updateTU();
+	}
+	else
+	{
+		// 2. unload cost (= move the ammo to the second free hand)
+		cost.Time += tuForAmmoUnload;
+
+		if (SecondFreeHand == nullptr)
+		{
+			// 3. drop the ammo on the ground (if the second hand is not free)
+			cost.Time += FirstFreeHand->getCost(_game->getMod()->getInventoryGround());
+			// Change soldier weight.
+			updateSoldierStatWeight(-1 * weightOfAmmoUnload);
+		}
+	}
+
+	if (grabbedItem->getSlot()->getType() != INV_HAND) // Preview: No need for TU check
+	{
+		// 1. move the weapon to the first free hand
+		cost.Time += grabbedItem->getMoveToCost(FirstFreeHand);
+	}
+
+	updateSoldierStatTu(-1 * cost.Time);
 }
 
 /**
@@ -1645,13 +1772,14 @@ void InventoryState::calculateCurrentDamageTooltip()
 
 	// step 1: determine rule
 	const RuleItem *rule;
+	BattleItem *ammo = nullptr;
 	if (weaponRule->getBattleType() == BT_PSIAMP)
 	{
 		rule = weaponRule;
 	}
 	else if (_currentDamageTooltipItem->needsAmmoForSlot(PRIMARY_SLOT))
 	{
-		auto ammo = _currentDamageTooltipItem->getAmmoForSlot(PRIMARY_SLOT);
+		ammo = _currentDamageTooltipItem->getAmmoForSlot(PRIMARY_SLOT);
 		if (ammo != nullptr)
 		{
 			damageItem = ammo;
@@ -1667,35 +1795,8 @@ void InventoryState::calculateCurrentDamageTooltip()
 		rule = weaponRule;
 	}
 
-	// step 2: check if unlocked
-	if (_game->getSavedGame()->getMonthsPassed() == -1)
-	{
-		// new battle mode
-	}
-	else if (rule)
-	{
-		// instead of checking the weapon/ammo itself... we're checking their ufopedia articles here
-		// same as for the battlescape indicator
-		// it's arguable if this is the correct approach, but so far this is what we have
-		ArticleDefinition *article = _game->getMod()->getUfopaediaArticle(rule->getType(), false);
-		if (article && !Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
-		{
-			// ammo/weapon locked
-			rule = 0;
-		}
-		if (rule && rule->getType() != weaponRule->getType())
-		{
-			article = _game->getMod()->getUfopaediaArticle(weaponRule->getType(), false);
-			if (article && !Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
-			{
-				// weapon locked
-				rule = 0;
-			}
-		}
-	}
-
-	// step 3: calculate and remember
-	if (rule)
+	// step 3: calculate and remember, original step 2 is now a method call inside if().
+	if (isItemStatsKnown(_currentDamageTooltipItem, ammo))
 	{
 		if (rule->getBattleType() != BT_CORPSE)
 		{
@@ -1725,6 +1826,9 @@ void InventoryState::invMouseOver(Action *)
 {
 	if (_inv->getSelectedItem() != 0)
 	{
+		// Preview for grabbed items.
+		updateSoldierStatWeight();
+		updateSoldierStatTu();
 		return;
 	}
 
@@ -1817,27 +1921,17 @@ void InventoryState::invMouseOver(Action *)
 			_txtItem->setText(itemName);
 		}
 
-		_selAmmo->clear();
 		bool hasSelfAmmo = item->getRules()->getBattleType() != BT_AMMO && item->getRules()->getClipSize() > 0;
 		if ((item->isWeaponWithAmmo() || hasSelfAmmo) && item->haveAnyAmmo())
 		{
-			updateTemplateButtons(false);
-			_txtAmmo->setText("");
+			// think() handles display of ammo, _txtAmmo and (un)hiding of buttons.
+			// Method variable "item" is no longer needed (ensures updateAmmoStat() starts empty).
+			item = nullptr;
 		}
 		else
 		{
+			// Anything that is not an armed weapon: skip think();
 			_mouseHoverItem = nullptr;
-			updateTemplateButtons(!_tu);
-			std::string s;
-			if (item->getAmmoQuantity() != 0 && item->getRules()->getBattleType() == BT_AMMO)
-			{
-				s = tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
-			}
-			else if (item->getRules()->getBattleType() == BT_MEDIKIT)
-			{
-				s = tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
-			}
-			_txtAmmo->setText(s);
 		}
 	}
 	else
@@ -1846,10 +1940,8 @@ void InventoryState::invMouseOver(Action *)
 		{
 			_txtItem->setText("");
 		}
-		_txtAmmo->setText("");
-		_selAmmo->clear();
-		updateTemplateButtons(!_tu);
 	}
+	updateItemStats(item);
 }
 
 /**
@@ -1859,13 +1951,24 @@ void InventoryState::invMouseOver(Action *)
 void InventoryState::invMouseOut(Action *)
 {
 	_txtItem->setText("");
-	_txtAmmo->setText("");
-	_selAmmo->clear();
 	_inv->setMouseOverItem(0);
 	_mouseHoverItem = nullptr;
 	_currentDamageTooltipItem = nullptr;
 	_currentDamageTooltip = "";
-	updateTemplateButtons(!_tu);
+	updateItemStats();
+}
+
+/**
+ * Un-Hides item info.
+ * @param action Pointer to an action.
+ */
+void InventoryState::invMouseIn(Action *)
+{
+	_mouseHoverItem = _inv->getSelectedItem();
+	// think() takes care of the rest.
+
+	// At the moment _txtItem is not updated.
+	// Would probably require a refactor into own (or multiple?) 'update...' method(s).
 }
 
 void InventoryState::onMoveGroundInventoryToBase(Action *)
@@ -2031,26 +2134,7 @@ void InventoryState::think()
 				++seq;
 			}
 		}
-		if (firstAmmo)
-		{
-			_txtAmmo->setText(tr("STR_AMMO_ROUNDS_LEFT").arg(firstAmmo->getAmmoQuantity()));
-			SDL_Rect r;
-			r.x = 0;
-			r.y = 0;
-			r.w = RuleInventory::HAND_W * RuleInventory::SLOT_W;
-			r.h = RuleInventory::HAND_H * RuleInventory::SLOT_H;
-			_selAmmo->drawRect(&r, _game->getMod()->getInterface("inventory")->getElement("grid")->color);
-			r.x++;
-			r.y++;
-			r.w -= 2;
-			r.h -= 2;
-			_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
-			firstAmmo->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo, firstAmmo, _game->getSavedGame()->getSavedBattle(), anim);
-		}
-		else
-		{
-			_selAmmo->clear();
-		}
+		updateItemStats(_mouseHoverItem, firstAmmo);
 	}
 	State::think();
 }
@@ -2165,6 +2249,390 @@ void InventoryState::updateTemplateButtons(bool isVisible)
 		_btnCreateTemplate->clear();
 		_btnApplyTemplate->clear();
 	}
+}
+
+/**
+ * Gets weapon accuracy for the selected unit.
+ *
+ * Accuracy is based on following components:
+ * - Item (ammo) base accuracy
+ * - Soldier stat based accuracy multipliers
+ *
+ * Does not take into account the following multipliers:
+ * - Accuracy based on shot type (action)
+ * - Kneeling bonus
+ * - 2-handiness
+ * - Adjustment for wounds
+ *
+ * @param item Pointer to battle item.
+ * @param currentAmmo Pointer to ammo currently loaded.
+ * @return Item accuracy for the current unit.
+ */
+int InventoryState::getItemAccuracy(BattleItem *item, BattleItem *currentAmmo) const
+{
+	if (!item || item->getRules()->getBattleType() == BT_CORPSE)
+		return 0;
+
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!currentUnit)
+		return 0;
+
+	// Accuracy should only depend on item itself?
+	// Included 'damageItem' just in case it has an effect on item accuracy stat.
+	const BattleItem *damageItem = item;
+	if (currentAmmo)
+		damageItem = currentAmmo;
+
+	// Confused by 'multiplier' method names? Think of it this way:
+	// Return value is the percentage to be multiplied with the shot's type accuracy.
+	switch (item->getRules()->getBattleType())
+	{
+		case BT_PSIAMP:
+		case BT_FIREARM:
+			return item->getRules()->getAccuracyMultiplier({ BA_NONE, currentUnit, item, damageItem });
+		case BT_MELEE:
+			return item->getRules()->getMeleeMultiplier({ BA_NONE, currentUnit, item, damageItem });
+		case BT_AMMO:
+		case BT_FLARE:
+		case BT_GRENADE:
+		case BT_PROXIMITYGRENADE:
+			return item->getRules()->getThrowMultiplier({ BA_NONE, currentUnit, item, damageItem });
+		default:
+			return 0;
+	}
+}
+
+/**
+ * Gets weapon (ammo) power.
+ *
+ * Adjusted for soldier skill (when appropriate)
+ *
+ * @param item Pointer to battle item.
+ * @param currentAmmo Pointer to ammo currently loaded.
+ * @return Item (weapon/ammo).power for the current unit.
+ */
+int InventoryState::getItemPower(BattleItem *item, BattleItem *currentAmmo) const
+{
+	if (!item || item->getRules()->getBattleType() == BT_CORPSE)
+		return 0;
+
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!currentUnit)
+		return 0;
+
+	// Power depends on damageItem!
+	const BattleItem *damageItem = item;
+	if (currentAmmo)
+		damageItem = currentAmmo;
+
+	return damageItem->getRules()->getPowerBonus({ BA_NONE, currentUnit, item, damageItem });
+}
+
+/**
+ * Gets weapon (ammo) rounds.
+ *
+ * @param item Pointer to battle item.
+ * @param currentAmmo Pointer to ammo currently loaded.
+ * @return Number of rounds left and the maximum rounds (INT_MAX denotes infinite).
+ */
+std::pair<int, int> InventoryState::getItemRounds(BattleItem *item, BattleItem *currentAmmo) const
+{
+	if (!item || (item->isWeaponWithAmmo() && !currentAmmo))
+		return std::make_pair(0,0);
+
+	int roundsLeft = 0, maxRounds = 0;
+	if (currentAmmo)
+	{
+		roundsLeft = currentAmmo->getAmmoQuantity();
+		maxRounds = currentAmmo->getRules()->getClipSize();
+	}
+	else
+	{
+		roundsLeft = item->getAmmoQuantity();
+		maxRounds = item->getRules()->getClipSize();
+	}
+
+	// Infinite is denoted by 255 for 'getAmmoQuantity()' and -1 for 'getClipSize()'.
+	roundsLeft = (roundsLeft == 255 ? INT_MAX : roundsLeft);
+	maxRounds = (maxRounds == -1 ? INT_MAX : maxRounds);
+
+	return std::make_pair(roundsLeft, maxRounds);
+}
+
+/**
+ * Check if stats are supposed to be known
+ *
+ * @param item Pointer to battle item.
+ * @param currentAmmo Pointer to ammo currently loaded.
+ * @return If we are allowed to see item stats.
+ */
+bool InventoryState::isItemStatsKnown(BattleItem *item, BattleItem *currentAmmo) const
+{
+	// Stats may depend on soldier
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!item || !item->getRules() || !currentUnit)
+		return false;
+
+	// Skirmish mode
+	if (_game->getSavedGame()->getMonthsPassed() == -1)
+		return true;
+
+	// PSI and Mana must be known
+	if (item->getRules()->isPsiRequired() && currentUnit->getBaseStats()->psiSkill <= 0)
+		return false;
+	if ((item->getRules()->isManaRequired() && currentUnit->getOriginalFaction() == FACTION_PLAYER) &&
+		(!_game->getMod()->isManaFeatureEnabled() || !_game->getSavedGame()->isManaUnlocked(_game->getMod())))
+	{
+		return false;
+	}
+
+	// Actual research check. Ends up using a BattleItem's cached value.
+	if (!item->isItemStatsKnown(_game->getSavedGame(), _game->getMod()))
+		return false;
+	// Item itself is known, now check any potential ammo.
+	if (currentAmmo)
+		return isItemStatsKnown(currentAmmo);
+
+	return true;
+}
+
+/**
+ * Display item stats.
+ *
+ * Shows item stats and handobj when appropriate.
+ * Hides template buttons when needed.
+ *
+ * @param item Pointer to battle item.
+ * @param currentAmmo Pointer to ammo currently loaded.
+ */
+void InventoryState::updateItemStats(BattleItem *item, BattleItem *currentAmmo)
+{
+	if (!item || !item->getRules())
+	{
+		_txtAmmo->setText("");
+		_selAmmo->clear();
+		updateTemplateButtons(!_tu);
+		return;
+	}
+
+	// Calculate extended stats for item
+	// @return tuple of [power, accuracy, rounds left, max rounds].
+	auto calcItemStats = [&](BattleItem *weapon, BattleItem *clip) -> std::tuple<int, int, int, int>
+	{
+		// Let "-1" denote: do not draw under any circumstance!
+		int itemPower = -1, skill = -1;
+		std::pair<int, int> rounds = std::make_pair(0, 0); // (current, max)
+
+		switch (weapon->getRules()->getBattleType())
+		{
+			case BT_AMMO:
+				// Throwing accuracy is kinda confusing for this kind of item,
+				// hence no display and thus no need to calculate.
+				itemPower = getItemPower(weapon, clip);
+				rounds = getItemRounds(weapon, clip);
+				break;
+			case BT_MELEE:
+			case BT_GRENADE:
+			case BT_PROXIMITYGRENADE:
+			case BT_FIREARM:
+			case BT_PSIAMP:
+				itemPower = getItemPower(weapon, clip);
+				skill = getItemAccuracy(weapon, clip);
+				rounds = getItemRounds(weapon, clip);
+				break;
+			default: // BT_FLARE and others
+				itemPower = getItemPower(weapon, clip);
+				// Zero power items are probably recoverable 'geoscape-only' items.
+				// Those are not weapons so it makes little sense to show stats.
+				//
+				// Alternative is to check for "ignoreInBaseDefense" variable.
+				// The downside of that approach is that it takes away the modder's
+				// ability to put items at risk during base defense if they want to
+				// hide stats for this kind of item.
+				if (itemPower > 0)
+				{
+					skill = getItemAccuracy(weapon, clip);
+					rounds = getItemRounds(weapon, clip);
+				}
+				break;
+		}
+
+		return std::make_tuple(itemPower, skill, rounds.first, rounds.second);
+	};
+
+	// Text display part.
+	std::ostringstream ssItemStats;
+	if (item->getRules()->getBattleType() == BT_MEDIKIT)
+	{
+		ssItemStats << tr("STR_MEDI_KIT_QUANTITIES_LEFT").arg(item->getPainKillerQuantity()).arg(item->getStimulantQuantity()).arg(item->getHealQuantity());
+	}
+	else if (!_alternateScreen && item->getAmmoQuantity() != 0 && item->getRules()->getBattleType() == BT_AMMO)
+	{
+		ssItemStats << tr("STR_AMMO_ROUNDS_LEFT").arg(item->getAmmoQuantity());
+	}
+	else if (_alternateScreen)
+	{
+		// Structured binding, requires C++17.
+		auto [power, skill, rounds, capacity] = calcItemStats(item, currentAmmo);
+
+		// Skill can benefit from drawing 0 (tells player unit is absolute rubbish for this item)
+		if (skill >= 0 && isItemStatsKnown(item, currentAmmo))
+			ssItemStats << tr("STR_ACCURACY_SHORT").arg(skill) << Unicode::TOK_COLOR_FLIP;
+		else if (skill >= 0)
+			ssItemStats << tr("STR_ACCURACY_SHORT").arg("?") << Unicode::TOK_COLOR_FLIP;
+
+		// Do not show 0 power entries, it has a weaker (no?) dependency on unit stats
+		if (power > 0 && isItemStatsKnown(item, currentAmmo))
+			ssItemStats << std::endl << tr("STR_POWER_SHORT").arg(power) << Unicode::TOK_COLOR_FLIP;
+		else if (power > 0)
+			ssItemStats << std::endl << tr("STR_POWER_SHORT").arg("?") << Unicode::TOK_COLOR_FLIP;
+
+		// Do not show rounds on empty clips or infinite/single shots weapons.
+		// No need to gate behind research check, bit too harsh (and assume player can count).
+		if (rounds > 1 && capacity != INT_MAX)
+			ssItemStats << std::endl << tr("STR_ROUNDS_SHORT").arg(rounds);
+	}
+	_txtAmmo->setText(ssItemStats.str());
+
+	// Draw ammo handobj or template buttons.
+	_selAmmo->clear();
+	if (currentAmmo)
+	{
+		// Only need to hide buttons when drawing ammoitems.
+		updateTemplateButtons(false);
+
+		SDL_Rect r;
+		r.x = 0;
+		r.y = 0;
+		r.w = RuleInventory::HAND_W * RuleInventory::SLOT_W;
+		r.h = RuleInventory::HAND_H * RuleInventory::SLOT_H;
+		_selAmmo->drawRect(&r, _game->getMod()->getInterface("inventory")->getElement("grid")->color);
+		r.x++;
+		r.y++;
+		r.w -= 2;
+		r.h -= 2;
+		_selAmmo->drawRect(&r, Palette::blockOffset(0)+15);
+		currentAmmo->getRules()->drawHandSprite(_game->getMod()->getSurfaceSet("BIGOBS.PCK"), _selAmmo, currentAmmo, _game->getSavedGame()->getSavedBattle(), _inv->getAnimFrame());
+	}
+	else
+	{
+		updateTemplateButtons(!_tu);
+	}
+}
+
+/**
+ * Updates the soldier weight info text.
+ *
+ * For preview purposes weight is based on mouseover slot.
+ *
+ * + No support for preview of modifier key actions.
+ *
+ * @param extraWeight Additional weight to add.
+ */
+void InventoryState::updateSoldierStatWeight(int extraWeight)
+{
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!currentUnit || !_txtWeight->getVisible()) return;
+
+	BattleItem *dragItem = _inv->getSelectedItem();
+	int weight = currentUnit->getCarriedWeight(dragItem); // Vanilla behavior
+
+	// Preview
+	if (_alternateScreen)
+	{
+		// Decision points for preview:
+		// * If item originates from a soldier slot (general or hand):
+		//   >>> Do nothing until we mouse-over the ground.
+		//   + Till that happens it remains unknown if player wants to put
+		//     item into a different soldier slot or on the ground.
+		//   + Reduces unnecessary updates (which is annoying).
+		// * If item originates from the ground:
+		//   >>> Do nothing until mouse leaves ground.
+		//   + Improves consistency with previous point.
+
+		const RuleInventory *slotTo = _inv->getMouseOverSlot();
+		// Good thing getCarriedWeight() ignores items originating from ground.
+		// The dragged item (from a soldier slot) was already ignored at declaration of weight.
+		if (dragItem && (slotTo == 0 || slotTo->getType() != INV_GROUND))
+			weight += dragItem->getTotalWeight();
+
+		weight += extraWeight;
+	}
+	// No research check if item stats (technically includes weight) are known.
+	// * Weight is something a soldier can easily tell.
+	// * Don't want to be too harsh on the player.
+	// * Extreme consistency would dictate no weight display at all.
+
+	_txtWeight->setText(tr("STR_WEIGHT").arg(weight).arg(currentUnit->getBaseStats()->strength));
+	if (weight > currentUnit->getBaseStats()->strength)
+		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
+	else
+		_txtWeight->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
+}
+
+/**
+ * Updates the soldier TU info text.
+ *
+ * For preview purposes TU will reflect what happens based on mouseover slot.
+ *
+ * + No support for preview of modifier key actions.
+ * + Uses logic adapted from inventory::mouseclick()
+ *
+ * @param extraTu Additional TU to add.
+ */
+void InventoryState::updateSoldierStatTu(int extraTu)
+{
+	const BattleUnit *currentUnit = _inv->getSelectedUnit();
+	if (!currentUnit || !_txtTus->getVisible()) return;
+
+	int unitTu = currentUnit->getTimeUnits(); // Vanilla behavior
+
+	// Preview
+	if (_alternateScreen)
+	{
+		BattleItem *dragItem = _inv->getSelectedItem();
+		// Assume dragged item will be placed in the mouseover slot (even if
+		// already occupied) but do not account for removal of occupying item.
+		const RuleInventory *slotTo = _inv->getMouseOverSlot();
+		if (slotTo != 0 && dragItem && dragItem->getSlot() != 0 && dragItem->getRules()->canBePlacedIntoInventorySection(slotTo))
+		{
+			unitTu -= dragItem->getMoveToCost(slotTo);
+
+			// Preview cost of loading ammoitem in matching weapon.
+			// The exception where preview takes into account the mouseover slot item.
+			if (dragItem->getRules()->getBattleType() == BT_AMMO)
+			{
+				BattleItem *itemTo = _inv->getMouseOverItem();
+				if (itemTo != 0 && itemTo->isWeaponWithAmmo() &&
+					itemTo->getRules()->getSlotForAmmo(dragItem->getRules()) >= 0)
+				{
+					unitTu -= itemTo->getRules()->getTULoad(itemTo->getRules()->getSlotForAmmo(dragItem->getRules()));
+
+					// Only when 'EXTENDED_ITEM_RELOAD_COST' is in effect there
+					// is additional cost for moving the item to the slot.
+					// Game default is to only pay the reload cost.
+					if (!Mod::EXTENDED_ITEM_RELOAD_COST)
+					{
+						// Undo previously booked move cost
+						unitTu += dragItem->getMoveToCost(slotTo);
+					}
+				}
+			}
+		}
+		unitTu += extraTu;
+	}
+	// No research check if inventory stats (technically includes TU usage) are known.
+	// * Time consumption is something a soldier can easily tell.
+	// * Don't want to be too harsh on the player.
+	// * Extreme consistency would dictate no TU display at all.
+
+	_txtTus->setText(tr("STR_TIME_UNITS_SHORT").arg(unitTu));
+	// Reuse '_txtWeight' color definition for 2nd (=color) and 3rd (=color2) number state.
+	// That one uses "id: textWeight" for text colors and "id: weight" for number colors.
+	if (unitTu < 0 && _alternateScreen)
+		_txtTus->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color2);
+	else
+		_txtTus->setSecondaryColor(_game->getMod()->getInterface("inventory")->getElement("weight")->color);
 }
 
 }

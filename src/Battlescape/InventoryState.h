@@ -69,6 +69,9 @@ private:
 	void _createInventoryTemplate(std::vector<EquipmentLayoutItem*> &inventoryTemplate);
 	/// Helper method for Apply Template button
 	void _applyInventoryTemplate(std::vector<EquipmentLayoutItem*> &inventoryTemplate);
+
+	/// Do we use the alternate base screen option?
+	bool _alternateScreen;
 public:
 	/// Creates the Inventory state.
 	InventoryState(bool tu, BattlescapeState *parent, Base *base, bool noCraft = false);
@@ -135,6 +138,8 @@ public:
 	/// Handler for showing item info.
 	void calculateCurrentDamageTooltip();
 	void invMouseOver(Action *action);
+	/// Handler for un-hiding item info.
+	void invMouseIn(Action *action);
 	/// Handler for hiding item info.
 	void invMouseOut(Action *action);
 	/// Handler for hitting the [Move Ground Inventory To Base] hotkey.
@@ -157,6 +162,16 @@ private:
 	void updateTemplateButtons(bool isVisible);
 	/// Refresh the hover status of the mouse.
 	void refreshMouse();
+
+	void btnUnloadMouseOver(Action *action);
+
+	int getItemAccuracy(BattleItem *item, BattleItem *currentAmmo = nullptr) const;
+	int getItemPower(BattleItem *item, BattleItem *currentAmmo = nullptr) const;
+	std::pair<int, int> getItemRounds(BattleItem *item, BattleItem *currentAmmo = nullptr) const;
+	bool isItemStatsKnown(BattleItem *item, BattleItem *currentAmmo = nullptr) const;
+	void updateItemStats(BattleItem *item = nullptr, BattleItem *currentAmmo = nullptr);
+	void updateSoldierStatWeight(int extraWeight = 0);
+	void updateSoldierStatTu(int extraTu = 0);
 };
 
 }

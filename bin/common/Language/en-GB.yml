@@ -427,3 +427,6 @@ en-GB:
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"
   STR_CLAIMED_BY_SOLDIERS: "Claimed by Soldiers"
+# InventoryState.cpp
+  STR_POWER_SHORT: "Pwr>{ALT}{0}"
+  STR_ROUNDS_SHORT: "Ammo>{ALT}{0}"
