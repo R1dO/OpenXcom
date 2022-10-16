@@ -45,29 +45,32 @@ class PurchaseState : public State
 {
 private:
 	/**
-	 * Tailored struct to store variables of importance to the spreadsheet.
+	 * 'Tailored' struct for the spreadsheet.
 	 */
 	struct PurchaseRow
 	{
-		TransferType type;      ///< Item category.
-		const void *rule;       ///< Pointer to ruleset of item.
-		std::string name;       ///< Translated name of item.
-		int cost;               ///< Purchase cost of item.
-		int qtySrc, qtyDst;     /**< Starting amounts
-		                         *
-		                         * + Src: On base (= in stores + reserved + en route)
-		                         * + Dst: On market (not used in this screen)
-		                        */
-		int amount;             /**< Requested change.
-		                         *
-		                         * + Positive values moves an item towards base stores (e.g BUY).
-		                         * + Negative values moves an item away from base stores (e.g. undo).
-		                         */
-		int listOrder;          /// Sorting: By original order?
-		double size, totalSize; /// Sorting: By (combined) item sizes?
-		int64_t totalCost;      /// Sorting: By combined item cost?
-		int inTransfer;         ///< Amount currently on route to base
-		int reserved;           ///< Reserved amount of items(s).
+		TransferType type;              ///< Item category.
+		const void *rule;               ///< Pointer to ruleset of item.
+		std::string name;               ///< Translated name of item.
+		int cost;                       ///< Purchase cost of item.
+		/** Starting amounts
+		 *
+		 * + Src: On base, anything that is allowed to be sold.
+		 * + Dst: On market, infinite is represented by '-1'.
+		 */
+		int qtySrc, qtyDst;
+		/** Requested change.
+		 *
+		 * + Positive values moves an item from Dst to Src (e.g BUY).
+		 * + Negative values moves an item from Src to Dst (e.g. undo).
+		 */
+		int amount;
+		int listOrder;                  ///< Controls position in the items list.
+		double size, totalSize;         ///< For sorting by (combined) item sizes?
+		int64_t totalCost;              ///< For Sorting by combined item cost?
+		int transferSrc, transferDst;   ///< Amount currently on route **to** Src/Dst.
+		int allocatedSrc, allocatedDst; ///< Display only: Currently allocated items.
+		int protectedSrc, protectedDst; ///< Display only: Add this amount to display of ``qtySrc/Dst``.
 	};
 
 	Base *_base;
@@ -102,7 +105,8 @@ private:
 	/// Gets the row of the current selection.
 	PurchaseRow &getRow() { return _items[_rows[_sel]]; }
 
-	bool _alternateScreen;
+	/// Controls spreadsheet reserved display values (0 = vanilla style)
+	int _reservedAmountBehavior;
 	void updateSubtitleLine();
 public:
 	/// Creates the Purchase state.
