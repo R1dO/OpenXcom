@@ -186,8 +186,40 @@ void ManufactureDependenciesTreeState::screenDependencies()
 		}
 	}
 
-	// breadth-first tree search
 	int row = 0;
+	std::ostringstream ss;
+	// Check if item has research potential
+	// Does not check if there are some requirements that temporary disables research potential
+	for (auto& researchProject : _game->getMod()->getResearchList())
+	{
+		RuleResearch *researchRule =  _game->getMod()->getResearch(researchProject);
+		if (!researchRule->needItem() || researchProject != _selectedItem)
+			continue;
+
+		// Adapted snippet from SavedGame::getAvailableResearchProjects()
+		if (!_game->getSavedGame()->isResearched(researchRule, false) ||
+			_game->getSavedGame()->hasUndiscoveredGetOneFree(researchRule, false) ||
+			_game->getSavedGame()->hasUndiscoveredProtectedUnlock(researchRule, _game->getMod()))
+		{
+			ss << Unicode::TOK_COLOR_FLIP << tr("STR_CAN_RESEARCH").arg(tr("STR_YES"));
+			break;
+		}
+		else
+		{
+			ss << Unicode::TOK_COLOR_FLIP << tr("STR_CAN_RESEARCH").arg(tr("STR_NO"));
+			break;
+		}
+	}
+	// If item cannot be used in research -> Show nothing.
+	if (!ss.str().empty())
+	{
+		_lstTopics->addRow(1, ss.str().c_str());
+		++row;
+		_lstTopics->addRow(1, "");
+		++row;
+	}
+
+	// breadth-first tree search
 	const std::vector<std::string> firstLevel = deps[_selectedItem];
 	std::vector<std::string> secondLevel;
 	std::vector<std::string> thirdLevel;
