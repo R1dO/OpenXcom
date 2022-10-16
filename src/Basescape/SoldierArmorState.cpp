@@ -125,26 +125,25 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_sortName->setX(_sortName->getX() + _txtType->getTextWidth() + 4);
 	_sortName->onMouseClick((ActionHandler)&SoldierArmorState::sortNameClick);
 
-	bool isWornBySoldier; // This variable will use integral promotion from bool to int.
 	const auto &armors = _game->getMod()->getArmorsForSoldiers();
 	for (auto* a : armors)
 	{
-		isWornBySoldier = (s->getArmor()->getStoreItem() == a->getStoreItem()); // True for the complete family
-
 		if (a->getRequiredResearch() && !_game->getSavedGame()->isResearched(a->getRequiredResearch()))
 			continue;
 		if (!a->getCanBeUsedBy(s->getRules()))
 			continue;
+
+		bool addSoldierArmor = (s->getArmor()->getStoreItem() == a->getStoreItem()); // True for the complete armor family
 		if (a->hasInfiniteSupply())
 		{
 			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), ""));
 		}
-		else if ((_base->getStorageItems()->getItem(a->getStoreItem()) + isWornBySoldier) > 0) // Integral promotion.
+		else if ((_base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor) > 0) // Uses integral promotion bool->int.
 		{
 			std::ostringstream ss;
 			if (_game->getSavedGame()->getMonthsPassed() > -1)
 			{
-				ss << _base->getStorageItems()->getItem(a->getStoreItem()) + isWornBySoldier; // Integral promotion.
+				ss << _base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor; // Uses integral promotion bool->int.
 			}
 			else
 			{
