@@ -691,15 +691,29 @@ void PurchaseState::updateList()
 			}
 		}
 		std::ostringstream ssQty, ssAmount;
-		ssQty << _items[i].qtySrc;
-		ssAmount << _items[i].amount;
 		if (_alternateScreen)
 		{
+			// Only show values if there is one (I kinda dislike lots of '0's)
+			if (_items[i].qtySrc - _items[i].inTransfer)
+			{
+				ssQty << _items[i].qtySrc - _items[i].inTransfer;
+			}
+			if (_items[i].amount || _items[i].inTransfer)
+			{
+				ssAmount << _items[i].inTransfer + _items[i].amount;
+			}
+			std::ostringstream ssReserved;
+			if (_items[i].reserved)
+			{
+				ssReserved << "(" << _items[i].reserved << ")";
+			}
 			//_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(99999999).c_str(), "9999", "(999)", "", "99:99");
-			_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), "(999)", "", ssAmount.str().c_str());
+			_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssReserved.str().c_str(), "", ssAmount.str().c_str());
 		}
 		else
 		{
+			ssQty << _items[i].qtySrc;
+			ssAmount << _items[i].amount;
 			_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
 		}
 		_rows.push_back(i);
@@ -1225,14 +1239,19 @@ void PurchaseState::decreaseByValue(int change)
  */
 void PurchaseState::updateItemStrings()
 {
-	std::ostringstream ss, ss5;
-	ss << getRow().amount;
+	std::ostringstream ss;
 	if (_alternateScreen)
 	{
+		// Only show a value if there is a transfer (I kinda dislike lots of '0's)
+		if (getRow().amount || getRow().inTransfer)
+		{
+			ss << getRow().amount + getRow().inTransfer;
+		}
 		_lstItems->setCellText(_sel, 5, ss.str());
 	}
 	else
 	{
+		ss << getRow().amount;
 		_lstItems->setCellText(_sel, 3, ss.str());
 	}
 
@@ -1268,7 +1287,6 @@ void PurchaseState::cbxCategoryChange(Action *)
  */
 void PurchaseState::updateSubtitleLine()
 {
-	//_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
 	_txtPurchases->setText(tr("STR_COST_OF_PURCHASES").arg(Unicode::formatFunding(_total)));
 
 	std::ostringstream ss;
