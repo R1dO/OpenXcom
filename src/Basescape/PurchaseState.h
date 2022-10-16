@@ -76,6 +76,7 @@ private:
 	/// Gets the row of the current selection.
 	TransferRow &getRow() { return _items[_rows[_sel]]; }
 
+	bool _alternateScreen;
 	void updateSubtitleLine();
 public:
 	/// Creates the Purchase state.

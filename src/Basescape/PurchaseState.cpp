@@ -61,7 +61,7 @@ namespace OpenXcom
  * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  */
-PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(base), _parent(parent), _sel(0), _total(0), _pQty(0), _cQty(0), _iQty(0.0), _ammoColor(0)
+PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(base), _parent(parent), _sel(0), _total(0), _pQty(0), _cQty(0), _iQty(0.0), _ammoColor(0), _alternateScreen(false)
 {
 	_autoBuyDone = false;
 	if (_parent)
@@ -79,6 +79,8 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 		}
 	}
 
+	_alternateScreen = Options::alternateBaseScreens;
+
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
 	_btnQuickSearch = new TextEdit(this, 48, 9, 10, 13);
@@ -92,6 +94,10 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	_txtQuantity = new Text(60, 9, 256, 44);
 	_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
 	_lstItems = new TextList(287, 120, 8, 54);
+	if (_alternateScreen)
+	{
+		_lstItems->setWidth(290);
+	}
 
 	// Set palette
 	setInterface("buyMenu");
@@ -135,8 +141,18 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 
 	_txtQuantity->setText(tr("STR_QUANTITY_UC"));
 
-	_lstItems->setArrowColumn(227, ARROW_VERTICAL);
-	_lstItems->setColumns(4, 150, 55, 50, 32);
+	if (_alternateScreen)
+	{
+		_lstItems->setArrowColumn(239, ARROW_VERTICAL);
+		// Allow arbitrary cell text alignment by reserving space (25) for an empty (arrow) column.
+		_lstItems->setColumns(6, 134, 54, 24, 25, 25, 30);
+		_lstItems->setScrolling(true, 1); // default = 4
+	}
+	else
+	{
+		_lstItems->setArrowColumn(227, ARROW_VERTICAL);
+		_lstItems->setColumns(4, 150, 55, 50, 32);
+	}
 	_lstItems->setSelectable(true);
 	_lstItems->setBackground(_window);
 	_lstItems->setMargin(2);
@@ -147,6 +163,7 @@ PurchaseState::PurchaseState(Base *base, CannotReequipState *parent) : _base(bas
 	_lstItems->onRightArrowRelease((ActionHandler)&PurchaseState::lstItemsRightArrowRelease);
 	_lstItems->onRightArrowClick((ActionHandler)&PurchaseState::lstItemsRightArrowClick);
 	_lstItems->onMousePress((ActionHandler)&PurchaseState::lstItemsMousePress);
+	_lstItems->setWordWrap(true);
 
 	_cats.push_back("STR_ALL_ITEMS");
 	_cats.push_back("STR_FILTER_HIDDEN");
@@ -629,7 +646,15 @@ void PurchaseState::updateList()
 		std::ostringstream ssQty, ssAmount;
 		ssQty << _items[i].qtySrc;
 		ssAmount << _items[i].amount;
-		_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
+		if (_alternateScreen)
+		{
+			//_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(99999999).c_str(), "9999", "(999)", "", "99:99");
+			_lstItems->addRow(6, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), "(999)", "", ssAmount.str().c_str());
+		}
+		else
+		{
+			_lstItems->addRow(4, name.c_str(), Unicode::formatFunding(_items[i].cost).c_str(), ssQty.str().c_str(), ssAmount.str().c_str());
+		}
 		_rows.push_back(i);
 		if (_items[i].amount > 0)
 		{
@@ -1155,7 +1180,15 @@ void PurchaseState::updateItemStrings()
 {
 	std::ostringstream ss, ss5;
 	ss << getRow().amount;
-	_lstItems->setCellText(_sel, 3, ss.str());
+	if (_alternateScreen)
+	{
+		_lstItems->setCellText(_sel, 5, ss.str());
+	}
+	else
+	{
+		_lstItems->setCellText(_sel, 3, ss.str());
+	}
+
 	if (getRow().amount > 0)
 	{
 		_lstItems->setRowColor(_sel, _lstItems->getSecondaryColor());
