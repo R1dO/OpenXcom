@@ -132,16 +132,18 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 			continue;
 		if (!a->getCanBeUsedBy(s->getRules()))
 			continue;
+
+		bool addSoldierArmor = (s->getArmor()->getStoreItem() == a->getStoreItem()); // True for the complete armor family
 		if (a->hasInfiniteSupply())
 		{
 			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), ""));
 		}
-		else if (_base->getStorageItems()->getItem(a->getStoreItem()) > 0)
+		else if ((_base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor) > 0) // Uses integral promotion bool->int.
 		{
 			std::ostringstream ss;
 			if (_game->getSavedGame()->getMonthsPassed() > -1)
 			{
-				ss << _base->getStorageItems()->getItem(a->getStoreItem());
+				ss << _base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor; // Uses integral promotion bool->int.
 			}
 			else
 			{
@@ -309,6 +311,7 @@ void SoldierArmorState::lstArmorClick(Action *)
 	}
 	if (_game->getSavedGame()->getMonthsPassed() != -1)
 	{
+		// We undress before dress: It should be safe to include currently worn armor.
 		if (prev->getStoreItem())
 		{
 			_base->getStorageItems()->addItem(prev->getStoreItem());
