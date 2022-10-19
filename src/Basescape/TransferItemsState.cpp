@@ -82,8 +82,8 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 	_lstItems = new TextList(287, 128, 8, 44);
 	_txtFunds = new Text(150, 9, 10, 24);
 	_txtCost = new Text(150, 9, 160, 24);
-	_txtSpaceUsedSrc =  new Text(75, 17, 132, 36);
-	_txtSpaceUsedDst =  new Text(75, 17, 222, 36);
+	_txtSpaceUsedSrc =  new Text(75, 17, 130, 36);
+	_txtSpaceUsedDst =  new Text(75, 17, 230, 36);
 	if (_reservedAmountBehavior > 0)
 	{
 		_cbxCategory->setY(_cbxCategory->getY() + 12);
@@ -137,8 +137,35 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 	_txtAmountDestination->setText(tr("STR_AMOUNT_AT_DESTINATION"));
 	_txtAmountDestination->setWordWrap(true);
 
-	_lstItems->setArrowColumn(193, ARROW_VERTICAL);
-	_lstItems->setColumns(4, 162, 58, 40, 27);
+	if (_reservedAmountBehavior > 0)
+	{
+		_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
+
+		_txtSpaceUsedSrc->setAlign(ALIGN_CENTER);
+		_txtSpaceUsedDst->setAlign(ALIGN_CENTER);
+
+		_txtAmountTransfer->setVisible(false);
+		_txtAmountDestination->setVisible(false);
+		_txtQuantity->setVisible(false);
+
+		// Can only adjust height *after* surface has been added. If not: crash ensured!
+		_lstItems->setHeight(120);
+		_lstItems->setArrowColumn(191, ARROW_VERTICAL);
+		// Use an empty column to reserve space (26) for the arrows. To allow for arbitrary cell text alignment.
+		_lstItems->setColumns(7, 141, 23, 24, 26, 27, 23, 24);  // Add up to 288 (due to 2px offset at beginning)
+		_lstItems->setWordWrap(true);
+		_lstItems->setScrolling(true, 1); // default = 4
+	}
+	else
+	{
+		_txtFunds->setVisible(false);
+		_txtCost->setVisible(false);
+		_txtSpaceUsedSrc->setVisible(false);
+		_txtSpaceUsedDst->setVisible(false);
+
+		_lstItems->setArrowColumn(193, ARROW_VERTICAL);
+		_lstItems->setColumns(4, 162, 58, 40, 27);
+	}
 	_lstItems->setSelectable(true);
 	_lstItems->setBackground(_window);
 	_lstItems->setMargin(2);
@@ -149,27 +176,6 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 	_lstItems->onRightArrowRelease((ActionHandler)&TransferItemsState::lstItemsRightArrowRelease);
 	_lstItems->onRightArrowClick((ActionHandler)&TransferItemsState::lstItemsRightArrowClick);
 	_lstItems->onMousePress((ActionHandler)&TransferItemsState::lstItemsMousePress);
-
-	if (_reservedAmountBehavior > 0)
-	{
-		// Can only adjust height *after* surface has been added. If not: crash ensured!
-		_lstItems->setHeight(120);
-		_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
-
-		_txtSpaceUsedSrc->setAlign(ALIGN_CENTER);
-		_txtSpaceUsedDst->setAlign(ALIGN_CENTER);
-
-		_txtAmountTransfer->setVisible(false);
-		_txtAmountDestination->setVisible(false);
-		_txtQuantity->setVisible(false);
-	}
-	else
-	{
-		_txtFunds->setVisible(false);
-		_txtCost->setVisible(false);
-		_txtSpaceUsedSrc->setVisible(false);
-		_txtSpaceUsedDst->setVisible(false);
-	}
 
 	_distance = getDistance();
 
@@ -730,8 +736,17 @@ void TransferItemsState::updateList()
 		ssQtySrc << _items[i].qtySrc - _items[i].amount;
 		ssQtyDst << _items[i].qtyDst;
 		ssAmount << _items[i].amount;
-		_lstItems->addRow(4, name.c_str(), ssQtySrc.str().c_str(), ssAmount.str().c_str(), ssQtyDst.str().c_str());
+
+		if (_reservedAmountBehavior > 0)
+		{
+			_lstItems->addRow(7, name.c_str(), "9999", "(999)", "", "<9999", "9999", "(999)");
+		}
+		else
+		{
+			_lstItems->addRow(4, name.c_str(), ssQtySrc.str().c_str(), ssAmount.str().c_str(), ssQtyDst.str().c_str());
+		}
 		_rows.push_back(i);
+
 		if (_items[i].amount > 0)
 		{
 			_lstItems->setRowColor(_rows.size() - 1, _lstItems->getSecondaryColor());
