@@ -441,10 +441,10 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 			row.cost = (int)(1 * _distance);
 			row.listOrder = rule->getListOrder();
 			row.size = rule->getSize();
-			/// Bit tricky, for no I go with: adding Src & Dst is closest to intention.
-			/// If not: Split it into Src and Dst (and add option to filter).
-			row.totalSize = row.size * (row.qtySrc + row.qtyDst);
-			row.totalCost = row.cost * (row.qtySrc + row.qtyDst);
+			// Assume the src base is the one we want to filter (due to 'spring' cleaning).
+			// If not as intended: Split (struct) into Src and Dst (and add option to filter).
+			row.totalSize = row.size * row.qtySrc;
+			row.totalCost = row.cost * row.qtySrc;
 
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
