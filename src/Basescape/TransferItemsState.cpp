@@ -174,6 +174,8 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 	_distance = getDistance();
 
 	_cats.push_back("STR_ALL_ITEMS");
+	_cats.push_back("STR_ALL_ITEMS_NO_NAMED");
+	_cats.push_back("STR_ITEMS_AT_ORIGIN");
 	_cats.push_back("STR_ITEMS_AT_DESTINATION");
 
 	TransferItemRow row;
@@ -485,6 +487,8 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 		{
 			_cats.clear();
 			_cats.push_back("STR_ALL_ITEMS");
+			_cats.push_back("STR_ALL_ITEMS_NO_NAMED");
+			_cats.push_back("STR_ITEMS_AT_ORIGIN");
 			_cats.push_back("STR_ITEMS_AT_DESTINATION");
 			_vanillaCategories = _cats.size();
 		}
@@ -644,9 +648,11 @@ void TransferItemsState::updateList()
 	size_t selCategory = _cbxCategory->getSelected();
 	const std::string cat = _cats[selCategory];
 	bool allItems = (cat == "STR_ALL_ITEMS");
+	bool allUnnamedItems = (cat == "STR_ALL_ITEMS_NO_NAMED");
+	bool onlyItemsAtOrigin = (cat == "STR_ITEMS_AT_ORIGIN");
 	bool onlyItemsAtDestination = (cat == "STR_ITEMS_AT_DESTINATION");
 	bool categoryUnassigned = (cat == "STR_UNASSIGNED");
-	bool specialCategory = allItems || onlyItemsAtDestination;
+	bool specialCategory = allItems || allUnnamedItems || onlyItemsAtOrigin || onlyItemsAtDestination;
 
 	if (_previousSort != _currentSort)
 	{
@@ -686,8 +692,14 @@ void TransferItemsState::updateList()
 			}
 		}
 
-		// "items at destination" filter
-		if (onlyItemsAtDestination && _items[i].qtyDst <= 0)
+		// "items at destination/origin" filter
+		if ((onlyItemsAtDestination && _items[i].qtyDst <= 0) ||
+			(onlyItemsAtOrigin && _items[i].qtySrc <= 0))
+		{
+			continue;
+		}
+		// Filter named soldiers and craft
+		if (allUnnamedItems && (_items[i].type == TRANSFER_SOLDIER || _items[i].type == TRANSFER_CRAFT))
 		{
 			continue;
 		}
