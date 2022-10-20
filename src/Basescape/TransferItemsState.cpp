@@ -400,13 +400,13 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 					// Reserved amounts (includes future production).
 					int allocated = base->getItemClaimByResearch(rule, true)
 						+ base->getItemClaimByManufacture(rule, false, true)
-						+ base->getItemClaimByCrafts(rule, true, true, true)
+						+ base->getItemClaimByCrafts(rule, true, true, false)
 						+ soldierArmor;
 					// No 'on-base' display of the following categories:
 					// * Future production: Has not yet been taken from base stores.
 					int addProtected = base->getItemClaimByResearch(rule, true)
 						+ base->getItemClaimByManufacture(rule, true, true)
-						+ base->getItemClaimByCrafts(rule, true, true, true)
+						+ base->getItemClaimByCrafts(rule, true, true, false)
 						+ soldierArmor;
 
 					if (base == _baseFrom)
