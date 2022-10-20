@@ -733,16 +733,38 @@ void TransferItemsState::updateList()
 			}
 		}
 		std::ostringstream ssQtySrc, ssQtyDst, ssAmount;
-		ssQtySrc << _items[i].qtySrc - _items[i].amount;
-		ssQtyDst << _items[i].qtyDst;
-		ssAmount << _items[i].amount;
 
 		if (_reservedAmountBehavior > 0)
 		{
-			_lstItems->addRow(7, name.c_str(), "9999", "(999)", "", "<9999", "9999", "(999)");
+			ssQtySrc << _items[i].qtySrc - _items[i].amount + _items[i].protectedSrc;
+			ssQtyDst << _items[i].qtyDst + _items[i].amount + _items[i].protectedDst;
+
+			std::ostringstream ssReservedSrc, ssReservedDst;
+			if (_items[i].allocatedSrc != 0)
+			{
+				ssReservedSrc << "(" << _items[i].allocatedSrc << ")";
+			}
+			if (_items[i].allocatedDst != 0)
+			{
+				ssReservedDst << "(" << _items[i].allocatedDst << ")";
+			}
+
+			if (_items[i].amount > 0)
+			{
+				ssAmount << _items[i].amount << ">";
+			}
+			else if (_items[i].amount < 0)
+			{
+				ssAmount << "<" << std::abs(_items[i].amount);
+			}
+			//_lstItems->addRow(7, name.c_str(), "9999", "(999)", "", "<9999", "9999", "(999)");
+			_lstItems->addRow(7, name.c_str(), ssQtySrc.str().c_str(), ssReservedSrc.str().c_str(), "", ssAmount.str().c_str(), ssQtyDst.str().c_str(), ssReservedDst.str().c_str());
 		}
 		else
 		{
+			ssQtySrc << _items[i].qtySrc - _items[i].amount;
+			ssQtyDst << _items[i].qtyDst;
+			ssAmount << _items[i].amount;
 			_lstItems->addRow(4, name.c_str(), ssQtySrc.str().c_str(), ssAmount.str().c_str(), ssQtyDst.str().c_str());
 		}
 		_rows.push_back(i);
@@ -1260,12 +1282,32 @@ void TransferItemsState::decreaseByValue(int change)
 void TransferItemsState::updateItemStrings()
 {
 	std::ostringstream ss1, ss2;
-	ss1 << getRow().qtySrc - getRow().amount;
-	ss2 << getRow().amount;
-	_lstItems->setCellText(_sel, 1, ss1.str());
-	_lstItems->setCellText(_sel, 2, ss2.str());
 
-	if (getRow().amount > 0)
+	if (_reservedAmountBehavior > 0)
+	{
+		std::ostringstream ssQtyDst;
+		ss1 << getRow().qtySrc - getRow().amount + getRow().protectedSrc;
+		ssQtyDst << getRow().qtyDst + getRow().amount + getRow().protectedDst;
+		if (getRow().amount > 0)
+		{
+			ss2 << getRow().amount << ">";
+		}
+		else if (getRow().amount < 0)
+		{
+			ss2 << "<" << std::abs(getRow().amount);
+		}
+		_lstItems->setCellText(_sel, 4, ss2.str());
+		_lstItems->setCellText(_sel, 5, ssQtyDst.str());
+	}
+	else
+	{
+		ss1 << getRow().qtySrc - getRow().amount;
+		ss2 << getRow().amount;
+		_lstItems->setCellText(_sel, 2, ss2.str());
+	}
+	_lstItems->setCellText(_sel, 1, ss1.str());
+
+	if (getRow().amount != 0)
 	{
 		_lstItems->setRowColor(_sel, _lstItems->getSecondaryColor());
 	}
