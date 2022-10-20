@@ -353,16 +353,16 @@ void SellState::delayedInit()
 				int soldierArmor = _base->getItemClaimBySoldiers(rule, true, false)
 					- _base->getItemClaimBySoldiers(rule, true, true);
 
-				// Reserved amounts (includes future production).
+				// Reserved amounts (includes future production and craft fuel).
 				row.allocatedSrc = _base->getItemClaimByResearch(rule, true)
 					+ _base->getItemClaimByManufacture(rule, false, true)
-					+ _base->getItemClaimByCrafts(rule, true, true, true)
+					+ _base->getItemClaimByCrafts(rule, true, true, false)
 					+ soldierArmor;
 				// No 'on-base' display of the following categories:
 				// * Future production: Has not yet been taken from base stores.
 				row.protectedSrc = _base->getItemClaimByResearch(rule, true)
 					+ _base->getItemClaimByManufacture(rule, true, true)
-					+ _base->getItemClaimByCrafts(rule, true, true, true)
+					+ _base->getItemClaimByCrafts(rule, true, true, false)
 					+ soldierArmor;
 
 				row.qtySrc += row.transferSrc;
