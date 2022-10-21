@@ -1030,6 +1030,7 @@ void TransferItemsState::completeTransfer()
 					origin->getStorageItems()->removeItem(item->getType(), change);
 					t = new Transfer(time);
 					t->setItems(item->getType(), change);
+					destination->getTransfers()->push_back(t);
 				}
 				break;
 			}
