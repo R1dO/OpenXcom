@@ -105,6 +105,7 @@ private:
 	/// Controls spreadsheet reserved display values (0 = vanilla style)
 	int _reservedAmountBehavior;
 	void updateSubtitleLine();
+	void changeByValue(int change, int dir);
 public:
 	/// Creates the Transfer Items state.
 	TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingState *debriefingState);

@@ -1115,10 +1115,10 @@ void TransferItemsState::lstItemsLeftArrowRelease(Action *action)
  */
 void TransferItemsState::lstItemsLeftArrowClick(Action *action)
 {
-	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT) increaseByValue(INT_MAX);
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT) changeByValue(INT_MAX, 1);
 	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
 	{
-		increaseByValue(1);
+		changeByValue(1, 1);
 		_timerInc->setInterval(250);
 		_timerDec->setInterval(250);
 	}
@@ -1153,10 +1153,10 @@ void TransferItemsState::lstItemsRightArrowRelease(Action *action)
  */
 void TransferItemsState::lstItemsRightArrowClick(Action *action)
 {
-	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT) decreaseByValue(INT_MAX);
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT) changeByValue(INT_MAX, -1);
 	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
 	{
-		decreaseByValue(1);
+		changeByValue(1, -1);
 		_timerInc->setInterval(250);
 		_timerDec->setInterval(250);
 	}
@@ -1176,7 +1176,7 @@ void TransferItemsState::lstItemsMousePress(Action *action)
 		if (action->getAbsoluteXMouse() >= _lstItems->getArrowsLeftEdge() &&
 			action->getAbsoluteXMouse() <= _lstItems->getArrowsRightEdge())
 		{
-			increaseByValue(Options::changeValueByMouseWheel);
+			changeByValue(Options::changeValueByMouseWheel, 1);
 		}
 	}
 	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
@@ -1186,7 +1186,7 @@ void TransferItemsState::lstItemsMousePress(Action *action)
 		if (action->getAbsoluteXMouse() >= _lstItems->getArrowsLeftEdge() &&
 			action->getAbsoluteXMouse() <= _lstItems->getArrowsRightEdge())
 		{
-			decreaseByValue(Options::changeValueByMouseWheel);
+			changeByValue(Options::changeValueByMouseWheel, -1);
 		}
 	}
 	else if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
@@ -1235,7 +1235,7 @@ void TransferItemsState::increase()
 {
 	_timerDec->setInterval(50);
 	_timerInc->setInterval(50);
-	increaseByValue(1);
+	changeByValue(1, 1);
 }
 
 /**
@@ -1359,7 +1359,7 @@ void TransferItemsState::decrease()
 {
 	_timerInc->setInterval(50);
 	_timerDec->setInterval(50);
-	decreaseByValue(1);
+	changeByValue(1, -1);
 }
 
 /**
@@ -1398,6 +1398,167 @@ void TransferItemsState::decreaseByValue(int change)
 	if (!Options::canTransferCraftsWhileAirborne || 0 == craft || craft->getStatus() != "STR_OUT")
 		_total -= getRow().cost * change;
 	updateItemStrings();
+}
+
+/**
+ * Increases or decreases the quantity of the selected item .
+ * @param change How much we want to move.
+ * @param dir Direction to change, +1 to destination or -1 to origin.
+ */
+void TransferItemsState::changeByValue(int change, int dir)
+{
+	// Use existing logic for original behavior
+	if (!_reservedAmountBehavior)
+	{
+		if (dir == 1)
+			increaseByValue(change);
+		else if (dir == -1)
+			decreaseByValue(change);
+
+		return;
+	}
+
+	// Prepare
+	Base *dest; // Destination
+	if (dir == 1)
+	{
+		// Move to destination
+		dest = _baseTo;
+		// if 'getRow().qtySrc <= getRow().amount' then 'change <= 0'
+		change = std::min(getRow().qtySrc - getRow().amount, change);
+	}
+	else if (dir == -1)
+	{
+		// Move to origin
+		dest = _baseFrom;
+		if (getRow().qtyDst <= -1 * getRow().amount) return;
+		// if 'getRow().qtyDst <= -1 * getRow().amount' then 'change <= 0'
+		change = std::min(getRow().qtyDst + getRow().amount, change);
+	}
+	else
+	{
+		// Cannot determine where to send to.
+		return;
+	}
+
+	if (change <= 0) return;
+
+	// Helpers
+	std::string errorMessage;
+	RuleItem *selItem = 0;
+	Craft *craft = 0;
+
+	// Error handling
+	switch (getRow().type)
+	{
+	case TRANSFER_SOLDIER:
+	case TRANSFER_SCIENTIST:
+	case TRANSFER_ENGINEER:
+		if (dir * (_pQty + dir) > dest->getAvailableQuarters() - dest->getUsedQuarters())
+		{
+			errorMessage = tr("STR_NO_FREE_ACCOMODATION");
+		}
+		break;
+	case TRANSFER_CRAFT:
+		craft = (Craft*)getRow().rule;
+		if (dir * (_cQty + dir) > dest->getAvailableHangars() - dest->getUsedHangars())
+		{
+			errorMessage = tr("STR_NO_FREE_HANGARS_FOR_TRANSFER");
+		}
+		else if (craft->getNumTotalSoldiers() > 0 &&
+			dir * (_pQty + dir * craft->getNumTotalSoldiers()) > dest->getAvailableQuarters() - dest->getUsedQuarters())
+		{
+			errorMessage = tr("STR_NO_FREE_ACCOMODATION_CREW");
+		}
+		else if (Options::storageLimitsEnforced)
+		{
+			auto used = craft->getTotalItemStorageSize(_game->getMod());
+			if (used > 0.0 && dest->storesOverfull(dir * (_iQty + dir * used)))
+			{
+				errorMessage = tr("STR_NOT_ENOUGH_STORE_SPACE_FOR_CRAFT");
+			}
+		}
+		break;
+	case TRANSFER_ITEM:
+		selItem = (RuleItem*)getRow().rule;
+		if (selItem->getSize() > 0.0 && dest->storesOverfull(dir * (dir * selItem->getSize() + _iQty)))
+		{
+			errorMessage = tr("STR_NOT_ENOUGH_STORE_SPACE");
+		}
+		if (selItem->isAlien())
+		{
+			auto prisonType = selItem->getPrisonType();
+			if (dir * (Options::storageLimitsEnforced * _aQty + dir)
+				> (dest->getAvailableContainment(prisonType) - Options::storageLimitsEnforced * dest->getUsedContainment(prisonType)))
+			{
+				errorMessage = trAlt("STR_NO_ALIEN_CONTAINMENT_FOR_TRANSFER", prisonType);
+			}
+		}
+		break;
+	}
+
+	if (errorMessage.empty())
+	{
+		int freeQuarters = dest->getAvailableQuarters() - dest->getUsedQuarters() - dir * _pQty;
+		switch (getRow().type)
+		{
+		case TRANSFER_SOLDIER:
+		case TRANSFER_SCIENTIST:
+		case TRANSFER_ENGINEER:
+			change = std::min(freeQuarters, change); // change already limited to 'getRow().qtySrc - getRow().amount and 'getRow().qtyDst <= -1 * getRow().amount'
+			_pQty += dir * change;
+
+			// Bookkeeping
+			_total -= getRow().cost * abs(getRow().amount);
+			getRow().amount += dir * change;
+			_total += getRow().cost * abs(getRow().amount);
+			break;
+		case TRANSFER_CRAFT:
+			_cQty += dir;
+			_pQty += dir * craft->getNumTotalSoldiers();
+			_iQty += dir * craft->getTotalItemStorageSize(_game->getMod());
+			// Named craft are unique hence 0 or +/-1 for .amount and no directional dependency for costs.
+			if (!Options::canTransferCraftsWhileAirborne || craft->getStatus() != "STR_OUT")
+				_total += getRow().cost * (getRow().amount != 0 ? -1 : 1);
+			getRow().amount += dir;
+			break;
+		case TRANSFER_ITEM:
+			if (selItem->isAlien())
+			{
+				int freeContainment = Options::storageLimitsEnforced ? dest->getAvailableContainment(selItem->getPrisonType()) - dest->getUsedContainment(selItem->getPrisonType()) - dir * _aQty : INT_MAX;
+				change = std::min(freeContainment, change); // change already limited to 'getRow().qtySrc - getRow().amount and 'getRow().qtyDst <= -1 * getRow().amount'
+			}
+			// both aliens and items
+			{
+				double storesNeededPerItem = ((RuleItem*)getRow().rule)->getSize();
+				double freeStores = dest->getAvailableStores() - dest->getUsedStores() - dir * _iQty;
+				double freeStoresForItem = (double)(INT_MAX);
+				if (!AreSame(storesNeededPerItem, 0.0) && storesNeededPerItem > 0.0)
+				{
+					freeStoresForItem = (freeStores + 0.05) / storesNeededPerItem;
+				}
+				change = std::min((int)freeStoresForItem, change);
+				_iQty += dir * change * storesNeededPerItem;
+			}
+			if (selItem->isAlien())
+			{
+				_aQty += dir * change;
+			}
+			// Bookkeeping
+			_total -= getRow().cost * abs(getRow().amount);
+			getRow().amount += dir * change;
+			_total += getRow().cost * abs(getRow().amount);
+			break;
+		}
+		updateItemStrings();
+	}
+	else
+	{
+		_timerInc->stop();
+		RuleInterface *menuInterface = _game->getMod()->getInterface("transferMenu");
+		_game->pushState(new ErrorMessageState(errorMessage, _palette, menuInterface->getElement("errorMessage")->color, "BACK13.SCR", menuInterface->getElement("errorPalette")->color));
+		_errorShown = true;
+	}
 }
 
 /**
