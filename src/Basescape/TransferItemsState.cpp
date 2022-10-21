@@ -1430,18 +1430,25 @@ void TransferItemsState::changeByValue(int change, int dir)
 	Base *dest; // Destination
 	if (dir == 1)
 	{
+		if (getRow().qtySrc <= getRow().amount) return;
 		// Move to destination
 		dest = _baseTo;
-		// if 'getRow().qtySrc <= getRow().amount' then 'change <= 0'
-		change = std::min(getRow().qtySrc - getRow().amount, change);
+		// Undo existing transfer on first RMB click
+		if (change == INT_MAX && getRow().amount < 0)
+			change = std::abs(getRow().amount);
+		else
+			change = std::min(getRow().qtySrc - getRow().amount, change); // change > 0
 	}
 	else if (dir == -1)
 	{
+		if (getRow().qtyDst <= -1 * getRow().amount) return;
 		// Move to origin
 		dest = _baseFrom;
-		if (getRow().qtyDst <= -1 * getRow().amount) return;
-		// if 'getRow().qtyDst <= -1 * getRow().amount' then 'change <= 0'
-		change = std::min(getRow().qtyDst + getRow().amount, change);
+		// Undo existing transfer on first RMB click
+		if (change == INT_MAX && getRow().amount > 0)
+			change = std::abs(getRow().amount);
+		else
+			change = std::min(getRow().qtyDst + getRow().amount, change); // change > 0
 	}
 	else
 	{
