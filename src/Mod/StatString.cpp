@@ -194,9 +194,18 @@ std::map<std::string, int> StatString::getCurrentStatPercent(UnitStats &currentS
 	auto normalizedPercentage = [&](UnitStats::Type current, UnitStats::Type cap)
 	{
 		if ((int)cap == 0)
-			return 0;
+		{
+			// Prevent non-existing stat from being used. Ensure return value is
+			// below default limit (0) as defined by 'getCondition()'.
+			return -1;
+		}
 		else
+		{
+			// Even though 'current' could be slightly larger than 'cap' due to circumstances.
+			// The resulting percentage (which will not be far from 100) wil not go beyond the
+			// default upper limit (255) as defined by 'getCondition()'.
 			return 100 * current / cap;
+		}
 	};
 
 	std::map<std::string, int> currentStatCapsMap;
