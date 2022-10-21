@@ -78,7 +78,7 @@ bool StatStringCondition::isMet(int stat, bool psi) const
 		return true;
 	}
 	bool conditionMet = (stat >= _minVal && stat <= _maxVal);
-	if (_conditionName == "psiStrength" || _conditionName == "psiSkill")
+	if (_conditionName == "psiStrength" || _conditionName == "psiSkill" || _conditionName == "psiStrengthPercent" || _conditionName == "psiSkillPercent")
 	{
 		conditionMet = conditionMet && psi;
 	}
