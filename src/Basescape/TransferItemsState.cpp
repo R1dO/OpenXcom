@@ -760,8 +760,10 @@ void TransferItemsState::updateList()
 			}
 			else
 			{
-				ssQtySrc << _items[i].qtySrc + _items[i].protectedSrc - _items[i].amount;
-				ssQtyDst << _items[i].qtyDst + _items[i].protectedDst + _items[i].amount;
+				if (_items[i].qtySrc + _items[i].protectedSrc != 0 )
+					ssQtySrc << _items[i].qtySrc + _items[i].protectedSrc;
+				if (_items[i].qtyDst + _items[i].protectedDst != 0)
+					ssQtyDst << _items[i].qtyDst + _items[i].protectedDst;
 			}
 			//_lstItems->addRow(7, name.c_str(), "9999", "(999)", "", "<9999", "9999", "(999)");
 			_lstItems->addRow(7, name.c_str(), ssQtySrc.str().c_str(), ssReservedSrc.str().c_str(), "", ssAmount.str().c_str(), ssQtyDst.str().c_str(), ssReservedDst.str().c_str());
@@ -1591,8 +1593,10 @@ void TransferItemsState::updateItemStrings()
 		}
 		else
 		{
-			ss1 << getRow().qtySrc - getRow().amount + getRow().protectedSrc;
-			ssQtyDst << getRow().qtyDst + getRow().amount + getRow().protectedDst;
+			if (getRow().qtySrc + getRow().protectedSrc != 0)
+				ss1 << getRow().qtySrc + getRow().protectedSrc;
+			if (getRow().qtyDst + getRow().protectedDst != 0)
+				ssQtyDst << getRow().qtyDst + getRow().protectedDst;
 		}
 		_lstItems->setCellText(_sel, 4, ss2.str());
 		_lstItems->setCellText(_sel, 5, ssQtyDst.str());
