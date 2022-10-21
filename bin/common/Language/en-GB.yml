@@ -460,3 +460,7 @@ en-GB:
   MCDS_DETAIL_PERFORMANCE_INCOME: "Performance Funding"
   MCDS_DETAIL_PERFORMANCE_PAYBACK: "Financial death spiral (or chastise player for doing well)"
 # SellState.cpp
+# TransferItemsState.cpp
+  STR_COST_OF_TRANSFERS: "Cost of Transfers>{ALT}{0}"
+  STR_ITEMS_AT_ORIGIN: "Items at Origin"
+  STR_ALL_ITEMS_NO_NAMED: "No Soldiers or Crafts"
