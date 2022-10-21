@@ -736,9 +736,6 @@ void TransferItemsState::updateList()
 
 		if (_reservedAmountBehavior > 0)
 		{
-			ssQtySrc << _items[i].qtySrc - _items[i].amount + _items[i].protectedSrc;
-			ssQtyDst << _items[i].qtyDst + _items[i].amount + _items[i].protectedDst;
-
 			std::ostringstream ssReservedSrc, ssReservedDst;
 			if (_items[i].allocatedSrc != 0)
 			{
@@ -751,11 +748,20 @@ void TransferItemsState::updateList()
 
 			if (_items[i].amount > 0)
 			{
-				ssAmount << _items[i].amount << ">";
+				ssQtySrc << _items[i].qtySrc + _items[i].protectedSrc - _items[i].amount;
+				ssQtyDst << _items[i].qtyDst + _items[i].protectedDst;
+				ssAmount << _items[i].amount << " >";
 			}
 			else if (_items[i].amount < 0)
 			{
-				ssAmount << "<" << std::abs(_items[i].amount);
+				ssQtySrc << _items[i].qtySrc + _items[i].protectedSrc;
+				ssQtyDst << _items[i].qtyDst + _items[i].protectedDst + _items[i].amount;
+				ssAmount << "< " << std::abs(_items[i].amount);
+			}
+			else
+			{
+				ssQtySrc << _items[i].qtySrc + _items[i].protectedSrc - _items[i].amount;
+				ssQtyDst << _items[i].qtyDst + _items[i].protectedDst + _items[i].amount;
 			}
 			//_lstItems->addRow(7, name.c_str(), "9999", "(999)", "", "<9999", "9999", "(999)");
 			_lstItems->addRow(7, name.c_str(), ssQtySrc.str().c_str(), ssReservedSrc.str().c_str(), "", ssAmount.str().c_str(), ssQtyDst.str().c_str(), ssReservedDst.str().c_str());
@@ -1571,15 +1577,22 @@ void TransferItemsState::updateItemStrings()
 	if (_reservedAmountBehavior > 0)
 	{
 		std::ostringstream ssQtyDst;
-		ss1 << getRow().qtySrc - getRow().amount + getRow().protectedSrc;
-		ssQtyDst << getRow().qtyDst + getRow().amount + getRow().protectedDst;
 		if (getRow().amount > 0)
 		{
-			ss2 << getRow().amount << ">";
+			ss1 << getRow().qtySrc - getRow().amount + getRow().protectedSrc;
+			ssQtyDst << getRow().qtyDst + getRow().protectedDst;
+			ss2 << getRow().amount << " >";
 		}
 		else if (getRow().amount < 0)
 		{
-			ss2 << "<" << std::abs(getRow().amount);
+			ss1 << getRow().qtySrc + getRow().protectedSrc;
+			ssQtyDst << getRow().qtyDst + getRow().amount + getRow().protectedDst;
+			ss2 << "< " << std::abs(getRow().amount);
+		}
+		else
+		{
+			ss1 << getRow().qtySrc - getRow().amount + getRow().protectedSrc;
+			ssQtyDst << getRow().qtyDst + getRow().amount + getRow().protectedDst;
 		}
 		_lstItems->setCellText(_sel, 4, ss2.str());
 		_lstItems->setCellText(_sel, 5, ssQtyDst.str());
