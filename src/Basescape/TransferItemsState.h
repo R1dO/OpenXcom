@@ -49,7 +49,7 @@ private:
 	TextButton *_btnOk, *_btnCancel;
 	TextEdit *_btnQuickSearch;
 	Window *_window;
-	Text *_txtTitle, *_txtQuantity, *_txtAmountTransfer, *_txtAmountDestination;
+	Text *_txtTitle, *_txtQuantity, *_txtAmountTransfer, *_txtAmountDestination, *_txtFunds, *_txtCost, *_txtSpaceUsedSrc, *_txtSpaceUsedDst;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
 	std::vector<TransferRow> _items;
@@ -73,6 +73,9 @@ private:
 	TransferRow &getRow() { return _items[_rows[_sel]]; }
 	/// Gets distance between bases.
 	double getDistance() const;
+	/// Controls spreadsheet reserved display values (0 = vanilla style)
+	int _reservedAmountBehavior;
+	void updateSubtitleLine();
 public:
 	/// Creates the Transfer Items state.
 	TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingState *debriefingState);

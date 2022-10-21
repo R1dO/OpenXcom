@@ -22,6 +22,7 @@
 #include <climits>
 #include <algorithm>
 #include <locale>
+#include <iomanip>
 #include "../Engine/CrossPlatform.h"
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
@@ -63,8 +64,11 @@ namespace OpenXcom
 TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingState *debriefingState) :
 	_baseFrom(baseFrom), _baseTo(baseTo), _debriefingState(debriefingState),
 	_sel(0), _total(0), _pQty(0), _cQty(0), _aQty(0), _iQty(0.0), _distance(0.0), _ammoColor(0),
-	_previousSort(TransferSortDirection::BY_LIST_ORDER), _currentSort(TransferSortDirection::BY_LIST_ORDER), _errorShown(false)
+	_previousSort(TransferSortDirection::BY_LIST_ORDER), _currentSort(TransferSortDirection::BY_LIST_ORDER),
+	_errorShown(false), _reservedAmountBehavior(0)
 {
+	_reservedAmountBehavior = Options::reservedAmountBehavior;
+
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
 	_btnQuickSearch = new TextEdit(this, 48, 9, 10, 13);
@@ -76,6 +80,17 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 	_txtAmountDestination = new Text(60, 17, 260, 24);
 	_cbxCategory = new ComboBox(this, 120, 16, 10, 24);
 	_lstItems = new TextList(287, 128, 8, 44);
+	_txtFunds = new Text(150, 9, 10, 24);
+	_txtCost = new Text(150, 9, 160, 24);
+	_txtSpaceUsedSrc =  new Text(75, 17, 132, 36);
+	_txtSpaceUsedDst =  new Text(75, 17, 222, 36);
+	if (_reservedAmountBehavior > 0)
+	{
+		_cbxCategory->setY(_cbxCategory->getY() + 12);
+		_lstItems->setY(_lstItems->getY() + 10);
+		_lstItems->setWidth(290);
+	}
+
 
 	// Set palette
 	setInterface("transferMenu");
@@ -92,6 +107,10 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 	add(_txtAmountDestination, "text", "transferMenu");
 	add(_lstItems, "list", "transferMenu");
 	add(_cbxCategory, "text", "transferMenu");
+	add(_txtFunds, "text", "transferMenu");
+	add(_txtCost, "text", "transferMenu");
+	add(_txtSpaceUsedSrc, "text", "transferMenu");
+	add(_txtSpaceUsedDst, "text", "transferMenu");
 
 	centerAllSurfaces();
 
@@ -130,6 +149,27 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 	_lstItems->onRightArrowRelease((ActionHandler)&TransferItemsState::lstItemsRightArrowRelease);
 	_lstItems->onRightArrowClick((ActionHandler)&TransferItemsState::lstItemsRightArrowClick);
 	_lstItems->onMousePress((ActionHandler)&TransferItemsState::lstItemsMousePress);
+
+	if (_reservedAmountBehavior > 0)
+	{
+		// Can only adjust height *after* surface has been added. If not: crash ensured!
+		_lstItems->setHeight(120);
+		_txtFunds->setText(tr("STR_CURRENT_FUNDS").arg(Unicode::formatFunding(_game->getSavedGame()->getFunds())));
+
+		_txtSpaceUsedSrc->setAlign(ALIGN_CENTER);
+		_txtSpaceUsedDst->setAlign(ALIGN_CENTER);
+
+		_txtAmountTransfer->setVisible(false);
+		_txtAmountDestination->setVisible(false);
+		_txtQuantity->setVisible(false);
+	}
+	else
+	{
+		_txtFunds->setVisible(false);
+		_txtCost->setVisible(false);
+		_txtSpaceUsedSrc->setVisible(false);
+		_txtSpaceUsedDst->setVisible(false);
+	}
 
 	_distance = getDistance();
 
@@ -262,6 +302,7 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 
 	_btnOk->onKeyboardRelease((ActionHandler)&TransferItemsState::btnQuickSearchToggle, Options::keyToggleQuickSearch);
 
+	updateSubtitleLine();
 	updateList();
 
 	_timerInc = new Timer(250);
@@ -1003,6 +1044,7 @@ void TransferItemsState::updateItemStrings()
 			}
 		}
 	}
+	updateSubtitleLine();
 }
 
 /**
@@ -1055,6 +1097,32 @@ void TransferItemsState::cbxCategoryChange(Action *)
 	}
 
 	updateList();
+}
+
+/**
+ * Updates variable texts between screen title and spreadsheet.
+ */
+void TransferItemsState::updateSubtitleLine()
+{
+	if (_reservedAmountBehavior <= 0) return;
+
+	//_txtCost->setText(tr("STR_COST_OF_TRANSFERS").arg(Unicode::formatFunding(999999)));
+	_txtCost->setText(tr("STR_COST_OF_TRANSFERS").arg(Unicode::formatFunding(_total)));
+
+	std::ostringstream ssBaseSrc, ssBaseDst;
+	//ssBaseSrc << "longbasename123" << "\n" << Unicode::TOK_COLOR_FLIP << "9999.99:9999"; // Slightly longer basename than editing allows.
+	//ssBaseDst << ssBaseSrc.str();
+	ssBaseSrc << _baseFrom->getName() << "\n" << Unicode::TOK_COLOR_FLIP;
+	ssBaseDst << _baseTo->getName() << "\n" << Unicode::TOK_COLOR_FLIP;
+
+	if (Options::storageLimitsEnforced)
+	{
+		ssBaseSrc << _baseFrom->getUsedStores() - _iQty << ":" << _baseFrom->getAvailableStores();
+		ssBaseDst << _baseTo->getUsedStores() + _iQty << ":" << _baseTo->getAvailableStores();
+	}
+
+	_txtSpaceUsedSrc->setText(ssBaseSrc.str().c_str());
+	_txtSpaceUsedDst->setText(ssBaseDst.str().c_str());
 }
 
 }
