@@ -114,7 +114,7 @@ std::string StatString::calcStatString(UnitStats &currentStats, UnitStats &statC
 {
 	std::string statString;
 	std::map<std::string, int> currentStatsMap = getCurrentStats(currentStats);
-	std::map<std::string, int> currentStatPercentageMap = getCurrentStatPercent(currentStats, statCaps);
+	std::map<std::string, int> currentStatPercentageMap = getCurrentStatsPercent(currentStats, statCaps);
 	if (inTraining)
 	{
 		currentStatsMap["psiTraining"] = 1;
@@ -189,7 +189,7 @@ std::map<std::string, int> StatString::getCurrentStats(UnitStats &currentStats)
  * @param currentCaps  Unit type stat caps
  * @return Map of unit's stats percentage w.r.t. statCaps.
  */
-std::map<std::string, int> StatString::getCurrentStatPercent(UnitStats &currentStats, UnitStats &currentCaps)
+std::map<std::string, int> StatString::getCurrentStatsPercent(UnitStats &currentStats, UnitStats &currentCaps)
 {
 	auto normalizedPercentage = [&](UnitStats::Type current, UnitStats::Type cap)
 	{
@@ -201,8 +201,8 @@ std::map<std::string, int> StatString::getCurrentStatPercent(UnitStats &currentS
 		}
 		else
 		{
-			// Even though 'current' could be slightly larger than 'cap' due to circumstances.
-			// The resulting percentage (which will not be far from 100) wil not go beyond the
+			// Even though 'current' could be slightly larger than 'cap' due to circumstances,
+			// the resulting percentage (which will not be far from 100) wil not go beyond the
 			// default upper limit (255) as defined by 'getCondition()'.
 			return 100 * current / cap;
 		}
