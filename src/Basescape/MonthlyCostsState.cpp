@@ -17,6 +17,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "MonthlyCostsState.h"
+#include "MonthlyCostsDetailsState.h"
 #include <sstream>
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"

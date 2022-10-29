@@ -65,23 +65,23 @@ MonthlyCostsDetailsState::MonthlyCostsDetailsState(Base *base, CostCategory curr
 	_lstTotal = new TextList(133, 9, 171, 154);
 
 	// Set palette
-	setInterface("costDetailsInfo");
+	setInterface("costInfoDetails");
 
-	add(_window, "window", "costDetailsInfo");
-	add(_btnOk, "button", "costDetailsInfo");
-	add(_btnPrev, "button", "costDetailsInfo");
-	add(_btnNext, "button", "costDetailsInfo");
-	add(_txtTitle, "text", "costDetailsInfo");
-	add(_txtSource, "text", "costDetailsInfo");
-	add(_txtQuantity, "text", "costDetailsInfo");
-	add(_txtResult, "text", "costDetailsInfo");
-	add(_lstDetails, "list", "costDetailsInfo");
-	add(_lstTotal, "text", "costDetailsInfo");
+	add(_window, "window", "costInfoDetails");
+	add(_btnOk, "button", "costInfoDetails");
+	add(_btnPrev, "button", "costInfoDetails");
+	add(_btnNext, "button", "costInfoDetails");
+	add(_txtTitle, "text", "costInfoDetails");
+	add(_txtSource, "text", "costInfoDetails");
+	add(_txtQuantity, "text", "costInfoDetails");
+	add(_txtResult, "text", "costInfoDetails");
+	add(_lstDetails, "list", "costInfoDetails");
+	add(_lstTotal, "text", "costInfoDetails");
 
 	centerAllSurfaces();
 
 	// Set up objects
-	setWindowBackground(_window, "costDetailsInfo");
+	setWindowBackground(_window, "costInfoDetails");
 
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&MonthlyCostsDetailsState::btnOkClick);
@@ -89,19 +89,17 @@ MonthlyCostsDetailsState::MonthlyCostsDetailsState(Base *base, CostCategory curr
 	_btnOk->onKeyboardPress((ActionHandler)&MonthlyCostsDetailsState::btnOkClick, Options::keyCancel);
 	_btnPrev->setText("<<");
 	_btnPrev->onMouseClick((ActionHandler)&MonthlyCostsDetailsState::btnPrevClick);
-	_btnPrev->onKeyboardPress((ActionHandler)&MonthlyCostsDetailsState::btnPrevClick, Options::keyBattlePrevUnit);
+	_btnPrev->onKeyboardPress((ActionHandler)&MonthlyCostsDetailsState::btnPrevClick, Options::keyGeoLeft);
 	_btnNext->setText(">>");
 	_btnNext->onMouseClick((ActionHandler)&MonthlyCostsDetailsState::btnNextClick);
-	_btnNext->onKeyboardPress((ActionHandler)&MonthlyCostsDetailsState::btnNextClick, Options::keyBattleNextUnit);
+	_btnNext->onKeyboardPress((ActionHandler)&MonthlyCostsDetailsState::btnNextClick, Options::keyGeoRight);
 
 	_txtTitle->setBig();
 	_txtTitle->setAlign(ALIGN_CENTER);
 
-	/// TODO: Make translatable!
-	/// TODO: Move to specific 'body...' functions?
-	_txtSource->setText("Source");
-	_txtQuantity->setText("Amount");
-	_txtResult->setText("Result");
+	_txtSource->setText(tr("STR_SOURCE"));
+	_txtQuantity->setText(tr("STR_AMOUNT"));
+	_txtResult->setText(tr("STR_RESULT"));
 
 	_lstDetails->setColumns(3, 155, 32, 83); // Note, list starts indented 2px due to align?
 	_lstDetails->setSelectable(true);        // Needed for collapse/fold functionality.

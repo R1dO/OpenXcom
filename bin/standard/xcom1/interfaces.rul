@@ -1146,22 +1146,6 @@ interfaces:
       - id: list
         color: 218   # blue
         border: 246  # purple
-  - type: costDetailsInfo
-    backgroundImage: BACK13.SCR
-    palette: PAL_BASESCAPE
-    elements:
-      - id: palette
-        color: 6     # oxide
-      - id: window
-        color: 246   # purple
-      - id: button
-        color: 246   # purple
-      - id: text
-        color: 246   # purple
-        color2: 208   # white
-      - id: list
-        color: 218   # blue
-        color2: 208   # white
   - type: selectFacility
     backgroundImage: BACK05.SCR
     palette: PAL_BASESCAPE
@@ -1440,6 +1424,22 @@ interfaces:
         color: 218   # blue
       - id: button
         color: 241   # pink
+  - type: costInfoDetails
+    backgroundImage: BACK13.SCR
+    palette: PAL_BASESCAPE
+    elements:
+      - id: palette
+        color: 6     # oxide
+      - id: window
+        color: 246   # purple
+      - id: button
+        color: 246   # purple
+      - id: text
+        color: 246   # purple
+        color2: 208   # white
+      - id: list
+        color: 218   # blue
+        color2: 208   # white
   - type: soldierList
     backgroundImage: BACK02.SCR
     palette: PAL_BASESCAPE
