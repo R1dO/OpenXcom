@@ -65,23 +65,23 @@ MonthlyCostsDetailsState::MonthlyCostsDetailsState(Base *base, CostCategory curr
 	_lstTotal = new TextList(133, 9, 171, 154);
 
 	// Set palette
-	setInterface("costDetailsInfo");
+	setInterface("costInfoDetails");
 
-	add(_window, "window", "costDetailsInfo");
-	add(_btnOk, "button", "costDetailsInfo");
-	add(_btnPrev, "button", "costDetailsInfo");
-	add(_btnNext, "button", "costDetailsInfo");
-	add(_txtTitle, "text", "costDetailsInfo");
-	add(_txtSource, "text", "costDetailsInfo");
-	add(_txtQuantity, "text", "costDetailsInfo");
-	add(_txtResult, "text", "costDetailsInfo");
-	add(_lstDetails, "list", "costDetailsInfo");
-	add(_lstTotal, "text", "costDetailsInfo");
+	add(_window, "window", "costInfoDetails");
+	add(_btnOk, "button", "costInfoDetails");
+	add(_btnPrev, "button", "costInfoDetails");
+	add(_btnNext, "button", "costInfoDetails");
+	add(_txtTitle, "text", "costInfoDetails");
+	add(_txtSource, "text", "costInfoDetails");
+	add(_txtQuantity, "text", "costInfoDetails");
+	add(_txtResult, "text", "costInfoDetails");
+	add(_lstDetails, "list", "costInfoDetails");
+	add(_lstTotal, "text", "costInfoDetails");
 
 	centerAllSurfaces();
 
 	// Set up objects
-	setWindowBackground(_window, "costDetailsInfo");
+	setWindowBackground(_window, "costInfoDetails");
 
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&MonthlyCostsDetailsState::btnOkClick);
