@@ -155,4 +155,5 @@ OPT bool r1doEnableReverseStatsSearch;
 // GUI general
 OPT int r1doReservedAmountBehavior;
 // GUI basescape
+OPT bool r1do_enableBaseInfoDetailsScreens;
 OPT bool r1doStyle_craftEquipmentState, r1doStyle_sellState;

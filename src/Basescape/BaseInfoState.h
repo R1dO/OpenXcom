@@ -59,6 +59,18 @@ private:
 	Text *_txtDefense, *_txtShortRange, *_txtLongRange;
 	Text *_numDefense, *_numShortRange, *_numLongRange;
 	Bar *_barDefense, *_barShortRange, *_barLongRange;
+
+	void soldiersClick(Action *action);
+	void engineersClick(Action *action);
+	void scientistsClick(Action *action);
+	void quartersClick(Action *action);
+	void storesClick(Action *action);
+	void laboratoriesClick(Action *action);
+	void workshopsClick(Action *action);
+	void containmentClick(Action *action);
+	void hangarsClick(Action *action);
+	void defenseClick(Action *action);
+	void detectionClick(Action *action);
 public:
 	/// Creates the Base Info state.
 	BaseInfoState(Base *base, BasescapeState *state);

@@ -8,6 +8,8 @@ en-GB:
   STR_IS_EQUAL_TO_ALLOCATED_NUMBER: "= {0}"     # {0} is allocated amount.
   STR_IS_SMALLER_THAN_ALLOCATED_NUMBER: "< {0}" # {0} is allocated amount.
   STR_FILTER_RESERVED_ITEMS: "Reserved items"
+# BaseInfoDetailsState.cpp
+  STR_ALL_BASES: "All bases"
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"
@@ -39,5 +41,9 @@ en-GB:
       Adds buttons operating on the whole (filtered) item list.
       Always show reserved items (using a separate column).
       (hidden) note: Possibly obsoleted once item manager comes into play.
+  R1DO_BASEINFO_DETAILS_SCREENS: "DEMO: Activate base info details screens"
+  R1DO_BASEINFO_DETAILS_SCREENS_DESC: |
+    Allow drill down into numbers behind overview.
+    For the following screens: BaseInfo & MonthlyCosts
   #=================== Savegame ===================
   #=================== Ufopaedia ===================
