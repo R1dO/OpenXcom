@@ -228,6 +228,7 @@
   <ItemGroup>
     <ClCompile Include="..\libs\miniz\miniz.c" />
     <ClCompile Include="Basescape\BaseInfoState.cpp" />
+    <ClCompile Include="Basescape\BaseInfoDetailsState.cpp" />
     <ClCompile Include="Basescape\BasescapeState.cpp" />
     <ClCompile Include="Basescape\BaseView.cpp" />
     <ClCompile Include="Basescape\BuildFacilitiesState.cpp" />
@@ -606,6 +607,7 @@
   <ItemGroup>
     <ClInclude Include="..\libs\miniz\miniz.h" />
     <ClInclude Include="Basescape\BaseInfoState.h" />
+    <ClInclude Include="Basescape\BaseInfoDetailsState.h" />
     <ClInclude Include="Basescape\BasescapeState.h" />
     <ClInclude Include="Basescape\BaseView.h" />
     <ClInclude Include="Basescape\BuildFacilitiesState.h" />

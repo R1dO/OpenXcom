@@ -57,6 +57,22 @@ private:
 	Text *_txtDefense, *_txtShortRange, *_txtLongRange;
 	Text *_numDefense, *_numShortRange, *_numLongRange;
 	Bar *_barDefense, *_barShortRange, *_barLongRange;
+
+	/// Do we use the alternate base screen option?
+	bool _alternateScreen;
+
+	void rowSoldiersClick(Action *action);
+	void rowEngineersClick(Action *action);
+	void rowScientistsClick(Action *action);
+	void rowQuartersClick(Action *action);
+	void rowStoresClick(Action *action);
+	void rowLaboratoriesClick(Action *action);
+	void rowWorkshopsClick(Action *action);
+	void rowContainmentClick(Action *action);
+	void rowHangarsClick(Action *action);
+	void rowDefenseClick(Action *action);
+	void rowDetectionClick(Action *action);
+
 public:
 	/// Creates the Base Info state.
 	BaseInfoState(Base *base, BasescapeState *state);

@@ -17,6 +17,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "BaseInfoState.h"
+#include "BaseInfoDetailsState.h"
 #include <sstream>
 #include <cmath>
 #include "../Engine/Game.h"
@@ -48,6 +49,8 @@ namespace OpenXcom
  */
 BaseInfoState::BaseInfoState(Base *base, BasescapeState *state) : _base(base), _state(state)
 {
+	_alternateScreen = Options::alternateBaseScreens;
+
 	// Create objects
 	_bg = new Surface(320, 200, 0, 0);
 	_mini = new MiniBaseView(128, 16, 182, 8);
@@ -252,6 +255,28 @@ BaseInfoState::BaseInfoState(Base *base, BasescapeState *state) : _base(base), _
 	_txtLongRange->setText(tr("STR_LONG_RANGE_DETECTION"));
 
 	_barLongRange->setScale(25.0);
+
+	// Provide handlers.
+	if(_alternateScreen)
+	{
+		_txtSoldiers->onMouseClick((ActionHandler)&BaseInfoState::rowSoldiersClick, SDL_BUTTON_RIGHT);
+		_txtEngineers->onMouseClick((ActionHandler)&BaseInfoState::rowEngineersClick, SDL_BUTTON_RIGHT);
+		_txtScientists->onMouseClick((ActionHandler)&BaseInfoState::rowScientistsClick, SDL_BUTTON_RIGHT);
+
+		_txtQuarters->onMouseClick((ActionHandler)&BaseInfoState::rowQuartersClick, SDL_BUTTON_RIGHT);
+		_txtStores->onMouseClick((ActionHandler)&BaseInfoState::rowStoresClick, SDL_BUTTON_RIGHT);
+		_txtLaboratories->onMouseClick((ActionHandler)&BaseInfoState::rowLaboratoriesClick, SDL_BUTTON_RIGHT);
+		_txtWorkshops->onMouseClick((ActionHandler)&BaseInfoState::rowWorkshopsClick, SDL_BUTTON_RIGHT);
+		if (Options::storageLimitsEnforced)
+		{
+			_txtContainment->onMouseClick((ActionHandler)&BaseInfoState::rowContainmentClick, SDL_BUTTON_RIGHT);
+		}
+		_txtHangars->onMouseClick((ActionHandler)&BaseInfoState::rowHangarsClick, SDL_BUTTON_RIGHT);
+
+		_txtDefense->onMouseClick((ActionHandler)&BaseInfoState::rowDefenseClick, SDL_BUTTON_RIGHT);
+		_txtShortRange->onMouseClick((ActionHandler)&BaseInfoState::rowDetectionClick, SDL_BUTTON_RIGHT);
+		_txtLongRange->onMouseClick((ActionHandler)&BaseInfoState::rowDetectionClick, SDL_BUTTON_RIGHT);
+	}
 }
 
 /**
@@ -454,6 +479,241 @@ void BaseInfoState::btnStoresClick(Action *)
 void BaseInfoState::btnMonthlyCostsClick(Action *)
 {
 	_game->pushState(new MonthlyCostsState(_base));
+}
+
+/**
+ * Open sub-window showing which facilities provide benefits for soldiers.
+
+ *
+ * This includes:
+ * + List of facilities providing psilab space
+ *   - variable: 'psiLabs'.
+ * + List of facilities providing training space
+ *   - variable: 'trainingRooms'.
+ * + List of facilities providing mana regeneration
+ *   - variable: 'manaRecoveryPerDay'.
+ *   - Note: Not stacking, only max is used. But list all.
+ * + List of facilities providing health regeneration
+ *   - variable: 'healthRecoveryPerDay', 'sickBayAbsoluteBonus', 'sickBayRelativeBonus'
+ *   - Note: health revorey does not stack, bonus recovery does stack
+ *   - Subtotal will be something along the line: "Health recovery xxHP + yy%"
+ *
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowSoldiersClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new BaseInfoDetailsState(_base, DC_SOLDIERS));
+}
+
+/**
+ * Open details sub-window for engineers.
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowEngineersClick(Action *)
+{
+	// Unless specialization becomes a thing there is no point in showing
+	// which facility provides certain functionality. And even then,
+	// those would probably fall under workshops.
+	//
+	// Alternative behavior: Open ManufactureState::ManufactureState().
+	return;
+}
+
+/**
+ * Open details sub-window for scientists.
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowScientistsClick(Action *)
+{
+	// Unless specialization becomes a thing there is no point in showing
+	// which facility provides certain functionality. And even then,
+	// those would probably fall under labs.
+	//
+	// Alternative behavior: Open ResearchState::ResearchState().
+	return;
+}
+
+/**
+ * Open sub-window showing which facilities provide living space.
+ *
+ * This includes:
+ * + List of facilities providing the space
+ *   - variable: 'personnel'.
+ * + Lists of requires.. providers if they exist
+ *   - requiresBaseFunc : soldier type
+ *   - hireEngineersRequiresBaseFunc
+ *   - hireScientistsRequiresBaseFunc
+ *   - Show how much is assigned to specific personnel categories
+ *     (granularity soldier type). Not really sure about this one.
+ *
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowQuartersClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new BaseInfoDetailsState(_base, DC_QUARTERS));
+}
+
+/**
+ * Open sub-window showing which facilities provide storage space.
+ *
+ * This includes:
+ * + List of facilities providing the space
+ *   - variable: 'storage'.
+ * + List of items providing negative space
+ *   - Plus a bulk counter for total space used.
+ *
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowStoresClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new BaseInfoDetailsState(_base, DC_STORES));
+}
+
+/**
+ * Open sub-window showing which facilities provide lab space.
+ *
+ * This includes:
+ * + List of facilities providing the space
+ *   - variable: 'labs'.
+ * + List of projects and their required workshop space (without assigned scientists)
+ *   - Only show base space (!=0), e.g. not take into account assigned scientists.
+ *   - Space used by assigned scientists (lumped version, NOT per project, that is already visible).
+ *   - Not that useful A.T.M. -> Just prepare for the case projects start costing more lab space.
+ * + List of facilities providing functionality for known? (but not necessarily in use) science projects
+ *   - variable: 'provideBaseFunc'
+ *   - Needs to first calculate list of all 'requiresBaseFunc' for (unlocked) projects.
+ *     or other way around (check if there are projects depending on available services)
+ *   - Might include list of current projects depending on those.
+ *
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowLaboratoriesClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new BaseInfoDetailsState(_base, DC_LABORATORIES));
+}
+
+/**
+ * Open sub-window showing which facilities provide workshop space.
+ *
+ * This includes:
+ * + List of facilities providing the space
+ *   - variable: 'workshops'.
+ * + List of projects and their required workshop space (without assigned engineers)
+ *   - Only show base space (!=0), e.g. not take into account assigned engineers.
+ *   - Space used by assigned engineers (lumped version, NOT per project, that is already visible).
+ * + List of facilities providing functionality for known? (but not necessarily in use) manufacture projects
+ *   - variable: 'provideBaseFunc'
+ *   - Needs to first calculate list of all 'requiresBaseFunc' for (unlocked) projects.
+ *     or other way around (check if there are projects depending on available services)
+ *   - Might include list of current projects depending on those.
+ *
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowWorkshopsClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new BaseInfoDetailsState(_base, DC_WORKSHOPS));
+}
+
+/**
+ * Open sub-window showing which facilities provide alien containment space.
+ *
+ * This includes:
+ * + A subtotal per specific 'prison' type.
+ *   - variable: 'aliens' & 'prisonType'.
+ *   - Showing facilities that contribute to the space.
+ *   - Showing amount (or even items?) that use the space.
+ *
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowContainmentClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new BaseInfoDetailsState(_base, DC_CONTAINMENT));
+}
+
+/**
+ * Open sub-window showing which facilities provide Hangar space.
+ *
+ * This includes:
+ * + List of facilities providing the space
+ *   - variable: 'crafts'
+ * + A subtotal showing space used by crafts.
+ *
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowHangarsClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new BaseInfoDetailsState(_base, DC_HANGARS));
+}
+
+/**
+ * Open sub-window showing details on defense facilities.
+ *
+ * This includes facilities providing:
+ * + Grav shield functionality
+ *   - variable: grav
+ * + Defense strength per facility,
+ *   - Subtotal shows their sum
+ *   - variable: defense
+ * + Defense hitchance
+ *   - variable" hitratio
+ *   - Not sure about this one:
+ *     could easily be regarded as a hidden stat, even if visible in ufopaedia.
+ *
+ * Will not include:
+ * + Missile attraction of a facility: Seems like it should be a hidden stat.
+ * + Hitchance subdivision into calculated chance per defense strength.
+ *   - Partly because it is a difficult formula (have to take
+ *     permutations/combinations into account).
+ *   - Partly because it is difficult to cast into a single number (which
+ *     strength to chose?). Or do we want a specific (unlocked) alien craft
+ *     via some sort of chose mechanism.
+ *   - A graph of % over strength is probably better suitable for this.
+ *
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowDefenseClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new BaseInfoDetailsState(_base, DC_DEFENSE));
+}
+
+/**
+ * Open sub-window showing details on detection abilities.
+ *
+ * This includes facilities providing:
+ * + HyperWave functionality.
+ * + Facilities contributing to range based UFO detection (defined per range limit)
+ *   - Meaning: long(er) range facilities are added to short(er) range ones.
+ *   - per facility shows detection chance
+ *   - Subtotal shows chance for that limit
+ *   - variables: radarRange & radarChance
+ * + Facilities contributing to range based AlienBase detection (defined per range limit)
+ *   - Meaning: long(er) range facilities are added to short(er) range ones.
+ *   - per facility shows detection chance
+ *   - Subtotal shows chance for that limit
+ *   - variables: sightRange & sightChance
+ *   - Not sure about this one: one could argue it should be a hidden stat.
+ * + Facilities contribution to camouflage
+ *   - variables: mind & mindPower
+ *   - Subtotal shows chance of being detected (based on no of facilities and mind shield power).
+ *   - Could also be part of defense (not being able to stay undetected is a defense tactic),
+ *
+ * Note:
+ * Detection chance calculation = (1- chance_of_not_detecting)^no_of_facilities_participating
+ *
+ * @param action Pointer to an action.
+ */
+void BaseInfoState::rowDetectionClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new BaseInfoDetailsState(_base, DC_DETECTION));
 }
 
 }

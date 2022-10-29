@@ -38,6 +38,9 @@
     <ClCompile Include="Basescape\BaseInfoState.cpp">
       <Filter>Basescape</Filter>
     </ClCompile>
+    <ClCompile Include="Basescape\BaseInfoDetailsState.cpp">
+      <Filter>Basescape</Filter>
+    </ClCompile>
     <ClCompile Include="Basescape\BasescapeState.cpp">
       <Filter>Basescape</Filter>
     </ClCompile>
@@ -1170,6 +1173,9 @@
       <Filter>Basescape</Filter>
     </ClInclude>
     <ClInclude Include="Basescape\BaseInfoState.h">
+      <Filter>Basescape</Filter>
+    </ClInclude>
+    <ClInclude Include="Basescape\BaseInfoDetailsState.h">
       <Filter>Basescape</Filter>
     </ClInclude>
     <ClInclude Include="Basescape\BasescapeState.h">
