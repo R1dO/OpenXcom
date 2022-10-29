@@ -97,11 +97,9 @@ MonthlyCostsDetailsState::MonthlyCostsDetailsState(Base *base, CostCategory curr
 	_txtTitle->setBig();
 	_txtTitle->setAlign(ALIGN_CENTER);
 
-	/// TODO: Make translatable!
-	/// TODO: Move to specific 'body...' functions?
-	_txtSource->setText("Source");
-	_txtQuantity->setText("Amount");
-	_txtResult->setText("Result");
+	_txtSource->setText(tr("STR_SOURCE"));
+	_txtQuantity->setText(tr("STR_AMOUNT"));
+	_txtResult->setText(tr("STR_RESULT"));
 
 	_lstDetails->setColumns(3, 155, 32, 83); // Note, list starts indented 2px due to align?
 	_lstDetails->setSelectable(true);        // Needed for collapse/fold functionality.
