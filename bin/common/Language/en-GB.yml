@@ -429,6 +429,16 @@ en-GB:
   STR_SOURCE: "Source"
   STR_AMOUNT: "Amount"
   STR_RESULT: "Result"
+# BaseInfoDetailsState.cpp
+  BIDS_TITEL_DETECTION: "Detection and Camouflage"
+  BIDS_SUBTOTAL_CAMOUFLAGE: "Base Camouflage"
+  BIDS_DETAIL_CAMOUFLAGE_BASE_SIZE: "Base size"
+  BIDS_SUBTOTAL_UFO_DETECTION_RADAR: "UFO radar detection {0} NM" # Uses ICAO symbol
+  BIDS_SUBTOTAL_UFO_DETECTION_HYPERWAVE: "UFO hyperwave detection {0} NM" # Uses ICAO symbol
+  BIDS_DETAIL_DETECTION_HYPERWAVE: "Hyper Wave" # TFTD: Transmission resolver; Generic: Intel ?
+  #STR_NAUTICAL_MILES_SHORT: "{0} NM" # Uses ICAO symbol
+  STR_DYNAMIC: "Distance based"
+  BIDS_SUBTOTAL_ALIEN_BASE_DETECTION: "Alien Base detection {0} NM" # Uses ICAO symbol
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"

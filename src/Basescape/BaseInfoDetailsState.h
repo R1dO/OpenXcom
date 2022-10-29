@@ -34,16 +34,6 @@ enum DetailsCategory {
 	DC_QUARTERS, DC_STORES, DC_LABORATORIES, DC_WORKSHOPS, DC_CONTAINMENT, DC_HANGARS,
 	DC_DEFENSE, DC_DETECTION};
 
-//struct BeanCounter
-//{
-//	// Use parent-child relation to enable collapsable details.
-//	int id;             // We have a subtotal if 'id == parentId'.
-//	int parentId;       // To allow collapsing of child rows.
-//	bool isVisible;     // By default children are hidden unless unfolded.
-//	std::string description;
-//	int amount;         // Display only: How many times a contribution is present on the base (-1 indicates: do not draw).
-//	int64_t totalValue; // Total value for this contribution
-//};
 
 /**
  * Monthly Costs category breakdown subwindow
@@ -53,6 +43,22 @@ enum DetailsCategory {
 class BaseInfoDetailsState : public State
 {
 private:
+	struct BeanCounter
+	{
+		// Use parent-child relation to enable collapsable details.
+		int id;             // We have a subtotal if 'id == parentId'.
+		int parentId;       // To allow collapsing of child rows.
+		bool isVisible;     // By default children are hidden unless unfolded.
+		std::string description;
+		/**
+		 * How many times a contribution is present on the base.
+		 * "-1" indicates: Do not draw this column.
+		 */
+		int amount;
+		int value;                     // Value for this contribution.
+		std::string colResultOverride; // Specialized string for 'result' column.
+	};
+
 	Base *_base;
 	DetailsCategory _currentCategory;
 
@@ -60,8 +66,21 @@ private:
 	Window *_window;
 	Text *_txtTitle, *_txtSource, *_txtQuantity, *_txtResult;
 	TextList *_lstDetails, *_lstTotal;
+	std::vector<BeanCounter> _details;
+	std::vector<int> _rows;
+	size_t _sel;
 
 	void drawBody();
+	void categoryDetection();
+	void updateList();
+	void lstDetailsMousePress(Action *action);
+
+	BeanCounter &getRow() {return _details[_rows[_sel]];}
+	int addToDetailsVector(BeanCounter row, bool updateValueField = true);
+	bool isSubtotalNeeded(int parentId);
+	int calculateSubtotalValue(int parentId);
+	int calculateSubtotalAmount(int parentId);
+	int getSubtotalValueMax(int parentId);
 public:
 	/// Creates the cost details state.
 	BaseInfoDetailsState(Base *base, DetailsCategory currentCategory);
