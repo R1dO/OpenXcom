@@ -124,7 +124,7 @@ public:
 	static std::string calcStatString(UnitStats &currentStats, UnitStats &statCaps, const std::vector<StatString*> &statStrings, bool psiStrengthEval, bool inTraining);
 	/// Get the CurrentStats.
 	static std::map<std::string, int> getCurrentStats(UnitStats &currentStats);
-	static std::map<std::string, int> getCurrentStatPercent(UnitStats &currentStats, UnitStats &currentCaps);
+	static std::map<std::string, int> getCurrentStatsPercent(UnitStats &currentStats, UnitStats &currentCaps);
 };
 
 }
