@@ -19,6 +19,7 @@
 #include "CraftEquipmentState.h"
 #include "CraftEquipmentLoadState.h"
 #include "CraftEquipmentSaveState.h"
+#include "ManufactureDependenciesTreeState.h"
 #include <climits>
 #include <sstream>
 #include <algorithm>
@@ -658,6 +659,19 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
 		RuleItem *rule = _game->getMod()->getItem(_items[_sel]);
 		std::string articleId = rule->getType();
 		Ufopaedia::openArticle(_game, articleId);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		if (action->getAbsoluteXMouse() >= _lstEquipment->getArrowsLeftEdge() &&
+			action->getAbsoluteXMouse() <= _lstEquipment->getArrowsRightEdge())
+		{
+			return;
+		}
+		RuleItem *rule = _game->getMod()->getItem(_items[_sel]);
+		if (rule != 0)
+		{
+			_game->pushState(new ManufactureDependenciesTreeState(rule->getType()));
+		}
 	}
 }
 
