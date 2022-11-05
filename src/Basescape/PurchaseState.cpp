@@ -17,6 +17,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "PurchaseState.h"
+#include "ManufactureDependenciesTreeState.h"
 #include <sstream>
 #include <climits>
 #include <iomanip>
@@ -1102,7 +1103,8 @@ void PurchaseState::lstItemsMousePress(Action *action)
 				itemName = rule->getType();
 			}
 		}
-		if (!itemName.empty())
+		bool ctrlPressed = _game->isCtrlPressed();
+		if (!itemName.empty() && ctrlPressed)
 		{
 			std::map<std::string, bool> hiddenMap = _game->getSavedGame()->getHiddenPurchaseItems();
 			std::map<std::string, bool>::iterator iter = hiddenMap.find(itemName);
@@ -1121,6 +1123,10 @@ void PurchaseState::lstItemsMousePress(Action *action)
 			size_t scrollPos = _lstItems->getScroll();
 			updateList();
 			_lstItems->scrollTo(scrollPos);
+		}
+		else if (!itemName.empty() && getRow().type == TRANSFER_ITEM)
+		{
+			_game->pushState(new ManufactureDependenciesTreeState(itemName));
 		}
 	}
 }
