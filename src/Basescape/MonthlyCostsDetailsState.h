@@ -33,17 +33,6 @@ enum CostCategory {
 	CC_CRAFTS, CC_SOLDIERS, CC_SCIENTISTS, CC_ENGINEERS,
 	CC_ITEMS, CC_FACILITIES, CC_GLOBAL_RESULT};
 
-struct BeanCounter
-{
-	// Use parent-child relation to enable collapsable details.
-	int id;             // We have a subtotal if 'id == parentId'.
-	int parentId;       // To allow collapsing of child rows.
-	bool isVisible;     // By default children are hidden unless unfolded.
-	std::string description;
-	int amount;         // Display only: How many times a contribution is present on the base (-1 indicates: do not draw).
-	int64_t totalValue; // Total value for this contribution
-};
-
 /**
  * Monthly Costs category breakdown subwindow
  *
@@ -52,6 +41,17 @@ struct BeanCounter
 class MonthlyCostsDetailsState : public State
 {
 private:
+	struct BeanCounter
+	{
+		// Use parent-child relation to enable collapsable details.
+		int id;             // We have a subtotal if 'id == parentId'.
+		int parentId;       // To allow collapsing of child rows.
+		bool isVisible;     // By default children are hidden unless unfolded.
+		std::string description;
+		int amount;         // Display only: How many times a contribution is present on the base (-1 indicates: do not draw).
+		int64_t totalValue; // Total value for this contribution
+	};
+
 	Base *_base;
 	CostCategory _currentCategory;
 
