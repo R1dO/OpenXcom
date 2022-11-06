@@ -483,8 +483,6 @@ void BaseInfoDetailsState::categoryDetection()
 				continue;
 
 			// Facility detection chance
-			std::ostringstream facilityName;
-			facilityName << tr(facility->getRules()->getType());
 			itemValue = facility->getRules()->getSightChance();
 			if (itemValue == 0)
 			{
@@ -495,9 +493,8 @@ void BaseInfoDetailsState::categoryDetection()
 				// In order to work with a single value we assume it is ok to use an average distance.
 				// In this case: half of the current detectionRange.
 				itemValue = 50 - (detectionRange/2 * 50) / facility->getRules()->getSightRange();
-				facilityName << " (" << tr("STR_DYNAMIC") << ")";
 			}
-			row = {idItem, idParent, false, facilityName.str().c_str(), 1, itemValue, ""};
+			row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, itemValue, ""};
 			row.colResultOverride = Unicode::formatPercentage(itemValue);
 			idItem = addToDetailsVector(row, false);
 		}
