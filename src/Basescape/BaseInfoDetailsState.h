@@ -71,6 +71,7 @@ private:
 	size_t _sel;
 
 	void drawBody();
+	void categoryDefense();
 	void categoryDetection();
 	void updateList();
 	void lstDetailsMousePress(Action *action);

@@ -272,7 +272,7 @@ int BaseInfoDetailsState::calculateSubtotalValue(int parentId)
 	{
 		if (element.parentId == parentId && element.id != element.parentId)
 		{
-			total += element.value;
+			total += element.value * element.amount;
 		}
 	}
 	return total;
@@ -317,6 +317,10 @@ void BaseInfoDetailsState::drawBody()
 
 	switch (_currentCategory)
 	{
+	case DC_DEFENSE:
+		ssTitle << tr("BIDS_TITEL_DEFENSE");
+		categoryDefense();
+		break;
 	case DC_DETECTION:
 		ssTitle << tr("BIDS_TITEL_DETECTION");
 		categoryDetection();
@@ -329,6 +333,126 @@ void BaseInfoDetailsState::drawBody()
 
 	_txtTitle->setText(ssTitle.str().c_str());
 	updateList();
+}
+
+
+/**
+ * Setup base defense abilities screen.
+ *
+ * Facilities contributing to the following subcategories:
+ *  - Defense strength
+ *  - Defense hitchances.
+ *  - Gravitational shields (in oxc they stack).
+ *
+ * Will not show the following subcategories:
+ * + Missile attraction of a facility.
+ *   - Seems like it should be a hidden stat.
+ * + Hitchance per combined power output (or a selected subset).
+ *   - Has to account for 36 defenses and shields on a base (through modding).
+ *     Meaning: 36! = 3.8*10^41 permutations, not even taking grav shields into account.
+ *   - Unless one comes up with a clever mathematical solution this is way
+ *     too computational expensive (for too little gain).
+*/
+void BaseInfoDetailsState::categoryDefense()
+{
+	int idItem = 100; // Ensure details use id's > than theoretical maximum subcategories of 74 (2*36 + 2).????
+	int idParent = 0; // Unique subcategories.
+	int itemValue;    // Prefer positive values only for details (subtotals are allowed to be negative)
+	std::vector<BeanCounter> subCategories;
+	BeanCounter row;  // List's workhorse.
+
+	// Calculate probability of landing at least one hit
+	auto atLeastOneHit = [&](int parentId) -> int
+	{
+		double detectionFail = 1.0;
+		for (auto element : _details)
+		{
+			if (element.parentId == parentId && element.id != element.parentId)
+			{
+				for (int i = 0 ; i < element.amount ; i++ )
+				{
+					detectionFail *= (100 - element.value)/100.0;
+				}
+			}
+		}
+		return (int) std::round(100 * (1.0 - detectionFail));
+	};
+
+	// Defense strength & ratio
+	bool hasDefenses = false;
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Categories are fixed and 'idItem' only needs to be unique.
+		// Hence it is ok to do both main defense subcategories at once.
+		if (facility->getBuildTime() > 0 || facility->getRules()->getDefenseValue() == 0) continue;
+
+		hasDefenses = true;
+
+		// Strength
+		itemValue = facility->getRules()->getDefenseValue();
+		row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, itemValue, ""};
+		idItem = addToDetailsVector(row, false);
+
+		// Hit ratio
+		itemValue = facility->getRules()->getHitRatio();
+		row = {idItem, idParent + 1, false, tr(facility->getRules()->getType()), 1, itemValue, ""};
+		row.colResultOverride = Unicode::formatPercentage(itemValue);
+		idItem = addToDetailsVector(row, false);
+	}
+	if (hasDefenses)
+	{
+		int subAmount = -1;
+		int subTotal = calculateSubtotalValue(idParent);
+		row = {idParent, idParent, true, tr("STR_DEFENSE_STRENGTH"), subAmount, subTotal, ""};
+		subCategories.push_back(row);
+
+		subTotal = atLeastOneHit(idParent + 1);
+		row = {idParent + 1, idParent + 1 , true, tr("STR_HIT_RATIO"), subAmount, subTotal, ""};
+		row.colResultOverride = Unicode::formatPercentage(subTotal);
+		subCategories.push_back(row);
+
+		idParent += 2;
+	}
+
+	// Defensive shields
+	bool hasShields = false;
+	for (auto *facility : *_base->getFacilities())
+	{
+		if (facility->getBuildTime() > 0 || !facility->getRules()->isGravShield()) continue;
+
+		hasShields = true;
+
+		row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, 1, ""};
+		idItem = addToDetailsVector(row, false);
+	}
+	if(hasShields)
+	{
+		int subAmount = -1;
+		int subTotal = calculateSubtotalValue(idParent);
+		row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_GRAV_SHIELD"), subAmount, subTotal, ""};
+		subCategories.push_back(row);
+
+		//idParent++;
+	}
+
+	// Prefer alphabetical listing of detailed rows.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return Unicode::naturalCompare(a.description, b.description);
+		}
+	);
+
+	// Add subtotals to list vector
+	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
+
+	// Ensure elements are shown below appropriate subtotal.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
 }
 
 /**

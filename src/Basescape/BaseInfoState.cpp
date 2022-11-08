@@ -654,28 +654,6 @@ void BaseInfoState::rowHangarsClick(Action *)
 
 /**
  * Open sub-window showing details on defense facilities.
- *
- * This includes facilities providing:
- * + Grav shield functionality
- *   - variable: grav
- * + Defense strength per facility,
- *   - Subtotal shows their sum
- *   - variable: defense
- * + Defense hitchance
- *   - variable" hitratio
- *   - Not sure about this one:
- *     could easily be regarded as a hidden stat, even if visible in ufopaedia.
- *
- * Will not include:
- * + Missile attraction of a facility: Seems like it should be a hidden stat.
- * + Hitchance subdivision into calculated chance per defense strength.
- *   - Partly because it is a difficult formula (have to take
- *     permutations/combinations into account).
- *   - Partly because it is difficult to cast into a single number (which
- *     strength to chose?). Or do we want a specific (unlocked) alien craft
- *     via some sort of chose mechanism.
- *   - A graph of % over strength is probably better suitable for this.
- *
  * @param action Pointer to an action.
  */
 void BaseInfoState::rowDefenseClick(Action *)

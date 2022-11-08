@@ -439,6 +439,8 @@ en-GB:
   #STR_NAUTICAL_MILES_SHORT: "{0} NM" # Uses ICAO symbol
   #STR_DYNAMIC: "Distance based"
   BIDS_SUBTOTAL_ALIEN_BASE_DETECTION: "Alien Base detection {0} NM" # Uses ICAO symbol
+  BIDS_TITEL_DEFENSE: "Base defense"
+  BIDS_SUBTOTAL_GRAV_SHIELD: "Gravity shield defense passes" # TFTD: Bombardmend shield; Generic: Intel ?
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"
