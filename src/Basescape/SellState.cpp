@@ -1177,6 +1177,7 @@ void SellState::lstItemsRightArrowClick(Action *action)
 void SellState::lstItemsMousePress(Action *action)
 {
 	_sel = _lstItems->getSelectedRow();
+	//size_t scrollPos = _lstItems->getScroll();
 	if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
 	{
 		_timerInc->stop();
@@ -1246,6 +1247,9 @@ void SellState::lstItemsMousePress(Action *action)
 				Ufopaedia::openArticle(_game, articleId);
 			}
 		}
+		// update screen
+		//updateList();
+		//_lstItems->scrollTo(scrollPos);
 	}
 }
 
