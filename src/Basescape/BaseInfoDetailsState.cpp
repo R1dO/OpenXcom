@@ -27,6 +27,8 @@
 #include "../Interface/TextList.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/BaseFacility.h"
+#include "../Savegame/SavedGame.h"
+#include "../Savegame/Transfer.h"
 
 namespace OpenXcom
 {
@@ -87,7 +89,7 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, DetailsCategory currentCa
 	_txtTitle->setAlign(ALIGN_CENTER);
 
 	_txtSource->setText(tr("STR_SOURCE"));
-	_txtQuantity->setText(tr("MCDS_TITEL_BASE_FACILITIES"));
+	_txtQuantity->setText(tr("STR_AMOUNT"));
 	_txtResult->setText(tr("STR_VALUE"));
 
 	_lstDetails->setColumns(3, 155, 45, 70); // Note, list starts indented 2px due to align?
@@ -317,6 +319,10 @@ void BaseInfoDetailsState::drawBody()
 
 	switch (_currentCategory)
 	{
+	case DC_HANGARS:
+		ssTitle << tr("BIDS_TITEL_HANGARS");
+		categoryHangars();
+		break;
 	case DC_DEFENSE:
 		ssTitle << tr("BIDS_TITEL_DEFENSE");
 		categoryDefense();
@@ -335,6 +341,95 @@ void BaseInfoDetailsState::drawBody()
 	updateList();
 }
 
+
+/**
+ * Setup hangar providers (and usage) screen.
+ *
+ * Recognize 2 subtotals may exist:
+ * (0) Facilities proving hangar space
+ * (1) Crafts demanding hangar space
+*/
+void BaseInfoDetailsState::categoryHangars()
+{
+	int idItem = 2; // Offset based on expected subtotal entries.
+	int idParent = 0;   // Let parentId represent the numbers as described in method description.
+	int itemValue;  // Always positive, unless a subtotal.
+	std::vector<BeanCounter> subCategories;
+	BeanCounter row;
+
+	// Hangar space provided
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction and non-hangars.
+		if (facility->getBuildTime() > 0 || facility->getRules()->getCrafts() == 0) continue;
+
+		// Hangar space per facility type
+		itemValue = facility->getRules()->getCrafts();
+		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, itemValue, ""};
+		idItem = addToDetailsVector(row, false);
+	}
+	// Unconditionally show subCategory.
+	{
+		int subTotal = calculateSubtotalValue(idParent);
+		int subAmount = calculateSubtotalAmount(idParent);
+
+		row = {idParent, idParent, true, tr("STR_HANGARS"), subAmount, subTotal, ""};
+		subCategories.push_back(row);
+
+		idParent++;
+	}
+
+	// Hangar space claimed
+	bool hasCrafts = false;
+	for (auto craft : *_base->getCrafts())
+	{
+		hasCrafts = true;
+		// itemValue = 1; // Unless that becomes a mod variable.
+		row = {idItem, idParent, false, craft->getName(_game->getLanguage()), 1, 1, ""};
+		idItem = addToDetailsVector(row, false);
+	}
+	for (auto transfer : *_base->getTransfers())
+	{
+		if (transfer->getType() == TRANSFER_CRAFT)
+		{
+			hasCrafts = true;
+			std::ostringstream craftName;
+			craftName << transfer->getName(_game->getLanguage());
+			craftName << " (" << tr("STR_TRANSFER") << ")";
+			row = {idItem, idParent, false, craftName.str().c_str(), 1, 1, ""};
+			idItem = addToDetailsVector(row, false);
+		}
+	}
+	if (hasCrafts)
+	{
+		int subTotal = calculateSubtotalValue(idParent);
+		int subAmount = calculateSubtotalAmount(idParent);
+
+		row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_HANGARS_USED"), subAmount, subTotal, ""};
+		subCategories.push_back(row);
+
+		idParent++;
+	}
+
+	// Prefer alphabetical listing of detailed rows.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return Unicode::naturalCompare(a.description, b.description);
+		}
+	);
+
+	// Add subtotals to list vector
+	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
+
+	// Ensure elements are shown below appropriate subtotal.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
+}
 
 /**
  * Setup base defense abilities screen.

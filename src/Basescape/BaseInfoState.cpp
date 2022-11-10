@@ -637,13 +637,7 @@ void BaseInfoState::rowContainmentClick(Action *)
 }
 
 /**
- * Open sub-window showing which facilities provide Hangar space.
- *
- * This includes:
- * + List of facilities providing the space
- *   - variable: 'crafts'
- * + A subtotal showing space used by crafts.
- *
+ * Open sub-window showing showing details for hangar space.
  * @param action Pointer to an action.
  */
 void BaseInfoState::rowHangarsClick(Action *)
