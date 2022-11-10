@@ -349,13 +349,13 @@ void BaseInfoDetailsState::drawBody()
  *   - Seems like it should be a hidden stat.
  * + Hitchance per combined power output (or a selected subset).
  *   - Has to account for 36 defenses and shields on a base (through modding).
- *     Meaning: 36! = 3.8*10^41 permutations, not even taking grav shields into account.
+ *     Meaning: 2^36 ~= 6.8*10^10 permutations, not even taking grav shields into account.
  *   - Unless one comes up with a clever mathematical solution this is way
  *     too computational expensive (for too little gain).
 */
 void BaseInfoDetailsState::categoryDefense()
 {
-	int idItem = 100; // Ensure details use id's > than theoretical maximum subcategories of 74 (2*36 + 2).????
+	int idItem = 100; // Just to ensure details use id's > idParents
 	int idParent = 0; // Unique subcategories.
 	int itemValue;    // Prefer positive values only for details (subtotals are allowed to be negative)
 	std::vector<BeanCounter> subCategories;
