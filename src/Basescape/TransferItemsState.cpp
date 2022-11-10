@@ -737,13 +737,20 @@ void TransferItemsState::updateList()
 		if (_reservedAmountBehavior > 0)
 		{
 			std::ostringstream ssReservedSrc, ssReservedDst;
+			std::string bracketLeft = "", bracketRight = "";
+			if (_debriefingState == 0)
+			{
+				bracketLeft = "(";
+				bracketRight = ")";
+			}
+
 			if (_items[i].allocatedSrc != 0)
 			{
-				ssReservedSrc << "(" << _items[i].allocatedSrc << ")";
+				ssReservedSrc << bracketLeft << _items[i].allocatedSrc << bracketRight;
 			}
 			if (_items[i].allocatedDst != 0)
 			{
-				ssReservedDst << "(" << _items[i].allocatedDst << ")";
+				ssReservedDst << bracketLeft << _items[i].allocatedDst << bracketRight;
 			}
 
 			if (_items[i].amount > 0)
@@ -1589,14 +1596,14 @@ void TransferItemsState::updateItemStrings()
 		if (getRow().amount > 0)
 		{
 			ss1 << getRow().qtySrc - getRow().amount + getRow().protectedSrc;
-			ssQtyDst << getRow().qtyDst + getRow().protectedDst;
-			ss2 << getRow().amount << " >";
+			ssQtyDst << getRow().qtyDst + getRow().protectedDst + getRow().amount;
+			ss2 << ">";
 		}
 		else if (getRow().amount < 0)
 		{
-			ss1 << getRow().qtySrc + getRow().protectedSrc;
+			ss1 << getRow().qtySrc + getRow().protectedSrc - getRow().amount;
 			ssQtyDst << getRow().qtyDst + getRow().amount + getRow().protectedDst;
-			ss2 << "< " << std::abs(getRow().amount);
+			ss2 << "<";
 		}
 		else
 		{
