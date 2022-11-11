@@ -71,6 +71,7 @@ private:
 	size_t _sel;
 
 	void drawBody();
+	void categoryAlienContainment();
 	void categoryHangars();
 	void categoryDefense();
 	void categoryDetection();

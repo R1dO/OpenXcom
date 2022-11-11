@@ -443,6 +443,8 @@ en-GB:
   BIDS_SUBTOTAL_GRAV_SHIELD: "Gravity shield defense passes" # TFTD: Bombardmend shield; Generic: Intel ?
   BIDS_TITEL_HANGARS: "Hangar space"
   BIDS_SUBTOTAL_HANGARS_USED: "Hangar space claimed by crafts"
+  STR_UNDER_CONSTRUCTION: "(under construction)"
+  BIDS_DETAIL_CONTAINMENT_USAGE: "Special guests"
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"

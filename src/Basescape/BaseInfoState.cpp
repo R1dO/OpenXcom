@@ -620,14 +620,7 @@ void BaseInfoState::rowWorkshopsClick(Action *)
 }
 
 /**
- * Open sub-window showing which facilities provide alien containment space.
- *
- * This includes:
- * + A subtotal per specific 'prison' type.
- *   - variable: 'aliens' & 'prisonType'.
- *   - Showing facilities that contribute to the space.
- *   - Showing amount (or even items?) that use the space.
- *
+ * Open sub-window showing details for alien containment space.
  * @param action Pointer to an action.
  */
 void BaseInfoState::rowContainmentClick(Action *)

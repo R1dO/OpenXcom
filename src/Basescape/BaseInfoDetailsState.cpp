@@ -319,6 +319,10 @@ void BaseInfoDetailsState::drawBody()
 
 	switch (_currentCategory)
 	{
+	case DC_CONTAINMENT:
+		ssTitle << tr("STR_ALIEN_CONTAINMENT");
+		categoryAlienContainment();
+		break;
 	case DC_HANGARS:
 		ssTitle << tr("BIDS_TITEL_HANGARS");
 		categoryHangars();
@@ -341,6 +345,90 @@ void BaseInfoDetailsState::drawBody()
 	updateList();
 }
 
+
+/**
+ * Setup alien containment space providers screen.
+ *
+ * Recognizes multiple subtotals may exist due to different 'prison' types.
+ */
+void BaseInfoDetailsState::categoryAlienContainment()
+{
+	int idItem = 100; // Ensure details use id's > than theoretical maximum subcategories of 36.
+	int idParent = 0;
+	int itemValue;
+	std::vector<BeanCounter> subCategories;
+	BeanCounter row;  // List's workhorse.
+
+	// Recognize multiple containment types might exist.
+	std::set<int> containmentTypes {0}; // Default alien containment.
+	for (auto *facility : *_base->getFacilities())
+	{
+		// No guardian: We want to recognize containments under construction.
+		containmentTypes.insert(facility->getRules()->getPrisonType());
+	}
+
+	// Facilities per Prison type
+	for (auto prisonType : containmentTypes)
+	{
+		bool hasPrisonType = false;
+		for (auto *facility : *_base->getFacilities())
+		{
+			// Skip non prison buildings or prisons of the wrong type.
+			// Allow 'under construction'.
+			if (facility->getRules()->getPrisonType() != prisonType || facility->getRules()->getAliens() == 0)
+				continue;
+
+			hasPrisonType = true;
+			std::ostringstream facilityName;
+
+			facilityName << tr(facility->getRules()->getType());
+			if (facility->getBuildTime() > 0)
+			{
+				facilityName << " " << tr("STR_UNDER_CONSTRUCTION");
+			}
+			itemValue = facility->getRules()->getAliens();
+			row = {idItem, idParent, false, facilityName.str().c_str(), 1, itemValue, ""};
+			idItem = addToDetailsVector(row, false);
+		}
+		if (hasPrisonType)
+		{
+			int inUse = _base->getUsedContainment(prisonType);
+			// Total usage detail row.
+			row = {idItem, idParent, false, tr("BIDS_DETAIL_CONTAINMENT_USAGE"), inUse, 1, ""}; // or use "trAlt() so modder can show a specified description."
+			row.colResultOverride = trAlt("STR_ALIEN", prisonType);
+			idItem = addToDetailsVector(row, false);
+
+			// Subtotal
+			std::ostringstream description, usage;
+			description << tr("STR_ALIEN_CONTAINMENT") << " - " << trAlt("STR_ALIEN", prisonType);
+			int subTotal = _base->getAvailableContainment(prisonType);
+			row = {idParent, idParent, true, description.str().c_str(), -1, subTotal, ""};
+			usage << inUse << "/" << subTotal;
+			row.colResultOverride = usage.str();
+			subCategories.push_back(row);
+		}
+		idParent++;
+	}
+
+	// Prefer alphabetical listing.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return Unicode::naturalCompare(a.description, b.description);
+		}
+	);
+
+	// Add subtotals to list vector
+	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
+
+	// Ensure elements are shown below appropriate subtotal.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
+}
 
 /**
  * Setup hangar providers (and usage) screen.
@@ -380,6 +468,10 @@ void BaseInfoDetailsState::categoryHangars()
 	}
 
 	// Hangar space claimed
+	// Not sure:
+	//  Does not add info that is not visible in the same way elsewhere
+	//  Unless the option of craft requiring specific hangars (or craft
+	//  requiring more hangar space) comes into play.
 	bool hasCrafts = false;
 	for (auto craft : *_base->getCrafts())
 	{
@@ -520,7 +612,7 @@ void BaseInfoDetailsState::categoryDefense()
 		row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, 1, ""};
 		idItem = addToDetailsVector(row, false);
 	}
-	if(hasShields)
+	if (hasShields)
 	{
 		int subAmount = -1;
 		int subTotal = calculateSubtotalValue(idParent);
