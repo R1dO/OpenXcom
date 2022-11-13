@@ -597,20 +597,7 @@ void BaseInfoState::rowLaboratoriesClick(Action *)
 }
 
 /**
- * Open sub-window showing which facilities provide workshop space.
- *
- * This includes:
- * + List of facilities providing the space
- *   - variable: 'workshops'.
- * + List of projects and their required workshop space (without assigned engineers)
- *   - Only show base space (!=0), e.g. not take into account assigned engineers.
- *   - Space used by assigned engineers (lumped version, NOT per project, that is already visible).
- * + List of facilities providing functionality for known? (but not necessarily in use) manufacture projects
- *   - variable: 'provideBaseFunc'
- *   - Needs to first calculate list of all 'requiresBaseFunc' for (unlocked) projects.
- *     or other way around (check if there are projects depending on available services)
- *   - Might include list of current projects depending on those.
- *
+ * Open sub-window showing details for workshop functionality.
  * @param action Pointer to an action.
  */
 void BaseInfoState::rowWorkshopsClick(Action *)

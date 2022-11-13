@@ -21,12 +21,14 @@
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Engine/Options.h"
+#include "../Mod/Mod.h"
 #include "../Interface/TextButton.h"
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
 #include "../Interface/TextList.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/BaseFacility.h"
+#include "../Savegame/Production.h"
 #include "../Savegame/SavedGame.h"
 #include "../Savegame/Transfer.h"
 
@@ -319,6 +321,10 @@ void BaseInfoDetailsState::drawBody()
 
 	switch (_currentCategory)
 	{
+	case DC_WORKSHOPS:
+		ssTitle << tr("STR_WORKSHOP");
+		categoryWorkshops();
+		break;
 	case DC_CONTAINMENT:
 		ssTitle << tr("STR_ALIEN_CONTAINMENT");
 		categoryAlienContainment();
@@ -345,6 +351,147 @@ void BaseInfoDetailsState::drawBody()
 	updateList();
 }
 
+/**
+ * Setup workshop functionality screen.
+ *
+ * Recognize multiple subcategories:
+ *  - Facilities contributing to Workshop space.
+ *  - Overview of assigned workshop space
+ *    + Project base space total
+ *    + Lump sum of assigned engineers
+ *  - Services needed for (known) manufacture projects.
+ *
+ * Deliberately not shown:
+ *  - Overview of details per project.
+ *    + One can use the manufacture screen for that.
+ */
+void BaseInfoDetailsState::categoryWorkshops()
+{
+	// Recognize workshop projects might depend on base services.
+	// We want to show facilities providing those.
+	// Based on altered version of SavedGame::getAvailableProduction()
+	RuleBaseFacilityFunctions requiredServices;
+	for (auto manufactureProject : _game->getMod()->getManufactureList())
+	{
+		RuleManufacture *ruleManufacture = _game->getMod()->getManufacture(manufactureProject);
+		if (!ruleManufacture->getRequireBaseFunc().any())
+		{
+			continue;
+		}
+		if (!_game->getSavedGame()->isResearched(ruleManufacture->getRequirements()))
+		{
+			continue;
+		}
+		requiredServices |= ruleManufacture->getRequireBaseFunc();
+	}
+
+	int idItem = requiredServices.count() + 2; // Offset based on expected subtotal entries.
+	int idParent = 0;
+	int itemValue;
+	std::vector<BeanCounter> subCategories;
+	BeanCounter row;  // Workhorse
+
+	// Workshop space
+	bool hasWorkshops = false;
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction.
+		if (facility->getBuildTime() > 0 || facility->getRules()->getWorkshops() == 0) continue;
+
+		hasWorkshops = true;
+		itemValue = facility->getRules()->getWorkshops();
+		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, itemValue, ""};
+		idItem = addToDetailsVector(row, false);
+	}
+	if (hasWorkshops)
+	{
+		// Subtotal
+		int subTotal = calculateSubtotalValue(idParent);
+		int subAmount = calculateSubtotalAmount(idParent);
+		row = {idParent, idParent, true, tr("STR_WORKSHOP"), subAmount, subTotal, ""};
+		subCategories.push_back(row);
+
+		idParent++;
+
+		// Usage is a separate category (in case we want more details)
+		for (auto production : _base->getProductions())
+		{
+			itemValue = production->getRules()->getRequiredSpace();
+			if (itemValue > 0)
+			{
+				row = {idItem, idParent, false, tr("BIDS_DETAIL_WORKSHOP_PROJECT_SPACE") , 1, itemValue, ""};
+				idItem = addToDetailsVector(row, true);
+			}
+			itemValue = production->getAssignedEngineers();
+			if (itemValue > 0)
+			{
+				row = {idItem, idParent, false, tr("BIDS_DETAIL_WORKSHOP_ENGINEERS") , 1, itemValue, ""};
+				idItem = addToDetailsVector(row, true);
+			}
+		}
+		subTotal = _base->getUsedWorkshops();
+		subAmount = _base->getProductions().size();
+		row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_WORKSHOP_USED"), subAmount, subTotal, ""};
+		subCategories.push_back(row);
+
+		idParent++;
+	}
+
+	// Facilities per required services
+	// Based on 'Mod::getBaseFunctionNames()' (want to test my bit field skills).
+	for (size_t bitPosition = 0; bitPosition < requiredServices.size(); ++bitPosition)
+	{
+		if (requiredServices.test(bitPosition))
+		{
+			bool providesService = false;
+			RuleBaseFacilityFunctions currentService{};
+			currentService.set(bitPosition);
+
+			for (auto *facility : *_base->getFacilities())
+			{
+				if (facility->getBuildTime() > 0) continue;
+
+				auto facilityServices = facility->getRules()->getProvidedBaseFunc();
+				if ((facilityServices & currentService).none()) continue;
+
+				providesService = true;
+				row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, 1, ""};
+				row.colResultOverride = ".";
+				idItem = addToDetailsVector(row, false);
+			}
+			//if (providesService)
+			{
+				std::string serviceName = tr(_game->getMod()->getBaseFunctionNames(currentService).front());
+				int subAmount = calculateSubtotalAmount(idParent) > 0 ? calculateSubtotalAmount(idParent) : -1;
+
+				row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_SERVICE").arg(serviceName), subAmount, 1, ""};
+				row.colResultOverride = providesService ? tr("STR_YES") : tr("STR_NO");
+				subCategories.push_back(row);
+
+				idParent++;
+			}
+		}
+	}
+
+	// Prefer alphabetical listing.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return Unicode::naturalCompare(a.description, b.description);
+		}
+	);
+
+	// Add subtotals to list vector
+	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
+
+	// Ensure elements are shown below appropriate subtotal.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
+}
 
 /**
  * Setup alien containment space providers screen.
@@ -861,7 +1008,7 @@ void BaseInfoDetailsState::updateList()
 		{
 			description.insert(0, " "); // Do not use dots for description indentation.
 			ssAmount << tr("MCDS_DOTTED_INDENTATION");
-			ssValue << tr("MCDS_DOTTED_INDENTATION") << tr("MCDS_DOTTED_INDENTATION");
+			ssValue << tr("MCDS_DOTTED_INDENTATION");
 			//unconditionallyShowSign = false;
 		}
 
