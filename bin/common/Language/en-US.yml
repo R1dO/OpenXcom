@@ -449,6 +449,9 @@ en-US:
   BIDS_DETAIL_WORKSHOP_ENGINEERS: "Project engineers"
   BIDS_DETAIL_WORKSHOP_PROJECT_SPACE: "Project starting space"
   BIDS_SUBTOTAL_SERVICE: "Service - {0}"
+  BIDS_SUBTOTAL_LABS_USED: "Projects"
+  BIDS_DETAIL_LABS_ENGINEERS: "Project scientists"
+  BIDS_DETAIL_LABS_PROJECT_SPACE: "Project starting space" # Should not be visible a.t.m.
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"

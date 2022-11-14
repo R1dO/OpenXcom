@@ -573,21 +573,7 @@ void BaseInfoState::rowStoresClick(Action *)
 }
 
 /**
- * Open sub-window showing which facilities provide lab space.
- *
- * This includes:
- * + List of facilities providing the space
- *   - variable: 'labs'.
- * + List of projects and their required workshop space (without assigned scientists)
- *   - Only show base space (!=0), e.g. not take into account assigned scientists.
- *   - Space used by assigned scientists (lumped version, NOT per project, that is already visible).
- *   - Not that useful A.T.M. -> Just prepare for the case projects start costing more lab space.
- * + List of facilities providing functionality for known? (but not necessarily in use) science projects
- *   - variable: 'provideBaseFunc'
- *   - Needs to first calculate list of all 'requiresBaseFunc' for (unlocked) projects.
- *     or other way around (check if there are projects depending on available services)
- *   - Might include list of current projects depending on those.
- *
+ * Open sub-window showing details for lab space functionality.
  * @param action Pointer to an action.
  */
 void BaseInfoState::rowLaboratoriesClick(Action *)

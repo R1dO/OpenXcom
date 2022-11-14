@@ -71,6 +71,7 @@ private:
 	size_t _sel;
 
 	void drawBody();
+	void categoryLabs();
 	void categoryWorkshops();
 	void categoryAlienContainment();
 	void categoryHangars();

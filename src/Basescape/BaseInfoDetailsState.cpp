@@ -26,9 +26,11 @@
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
 #include "../Interface/TextList.h"
+#include "../Ufopaedia/Ufopaedia.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/BaseFacility.h"
 #include "../Savegame/Production.h"
+#include "../Savegame/ResearchProject.h"
 #include "../Savegame/SavedGame.h"
 #include "../Savegame/Transfer.h"
 
@@ -321,6 +323,10 @@ void BaseInfoDetailsState::drawBody()
 
 	switch (_currentCategory)
 	{
+	case DC_LABORATORIES:
+		ssTitle << tr("STR_LABORATORIES");
+		categoryLabs();
+		break;
 	case DC_WORKSHOPS:
 		ssTitle << tr("STR_WORKSHOP");
 		categoryWorkshops();
@@ -349,6 +355,167 @@ void BaseInfoDetailsState::drawBody()
 
 	_txtTitle->setText(ssTitle.str().c_str());
 	updateList();
+}
+
+/**
+ * Setup laboratory functionality screen.
+ *
+ * Recognize multiple subcategories:
+ *  - Facilities contributing to laboratory space.
+ *  - Overview of assigned laboratory space
+ *    + Project base space total
+ *    + Lump sum of assigned scientists
+ *  - Services needed for (known) manufacture projects.
+ *
+ * Deliberately not shown:
+ *  - Overview of details per project.
+ *    + One can use the research screen for that.
+ */
+void BaseInfoDetailsState::categoryLabs()
+{
+	// Recognize research projects might depend on base services.
+	// We want to show facilities providing those.
+	// Based on altered version of SavedGame::getAvailableProduction()
+	RuleBaseFacilityFunctions requiredServices, providedServices;
+
+	// Available research independent from base (yup ...part of that method is no longer save converter only).
+	std::vector<RuleResearch *> availableResearch;
+	_game->getSavedGame()->getAvailableResearchProjects(availableResearch, _game->getMod(), 0);
+	for (auto unlockedProject : availableResearch)
+	{
+		requiredServices |= unlockedProject->getRequireBaseFunc();
+	}
+	// Finished research
+	for (auto finishedProject : _game->getSavedGame()->getDiscoveredResearch())
+	{
+		requiredServices |= finishedProject->getRequireBaseFunc();
+	}
+	// Check if we are allowed to know this service based on facility knowledge.
+	// Based on: BuildFacilitiesState::populateBuildList()
+	for (auto facilityType : _game->getMod()->getBaseFacilitiesList())
+	{
+		RuleBaseFacility *rule = _game->getMod()->getBaseFacility(facilityType);
+		if (!rule->isAllowedForBaseType(_base->isFakeUnderwater()))
+		{
+			continue;
+		}
+		// Check if we can see facility in ufopaedia (less strict than check if we can build).
+		ArticleDefinition *article =  _game->getMod()->getUfopaediaArticle(rule->getType(), false);
+		if (article && !Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
+		{
+			continue;
+		}
+		providedServices |= rule->getProvidedBaseFunc();
+	}
+	requiredServices &= providedServices;
+
+	int idItem = requiredServices.count() + 2; // Offset based on expected subtotal entries.
+	int idParent = 0;
+	int itemValue;
+	std::vector<BeanCounter> subCategories;
+	BeanCounter row;  // Workhorse
+
+	// Lab space
+	bool hasLabs = false;
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction.
+		if (facility->getBuildTime() > 0 || facility->getRules()->getLaboratories() == 0) continue;
+
+		hasLabs = true;
+		itemValue = facility->getRules()->getLaboratories();
+		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, itemValue, ""};
+		idItem = addToDetailsVector(row, false);
+	}
+	if (hasLabs)
+	{
+		// Subtotal
+		int subTotal = calculateSubtotalValue(idParent);
+		int subAmount = calculateSubtotalAmount(idParent);
+		row = {idParent, idParent, true, tr("STR_LABORATORIES"), subAmount, subTotal, ""};
+		subCategories.push_back(row);
+
+		idParent++;
+
+		// Usage is a separate category (in case we want more details)
+		for (auto research : _base->getResearch())
+		{
+			// In case future changes allow research projects to have space requirements
+			itemValue = 0; // research->getRules()->getRequiredSpace();
+			if (itemValue > 0)
+			{
+				row = {idItem, idParent, false, tr("BIDS_DETAIL_LABS_PROJECT_SPACE") , 1, itemValue, ""};
+				idItem = addToDetailsVector(row, true);
+			}
+			itemValue = research->getAssigned();
+			if (itemValue > 0)
+			{
+				row = {idItem, idParent, false, tr("BIDS_DETAIL_LABS_ENGINEERS") , 1, itemValue, ""};
+				idItem = addToDetailsVector(row, true);
+			}
+		}
+		subTotal = _base->getUsedLaboratories();
+		subAmount = _base->getResearch().size();
+		row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_LABS_USED"), subAmount, subTotal, ""};
+		subCategories.push_back(row);
+
+		idParent++;
+	}
+
+	// Facilities per required services
+	// Based on 'Mod::getBaseFunctionNames()' (want to test my bit field skills).
+	for (size_t bitPosition = 0; bitPosition < requiredServices.size(); ++bitPosition)
+	{
+		if (requiredServices.test(bitPosition))
+		{
+			bool providesService = false;
+			RuleBaseFacilityFunctions currentService{};
+			currentService.set(bitPosition);
+
+			for (auto *facility : *_base->getFacilities())
+			{
+				if (facility->getBuildTime() > 0) continue;
+
+				auto facilityServices = facility->getRules()->getProvidedBaseFunc();
+				if ((facilityServices & currentService).none()) continue;
+
+				providesService = true;
+				row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, 1, ""};
+				row.colResultOverride = ".";
+				idItem = addToDetailsVector(row, false);
+			}
+			//if (providesService)
+			{
+				std::string serviceName = tr(_game->getMod()->getBaseFunctionNames(currentService).front());
+				int subAmount = calculateSubtotalAmount(idParent) > 0 ? calculateSubtotalAmount(idParent) : -1;
+
+				row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_SERVICE").arg(serviceName), subAmount, 1, ""};
+				row.colResultOverride = providesService ? tr("STR_YES") : tr("STR_NO");
+				subCategories.push_back(row);
+
+				idParent++;
+			}
+		}
+	}
+
+	// Prefer alphabetical listing.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return Unicode::naturalCompare(a.description, b.description);
+		}
+	);
+
+	// Add subtotals to list vector
+	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
+
+	// Ensure elements are shown below appropriate subtotal.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
 }
 
 /**
