@@ -369,21 +369,35 @@ void BaseInfoDetailsState::categoryWorkshops()
 {
 	// Recognize workshop projects might depend on base services.
 	// We want to show facilities providing those.
-	// Based on altered version of SavedGame::getAvailableProduction()
-	RuleBaseFacilityFunctions requiredServices;
+	// Based on SavedGame::getAvailableProduction()
+	RuleBaseFacilityFunctions requiredServices, providedServices;
 	for (auto manufactureProject : _game->getMod()->getManufactureList())
 	{
 		RuleManufacture *ruleManufacture = _game->getMod()->getManufacture(manufactureProject);
-		if (!ruleManufacture->getRequireBaseFunc().any())
-		{
-			continue;
-		}
 		if (!_game->getSavedGame()->isResearched(ruleManufacture->getRequirements()))
 		{
 			continue;
 		}
 		requiredServices |= ruleManufacture->getRequireBaseFunc();
 	}
+	// Check if we are allowed to know this service based on facility knowledge.
+	// Based on: BuildFacilitiesState::populateBuildList()
+	for (auto facilityType : _game->getMod()->getBaseFacilitiesList())
+	{
+		RuleBaseFacility *rule = _game->getMod()->getBaseFacility(facilityType);
+		if (!rule->isAllowedForBaseType(_base->isFakeUnderwater()))
+		{
+			continue;
+		}
+		// Check if we can see facility in ufopaedia (less strict than check if we can build).
+		ArticleDefinition *article =  _game->getMod()->getUfopaediaArticle(rule->getType(), false);
+		if (article && !Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
+		{
+			continue;
+		}
+		providedServices |= rule->getProvidedBaseFunc();
+	}
+	requiredServices &= providedServices;
 
 	int idItem = requiredServices.count() + 2; // Offset based on expected subtotal entries.
 	int idParent = 0;
