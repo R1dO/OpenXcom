@@ -556,14 +556,7 @@ void BaseInfoState::rowQuartersClick(Action *)
 }
 
 /**
- * Open sub-window showing which facilities provide storage space.
- *
- * This includes:
- * + List of facilities providing the space
- *   - variable: 'storage'.
- * + List of items providing negative space
- *   - Plus a bulk counter for total space used.
- *
+ * Open sub-window showing details for storage space.
  * @param action Pointer to an action.
  */
 void BaseInfoState::rowStoresClick(Action *)

@@ -452,6 +452,8 @@ en-GB:
   BIDS_SUBTOTAL_LABS_USED: "Projects"
   BIDS_DETAIL_LABS_ENGINEERS: "Project scientists"
   BIDS_DETAIL_LABS_PROJECT_SPACE: "Project starting space" # Should not be visible a.t.m.
+  STR_BIDS_SUBTOTAL_STORAGE_PROVIDERS: "Provides storage space"
+  STR_BIDS_SUBTOTAL_STORAGE_USERS: "Requires storage space"
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"

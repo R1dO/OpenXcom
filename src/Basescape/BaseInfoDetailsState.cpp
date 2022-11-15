@@ -29,6 +29,7 @@
 #include "../Ufopaedia/Ufopaedia.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/BaseFacility.h"
+#include "../Savegame/ItemContainer.h"
 #include "../Savegame/Production.h"
 #include "../Savegame/ResearchProject.h"
 #include "../Savegame/SavedGame.h"
@@ -323,6 +324,10 @@ void BaseInfoDetailsState::drawBody()
 
 	switch (_currentCategory)
 	{
+	case DC_STORES:
+		ssTitle << tr("STR_STORES");
+		categoryStorage();
+		break;
 	case DC_LABORATORIES:
 		ssTitle << tr("STR_LABORATORIES");
 		categoryLabs();
@@ -355,6 +360,122 @@ void BaseInfoDetailsState::drawBody()
 
 	_txtTitle->setText(ssTitle.str().c_str());
 	updateList();
+}
+
+/**
+ * Setup storage providers (and usage) screen.
+ *
+ * Recognize 2 subtotals may exist:
+ * (0) Facilities (and items) providing storage space
+ * (1) Items (and facilities) taking up storage space
+ *
+ * Deliberately not shown:
+ * - List of space usage per item: use storestate for that.
+ */
+void BaseInfoDetailsState::categoryStorage()
+{
+	int idItem = 2; // Offset based on expected subtotal entries.
+	int idParent = 0;
+	int itemValue;  // Always positive, unless a subtotal.
+	std::vector<BeanCounter> subCategories;
+	BeanCounter row;  // Workhorse
+
+	// Facility store space
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction.
+		if (facility->getBuildTime() > 0 || facility->getRules()->getStorage() == 0) continue;
+
+		itemValue = facility->getRules()->getStorage();
+		idParent = itemValue >= 0 ? 0 : 1;
+		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, itemValue, ""};
+		idItem = addToDetailsVector(row, false);
+	}
+	// Item store space (only interested in total)
+	double itemValPos = 0, itemValNeg = 0;
+	// Based on StoreState::initList() & Base::getUsedStores().
+	for (auto& item : _game->getMod()->getItemsList())
+	{
+		auto rule = _game->getMod()->getItem(item, true);
+		int qty = _base->getStorageItems()->getItem(item);
+		// From crafts on base
+		for (auto* craft : *_base->getCrafts())
+		{
+			qty += craft->getTotalItemCount(rule);
+		}
+		// From transfers
+		for (auto* transfer : *_base->getTransfers())
+		{
+			if (transfer->getCraft())
+			{
+				qty += transfer->getCraft()->getTotalItemCount(rule);
+			}
+			else if (transfer->getItems() == item)
+			{
+				qty += transfer->getQuantity();
+			}
+		}
+
+		double size = rule->getSize();
+		if (size > 0)
+		{
+			itemValPos += qty * size;
+		}
+		else if (size < 0)
+		{
+			itemValNeg -= qty * size;
+		}
+
+	}
+	if (itemValPos > 0)
+	{
+		itemValue = (int)std::round(itemValPos);
+		idParent = 1;
+		row = {idItem, idParent, false, tr("STR_ITEMS_UC") , -1, itemValue, ""};
+		idItem = addToDetailsVector(row, false);
+	}
+	if (itemValNeg > 0)
+	{
+		itemValue = (int)std::round(itemValNeg);
+		idParent = 0;
+		row = {idItem, idParent, false, tr("STR_ITEMS_UC") , -1, itemValue, ""};
+		idItem = addToDetailsVector(row, false);
+	}
+
+	// Subtotals
+	if (isSubtotalNeeded(0)) // Available space
+	{
+		int subTotal = calculateSubtotalValue(0);
+		int subAmount = calculateSubtotalAmount(0);
+		row = {0, 0, true, tr("STR_BIDS_SUBTOTAL_STORAGE_PROVIDERS"), subAmount == 0 ? -1 : subAmount, subTotal, ""};
+		subCategories.push_back(row);
+	}
+	if (isSubtotalNeeded(1)) // Available space
+	{
+		int subTotal = calculateSubtotalValue(1);
+		int subAmount = calculateSubtotalAmount(1);
+		row = {1, 1, true, tr("STR_BIDS_SUBTOTAL_STORAGE_USERS"), subAmount == 0 ? -1 : subAmount, subTotal, ""};
+		subCategories.push_back(row);
+	}
+
+	// Prefer alphabetical listing.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return Unicode::naturalCompare(a.description, b.description);
+		}
+	);
+
+	// Add subtotals to list vector
+	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
+
+	// Ensure elements are shown below appropriate subtotal.
+	std::stable_sort(_details.begin(), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{
+			return a.parentId < b.parentId;
+		}
+	);
 }
 
 /**
