@@ -257,7 +257,7 @@ int BaseInfoDetailsState::calculateSubtotalAmount(int parentId)
 	int64_t amount = 0;
 	for (auto element : _details)
 	{
-		if (element.parentId == parentId && element.id != element.parentId)
+		if (element.parentId == parentId && element.id != element.parentId && element.amount != -1)
 		{
 			amount += element.amount;
 		}
@@ -276,9 +276,9 @@ int BaseInfoDetailsState::calculateSubtotalValue(int parentId)
 	int total = 0;
 	for (auto element : _details)
 	{
-		if (element.parentId == parentId && element.id != element.parentId)
+		if (element.parentId == parentId && element.id != element.parentId && element.amount >= -1)
 		{
-			total += element.value * element.amount;
+			total += element.value * std::abs(element.amount); // If '-1' we probably want to add a single instance of corresponding value.
 		}
 	}
 	return total;
