@@ -388,7 +388,7 @@ void BaseInfoDetailsState::categoryStorage()
 
 		itemValue = facility->getRules()->getStorage();
 		idParent = itemValue >= 0 ? 0 : 1;
-		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, itemValue, ""};
+		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, std::abs(itemValue), ""};
 		idItem = addToDetailsVector(row, false);
 	}
 	// Item store space (only interested in total)
