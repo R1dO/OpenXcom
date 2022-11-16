@@ -535,18 +535,7 @@ void BaseInfoState::rowScientistsClick(Action *)
 }
 
 /**
- * Open sub-window showing which facilities provide living space.
- *
- * This includes:
- * + List of facilities providing the space
- *   - variable: 'personnel'.
- * + Lists of requires.. providers if they exist
- *   - requiresBaseFunc : soldier type
- *   - hireEngineersRequiresBaseFunc
- *   - hireScientistsRequiresBaseFunc
- *   - Show how much is assigned to specific personnel categories
- *     (granularity soldier type). Not really sure about this one.
- *
+ * Open sub-window showing details on living space.
  * @param action Pointer to an action.
  */
 void BaseInfoState::rowQuartersClick(Action *)

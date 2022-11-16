@@ -71,6 +71,7 @@ private:
 	size_t _sel;
 
 	void drawBody();
+	void categoryQuarters();
 	void categoryStorage();
 	void categoryLabs();
 	void categoryWorkshops();
