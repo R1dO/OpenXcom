@@ -35,6 +35,7 @@ class Window;
 class Text;
 class TextEdit;
 class TextList;
+class ComboBox;
 class Armor;
 class ArrowButton;
 
@@ -48,11 +49,13 @@ enum ArmorSort
 
 struct ArmorItem
 {
-	ArmorItem(const std::string &_type, const std::string &_name, const std::string &_quantity) : type(_type), name(_name), quantity(_quantity)
+	ArmorItem(const std::string &_type, const std::string &_name, const std::string &_quantity, const int &_listOrder)
+		: type(_type), name(_name), quantity(_quantity), listOrder(_listOrder)
 	{
 	}
 	std::string type;
 	std::string name, quantity;
+	int listOrder;
 };
 
 /**
@@ -74,8 +77,15 @@ private:
 	ArrowButton *_sortName;
 	std::vector<ArmorItem> _armors;
 	std::vector<int> _indices;
-	ArmorSort _armorOrder;
+	ArmorSort _armorOrder, _previousOrder;
 	void updateArrows();
+
+	bool _alternateScreen;
+	ComboBox *_cbxCategory;
+	std::vector<std::string> _cats;
+
+	/// Handler for changing the category filter.
+	void cbxCategoryChange(Action *action);
 public:
 	/// Creates the Soldier Armor state.
 	SoldierArmorState(Base *base, size_t soldier, SoldierArmorOrigin origin);

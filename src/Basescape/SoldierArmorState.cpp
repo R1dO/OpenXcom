@@ -30,15 +30,23 @@
 #include "../Interface/Text.h"
 #include "../Interface/TextEdit.h"
 #include "../Interface/TextList.h"
+#include "../Interface/ComboBox.h"
 #include "../Menu/ErrorMessageState.h"
 #include "../Mod/Armor.h"
 #include "../Mod/RuleInterface.h"
+#include "../Savegame/AlienBase.h"
 #include "../Savegame/SavedGame.h"
 #include "../Savegame/Craft.h"
 #include "../Savegame/Soldier.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/ItemContainer.h"
+#include "../Savegame/MissionSite.h"
+#include "../Savegame/Ufo.h"
+#include "../Mod/AlienDeployment.h"
+#include "../Mod/AlienRace.h"
+#include "../Mod/ArticleDefinition.h"
 #include "../Mod/RuleSoldier.h"
+#include "../Mod/RuleStartingCondition.h"
 #include "../Ufopaedia/Ufopaedia.h"
 
 namespace OpenXcom
@@ -70,6 +78,7 @@ struct compareArmorName
 SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOrigin origin) : _base(base), _soldier(soldier), _origin(origin)
 {
 	_screen = false;
+	_alternateScreen = Options::alternateBaseScreens;
 
 	// Create objects
 	_window = new Window(this, 192, 160, 64, 20, POPUP_BOTH);
@@ -80,6 +89,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_txtQuantity = new Text(70, 9, 190, 52);
 	_lstArmor = new TextList(160, 80, 73, 68);
 	_sortName = new ArrowButton(ARROW_NONE, 11, 8, 80, 52);
+	_cbxCategory = new ComboBox(this, 120, 16, 73, 48);
 
 	// Set palette
 	if (_origin == SA_BATTLESCAPE)
@@ -99,6 +109,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	add(_txtQuantity, "text", "soldierArmor");
 	add(_lstArmor, "list", "soldierArmor");
 	add(_sortName, "text", "soldierArmor");
+	add(_cbxCategory, "text", "soldierArmor");
 
 	centerAllSurfaces();
 
@@ -125,6 +136,8 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_sortName->setX(_sortName->getX() + _txtType->getTextWidth() + 4);
 	_sortName->onMouseClick((ActionHandler)&SoldierArmorState::sortNameClick);
 
+	// Don't depend on item listOrder, it does not exist for "STR_NONE" armors (storeItem is nullpointer).
+	int screenListOrder = 0;
 	const auto &armors = _game->getMod()->getArmorsForSoldiers();
 	for (auto* a : armors)
 	{
@@ -136,7 +149,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		bool addSoldierArmor = (s->getArmor()->getStoreItem() == a->getStoreItem()); // True for the complete armor family
 		if (a->hasInfiniteSupply())
 		{
-			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), ""));
+			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), "", screenListOrder));
 		}
 		else if ((_base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor) > 0) // Uses integral promotion bool->int.
 		{
@@ -149,9 +162,88 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 			{
 				ss << "-";
 			}
-			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), ss.str()));
+			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), ss.str(), screenListOrder));
 		}
+		screenListOrder++;
 	}
+
+	// Add deployment to filter categories IF it has startingConditions on armors.
+	auto addToCats = [&](AlienDeployment *deploymentRule)
+	{
+		if (deploymentRule == 0) return;
+
+		const RuleStartingCondition *startingCondition = _game->getMod()->getStartingCondition(deploymentRule->getStartingCondition());
+		if (startingCondition == 0) return;
+
+		auto listForbidden = startingCondition->getForbiddenArmors();
+		auto listAllowed = startingCondition->getAllowedArmors();
+		if (listForbidden.empty() && listAllowed.empty()) return;
+
+		// updateList() is responsible for research check.
+		// To prevent accidental display of non-researched armors when
+		// 'listForbidden' is in effect.
+		_cats.push_back(deploymentRule->getType());
+	};
+
+	_cats.push_back("STR_ALL");
+	// Filter based on allowed armors for detected alien deployments.
+	// Based on: 'ConfirmLandingState::checkStartingCondition()'
+	for (auto missionSite : *_game->getSavedGame()->getMissionSites())
+	{
+		if (!missionSite->getDetected()) continue;
+
+		// We got vip tickets for an exclusive outdoor festival
+		addToCats(_game->getMod()->getDeployment(missionSite->getDeployment()->getType()));
+	}
+	for (auto alienBase : *_game->getSavedGame()->getAlienBases())
+	{
+		if (!alienBase->isDiscovered()) continue;
+
+		// There might exist alien specific deployments.
+		AlienRace *race = _game->getMod()->getAlienRace(alienBase->getAlienRace());
+		AlienDeployment *ruleDeploy = _game->getMod()->getDeployment(race->getBaseCustomMission());
+		if (!ruleDeploy) ruleDeploy = _game->getMod()->getDeployment(alienBase->getDeployment()->getType());
+
+		// Might want to consider a visit to our friendly neighbour.
+		addToCats(ruleDeploy);
+	}
+	for (auto ufo : *_game->getSavedGame()->getUfos())
+	{
+		if (!ufo->getDetected()) continue;
+
+		// Only ufo's that can be considered 'stationary'.
+		if (!(ufo->getStatus() == Ufo::LANDED || ufo->getStatus() == Ufo::CRASHED))
+			continue;
+
+		// // Texture based on 'GeoscapeState::time5Seconds()'
+		// int texture, shade;
+		// _globe->getPolygonTextureAndShade(ufo->getLongitude(), ufo->getLatitude(), &texture, &shade);
+		// auto globeTexture = _game->getMod()->getGlobe()->getTexture(texture);
+		// std::string ufoMissionName = ufo->getRules()->getType();
+		// if (globeTexture && globeTexture->isFakeUnderwater())
+		// {
+		// 	ufoMissionName = ufo->getRules()->getType() + "_UNDERWATER";
+		// }
+
+		// Not using (more correct) snippet above because:
+		// - Requires adapting multiple classes for globe (or state) passthrough.
+		// - Adds lots of globe related include dependencies
+		//
+		// Instead use 'brute force' as below and accept possibility of
+		// extra categories without a geoscape mission.
+		std::string ufoMissionName = ufo->getRules()->getType();
+
+		// Nice day to get some fresh air.
+		addToCats(_game->getMod()->getDeployment(ufoMissionName));
+
+		// Anybody in for some skinny-dipping?
+		ufoMissionName = ufo->getRules()->getType() + "_UNDERWATER";
+		addToCats(_game->getMod()->getDeployment(ufoMissionName));
+	}
+
+	_cbxCategory->setOptions(_cats, true);
+	_cbxCategory->onChange((ActionHandler)&SoldierArmorState::cbxCategoryChange);
+	_cbxCategory->setText(tr("STR_TYPE"));
 
 	_btnQuickSearch->setText(""); // redraw
 	_btnQuickSearch->onEnter((ActionHandler)&SoldierArmorState::btnQuickSearchApply);
@@ -160,6 +252,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_btnCancel->onKeyboardRelease((ActionHandler)&SoldierArmorState::btnQuickSearchToggle, Options::keyToggleQuickSearch);
 
 	_armorOrder = ARMOR_SORT_NONE;
+	_previousOrder = ARMOR_SORT_NONE;
 	updateArrows();
 	updateList();
 
@@ -170,6 +263,20 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	if (_origin == SA_BATTLESCAPE)
 	{
 		applyBattlescapeTheme("soldierArmor");
+	}
+
+	// Show filtering only if there are missions which limit the armors
+	if (_alternateScreen && _cats.size() > 1)
+	{
+		_btnQuickSearch->setX(_btnQuickSearch->getX() - 6);
+		_btnQuickSearch->setY(_btnQuickSearch->getY() - 6);
+		_txtType->setVisible(false);
+		_txtQuantity->setX(_txtQuantity->getX() + 5);
+		_sortName->setVisible(false);
+	}
+	else
+	{
+		_cbxCategory->setVisible(false);
 	}
 }
 
@@ -216,6 +323,7 @@ void SoldierArmorState::sortList()
 		std::sort(_armors.rbegin(), _armors.rend(), compareArmorName(true));
 		break;
 	default:
+		std::sort(_armors.begin(), _armors.end(), [](const ArmorItem a, const ArmorItem b) { return a.listOrder < b.listOrder; });
 		break;
 	}
 	updateList();
@@ -233,10 +341,44 @@ void SoldierArmorState::updateList()
 	_lstArmor->clearList();
 	_indices.clear();
 
+	size_t selCategory = _cbxCategory->getSelected();
+	const std::string selectedCategory = _cats[selCategory];
+	bool categoryFilterEnabled = (selectedCategory != "STR_ALL");
+
 	int index = -1;
 	for (std::vector<ArmorItem>::const_iterator j = _armors.begin(); j != _armors.end(); ++j)
 	{
 		++index;
+
+		// filter
+		if (categoryFilterEnabled)
+		{
+			const AlienDeployment *filteredDeployment = _game->getMod()->getDeployment(selectedCategory);
+			const RuleStartingCondition *startingCondition = _game->getMod()->getStartingCondition(filteredDeployment->getStartingCondition());
+			// Both lists are supposed to be mutual exclusive.
+			auto listAllowed = startingCondition->getAllowedArmors();
+			auto listForbidden = startingCondition->getForbiddenArmors();
+
+			if (!listAllowed.empty() && std::find(listAllowed.begin(), listAllowed.end(), (*j).type) == listAllowed.end())
+			{
+				continue; // Armor not in list of allowed ones
+			}
+			else if (!listForbidden.empty() && std::find(listForbidden.begin(), listForbidden.end(), (*j).type) != listForbidden.end())
+			{
+				continue; // Armor in list of forbidden ones
+			}
+			else
+			{
+				// Should not happen
+			}
+
+			// Only show armor if it has been researched (or if the ufopaedia article does not exist).
+			ArticleDefinition* article = _game->getMod()->getUfopaediaArticle((*j).type, false);
+			if (article && !_game->getSavedGame()->isResearched(article->requires))
+			{
+				continue;
+			}
+		}
 
 		// quick search
 		if (!searchString.empty())
@@ -353,6 +495,25 @@ void SoldierArmorState::sortNameClick(Action *)
 		_armorOrder = ARMOR_SORT_NAME_ASC;
 	}
 	updateArrows();
+	sortList();
+}
+
+/**
+* Updates the production list to match the category filter.
+*/
+void SoldierArmorState::cbxCategoryChange(Action *)
+{
+	_previousOrder = _armorOrder;
+
+	if (_game->isAltPressed())
+	{
+		_armorOrder = _game->isShiftPressed() ? ArmorSort::ARMOR_SORT_NAME_DESC : ArmorSort::ARMOR_SORT_NAME_ASC;
+	}
+	else
+	{
+		_armorOrder = ArmorSort::ARMOR_SORT_NONE;
+	}
+
 	sortList();
 }
 
