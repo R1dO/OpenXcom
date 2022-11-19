@@ -90,12 +90,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_lstArmor = new TextList(160, 80, 73, 68);
 	_sortName = new ArrowButton(ARROW_NONE, 11, 8, 80, 52);
 	_cbxCategory = new ComboBox(this, 120, 16, 73, 48);
-	if (_alternateScreen)
-	{
-		_txtQuantity->setX(_txtQuantity->getX() + 5);
-		_btnQuickSearch->setX(_btnQuickSearch->getX() - 6);
-		_btnQuickSearch->setY(_btnQuickSearch->getY() - 6);
-	}
 
 	// Set palette
 	if (_origin == SA_BATTLESCAPE)
@@ -179,19 +173,11 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		if (deploymentRule == 0) return;
 
 		const RuleStartingCondition *startingCondition = _game->getMod()->getStartingCondition(deploymentRule->getStartingCondition());
-		if (startingCondition == 0)
-		{
-			std::cout << "No starting condition for:\t" << deploymentRule->getType() << std::endl;
-			return;
-		}
+		if (startingCondition == 0) return;
 
 		auto listForbidden = startingCondition->getForbiddenArmors();
 		auto listAllowed = startingCondition->getAllowedArmors();
-		if (listForbidden.empty() && listAllowed.empty())
-		{
-			std::cout << "No armor deps for:\t" << deploymentRule->getType() << std::endl;
-			return;
-		}
+		if (listForbidden.empty() && listAllowed.empty()) return;
 
 		// updateList() is responsible for research check.
 		// To prevent accidental display of non-researched armors when
@@ -279,9 +265,13 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		applyBattlescapeTheme("soldierArmor");
 	}
 
-	if (_alternateScreen)
+	// Show filtering only if there are missions which limit the armors
+	if (_alternateScreen && _cats.size() > 1)
 	{
+		_btnQuickSearch->setX(_btnQuickSearch->getX() - 6);
+		_btnQuickSearch->setY(_btnQuickSearch->getY() - 6);
 		_txtType->setVisible(false);
+		_txtQuantity->setX(_txtQuantity->getX() + 5);
 		_sortName->setVisible(false);
 	}
 	else
