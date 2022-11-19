@@ -34,12 +34,19 @@
 #include "../Menu/ErrorMessageState.h"
 #include "../Mod/Armor.h"
 #include "../Mod/RuleInterface.h"
+#include "../Savegame/AlienBase.h"
 #include "../Savegame/SavedGame.h"
 #include "../Savegame/Craft.h"
 #include "../Savegame/Soldier.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/ItemContainer.h"
+#include "../Savegame/MissionSite.h"
+#include "../Savegame/Ufo.h"
+#include "../Mod/AlienDeployment.h"
+#include "../Mod/AlienRace.h"
+#include "../Mod/ArticleDefinition.h"
 #include "../Mod/RuleSoldier.h"
+#include "../Mod/RuleStartingCondition.h"
 #include "../Ufopaedia/Ufopaedia.h"
 
 namespace OpenXcom
@@ -82,7 +89,13 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_txtQuantity = new Text(70, 9, 190, 52);
 	_lstArmor = new TextList(160, 80, 73, 68);
 	_sortName = new ArrowButton(ARROW_NONE, 11, 8, 80, 52);
-	_cbxCategory = new ComboBox(this, 100, 16, 80, 52);
+	_cbxCategory = new ComboBox(this, 120, 16, 73, 48);
+	if (_alternateScreen)
+	{
+		_txtQuantity->setX(_txtQuantity->getX() + 5);
+		_btnQuickSearch->setX(_btnQuickSearch->getX() - 6);
+		_btnQuickSearch->setY(_btnQuickSearch->getY() - 6);
+	}
 
 	// Set palette
 	if (_origin == SA_BATTLESCAPE)
@@ -129,8 +142,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_sortName->setX(_sortName->getX() + _txtType->getTextWidth() + 4);
 	_sortName->onMouseClick((ActionHandler)&SoldierArmorState::sortNameClick);
 
-	_cats.push_back("STR_TYPE");
-
 	// Don't depend on item listOrder, it does not exist for "STR_NONE" armors (storeItem is nullpointer).
 	int screenListOrder = 0;
 	const auto &armors = _game->getMod()->getArmorsForSoldiers();
@@ -162,37 +173,91 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		screenListOrder++;
 	}
 
-	// Armor categories
-	if (_game->getMod()->getDisplayCustomCategories() > 0)
+	// Add deployment to filter categories IF it has startingConditions on armors.
+	auto addToCats = [&](AlienDeployment *deploymentRule)
 	{
-		// first find all relevant item categories
-		std::vector<std::string> tempCats;
-		for (std::vector<ArmorItem>::iterator i = _armors.begin(); i != _armors.end(); ++i)
-		{
-			const RuleItem *rule = _game->getMod()->getArmor((*i).type)->getStoreItem();
-			if (!rule || rule->getCategories().empty()) continue;
+		if (deploymentRule == 0) return;
 
-			for (auto itemCat : rule->getCategories())
-			{
-				if (std::find(tempCats.begin(), tempCats.end(), itemCat) == tempCats.end())
-				{
-					tempCats.push_back(itemCat);
-				}
-			}
-		}
-		// Outport sorted by mod definition
-		const std::vector<std::string> &categories = _game->getMod()->getItemCategoriesList();
-		for (std::vector<std::string>::const_iterator k = categories.begin(); k != categories.end(); ++k)
+		const RuleStartingCondition *startingCondition = _game->getMod()->getStartingCondition(deploymentRule->getStartingCondition());
+		if (startingCondition == 0)
 		{
-			if (std::find(tempCats.begin(), tempCats.end(), (*k)) != tempCats.end())
-			{
-				_cats.push_back((*k));
-			}
+			std::cout << "No starting condition for:\t" << deploymentRule->getType() << std::endl;
+			return;
 		}
+
+		auto listForbidden = startingCondition->getForbiddenArmors();
+		auto listAllowed = startingCondition->getAllowedArmors();
+		if (listForbidden.empty() && listAllowed.empty())
+		{
+			std::cout << "No armor deps for:\t" << deploymentRule->getType() << std::endl;
+			return;
+		}
+
+		// updateList() is responsible for research check.
+		// To prevent accidental display of non-researched armors when
+		// 'listForbidden' is in effect.
+		_cats.push_back(deploymentRule->getType());
+	};
+
+	_cats.push_back("STR_ALL");
+	// Filter based on allowed armors for detected alien deployments.
+	// Based on: 'ConfirmLandingState::checkStartingCondition()'
+	for (auto missionSite : *_game->getSavedGame()->getMissionSites())
+	{
+		if (!missionSite->getDetected()) continue;
+
+		// We got vip tickets for an exclusive outdoor festival
+		addToCats(_game->getMod()->getDeployment(missionSite->getDeployment()->getType()));
+	}
+	for (auto alienBase : *_game->getSavedGame()->getAlienBases())
+	{
+		if (!alienBase->isDiscovered()) continue;
+
+		// There might exist alien specific deployments.
+		AlienRace *race = _game->getMod()->getAlienRace(alienBase->getAlienRace());
+		AlienDeployment *ruleDeploy = _game->getMod()->getDeployment(race->getBaseCustomMission());
+		if (!ruleDeploy) ruleDeploy = _game->getMod()->getDeployment(alienBase->getDeployment()->getType());
+
+		// Might want to consider a visit to our friendly neighbour.
+		addToCats(ruleDeploy);
+	}
+	for (auto ufo : *_game->getSavedGame()->getUfos())
+	{
+		if (!ufo->getDetected()) continue;
+
+		// Only ufo's that can be considered 'stationary'.
+		if (!(ufo->getStatus() == Ufo::LANDED || ufo->getStatus() == Ufo::CRASHED))
+			continue;
+
+		// // Texture based on 'GeoscapeState::time5Seconds()'
+		// int texture, shade;
+		// _globe->getPolygonTextureAndShade(ufo->getLongitude(), ufo->getLatitude(), &texture, &shade);
+		// auto globeTexture = _game->getMod()->getGlobe()->getTexture(texture);
+		// std::string ufoMissionName = ufo->getRules()->getType();
+		// if (globeTexture && globeTexture->isFakeUnderwater())
+		// {
+		// 	ufoMissionName = ufo->getRules()->getType() + "_UNDERWATER";
+		// }
+
+		// Not using (more correct) snippet above because:
+		// - Requires adapting multiple classes for globe (or state) passthrough.
+		// - Adds lots of globe related include dependencies
+		//
+		// Instead use 'brute force' as below and accept possibility of
+		// extra categories without a geoscape mission.
+		std::string ufoMissionName = ufo->getRules()->getType();
+
+		// Nice day to get some fresh air.
+		addToCats(_game->getMod()->getDeployment(ufoMissionName));
+
+		// Anybody in for some skinny-dipping?
+		ufoMissionName = ufo->getRules()->getType() + "_UNDERWATER";
+		addToCats(_game->getMod()->getDeployment(ufoMissionName));
 	}
 
 	_cbxCategory->setOptions(_cats, true);
 	_cbxCategory->onChange((ActionHandler)&SoldierArmorState::cbxCategoryChange);
+	_cbxCategory->setText(tr("STR_TYPE"));
 
 	_btnQuickSearch->setText(""); // redraw
 	_btnQuickSearch->onEnter((ActionHandler)&SoldierArmorState::btnQuickSearchApply);
@@ -288,7 +353,7 @@ void SoldierArmorState::updateList()
 
 	size_t selCategory = _cbxCategory->getSelected();
 	const std::string selectedCategory = _cats[selCategory];
-	bool categoryFilterEnabled = (selectedCategory != "STR_TYPE");
+	bool categoryFilterEnabled = (selectedCategory != "STR_ALL");
 
 	int index = -1;
 	for (std::vector<ArmorItem>::const_iterator j = _armors.begin(); j != _armors.end(); ++j)
@@ -296,11 +361,33 @@ void SoldierArmorState::updateList()
 		++index;
 
 		// filter
-		const RuleItem *rule = _game->getMod()->getArmor((*j).type)->getStoreItem();
-		// If armor is STR_NONE we have a nullpointer rule
-		if (categoryFilterEnabled && rule && !rule->belongsToCategory(selectedCategory))
+		if (categoryFilterEnabled)
 		{
-			continue;
+			const AlienDeployment *filteredDeployment = _game->getMod()->getDeployment(selectedCategory);
+			const RuleStartingCondition *startingCondition = _game->getMod()->getStartingCondition(filteredDeployment->getStartingCondition());
+			// Both lists are supposed to be mutual exclusive.
+			auto listAllowed = startingCondition->getAllowedArmors();
+			auto listForbidden = startingCondition->getForbiddenArmors();
+
+			if (!listAllowed.empty() && std::find(listAllowed.begin(), listAllowed.end(), (*j).type) == listAllowed.end())
+			{
+				continue; // Armor not in list of allowed ones
+			}
+			else if (!listForbidden.empty() && std::find(listForbidden.begin(), listForbidden.end(), (*j).type) != listForbidden.end())
+			{
+				continue; // Armor in list of forbidden ones
+			}
+			else
+			{
+				// Should not happen
+			}
+
+			// Only show armor if it has been researched (or if the ufopaedia article does not exist).
+			ArticleDefinition* article = _game->getMod()->getUfopaediaArticle((*j).type, false);
+			if (article && !_game->getSavedGame()->isResearched(article->requires))
+			{
+				continue;
+			}
 		}
 
 		// quick search
