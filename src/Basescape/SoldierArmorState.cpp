@@ -34,6 +34,7 @@
 #include "../Menu/ErrorMessageState.h"
 #include "../Mod/Armor.h"
 #include "../Mod/RuleInterface.h"
+#include "../Mod/RuleEnviroEffects.h"
 #include "../Savegame/AlienBase.h"
 #include "../Savegame/SavedGame.h"
 #include "../Savegame/Craft.h"
@@ -47,6 +48,7 @@
 #include "../Mod/ArticleDefinition.h"
 #include "../Mod/RuleSoldier.h"
 #include "../Mod/RuleStartingCondition.h"
+#include "../Mod/RuleTerrain.h"
 #include "../Ufopaedia/Ufopaedia.h"
 
 namespace OpenXcom
@@ -347,24 +349,44 @@ void SoldierArmorState::updateList()
 		{
 			const AlienDeployment *filteredDeployment = _game->getMod()->getDeployment(selectedCategory);
 			const RuleStartingCondition *startingCondition = _game->getMod()->getStartingCondition(filteredDeployment->getStartingCondition());
-			// Both lists are supposed to be mutual exclusive.
-			auto listAllowed = startingCondition->getAllowedArmors();
-			auto listForbidden = startingCondition->getForbiddenArmors();
+			const RuleEnviroEffects *deployEnviro = _game->getMod()->getEnviroEffects(filteredDeployment->getEnviroEffects());
 
-			if (!listAllowed.empty() && std::find(listAllowed.begin(), listAllowed.end(), (*j).type) == listAllowed.end())
+			// Check if armor can be used based on deployment rules. In order of prio as
+			// derived from: `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
+			bool isAllowedOnMission = false;
+			// 1. Deployment based environmental armor transforms
+			if (deployEnviro && deployEnviro->getArmorTransformation(_game->getMod()->getArmor((*j).type)) != nullptr)
 			{
-				continue; // Armor not in list of allowed ones
+				isAllowedOnMission = true;
 			}
-			else if (!listForbidden.empty() && std::find(listForbidden.begin(), listForbidden.end(), (*j).type) != listForbidden.end())
+			// 2. Terrain based environmental armor transforms
+			if (!deployEnviro)
 			{
-				continue; // Armor in list of forbidden ones
+				for (auto terrain : filteredDeployment->getTerrains())
+				{
+					RuleTerrain* terrainRule = _game->getMod()->getTerrain(terrain);
+					RuleEnviroEffects* terrainEnviro = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
+					if (terrainEnviro && terrainEnviro->getArmorTransformation(_game->getMod()->getArmor((*j).type)) != nullptr)
+					{
+						isAllowedOnMission = true;
+						break;
+					}
+				}
 			}
-			else
+			// 3. Deployment startingConditions (allowed, denied and default armors)
+			if (!isAllowedOnMission)
 			{
-				// Should not happen
+				auto soldierType = _base->getSoldiers()->at(_soldier)->getRules()->getType();
+				// Any armor that get's through except for the default replacement (otherwise filter makes no sense).
+				if (startingCondition && startingCondition->getArmorReplacement(soldierType, (*j).type) == "")
+				{
+					isAllowedOnMission = true;
+				}
 			}
+			// 4. It appears this armor is not allowed on mission from filter.
+			if (!isAllowedOnMission) continue;
 
-			// Only show armor if it has been researched (or if the ufopaedia article does not exist).
+			// Only show armor if player can see stats in ufopaedia.
 			ArticleDefinition* article = _game->getMod()->getUfopaediaArticle((*j).type, false);
 			if (article && !_game->getSavedGame()->isResearched(article->requires))
 			{
