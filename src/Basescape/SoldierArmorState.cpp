@@ -215,29 +215,21 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		if (!(ufo->getStatus() == Ufo::LANDED || ufo->getStatus() == Ufo::CRASHED))
 			continue;
 
-		// // Texture based on 'GeoscapeState::time5Seconds()'
-		// int texture, shade;
-		// _globe->getPolygonTextureAndShade(ufo->getLongitude(), ufo->getLatitude(), &texture, &shade);
-		// auto globeTexture = _game->getMod()->getGlobe()->getTexture(texture);
-		// std::string ufoMissionName = ufo->getRules()->getType();
-		// if (globeTexture && globeTexture->isFakeUnderwater())
-		// {
-		// 	ufoMissionName = ufo->getRules()->getType() + "_UNDERWATER";
-		// }
-
-		// Not using (more correct) snippet above because:
-		// - Requires adapting multiple classes for globe (or state) passthrough.
-		// - Adds lots of globe related include dependencies
-		//
-		// Instead use 'brute force' as below and accept possibility of
-		// extra categories without a geoscape mission.
 		std::string ufoMissionName = ufo->getRules()->getType();
-
 		// Nice day to get some fresh air.
 		addToCats(_game->getMod()->getDeployment(ufoMissionName));
 
-		// Anybody in for some skinny-dipping?
+		// For fake underwater deployments we need access to globe texture
+		// See also 'GeoscapeState::time5Seconds()' for reference.
+		// Since that is not readily available from this class it would mean:
+		// - Adapting multiple classes for globe (or state) passthrough.
+		// - Adds lots of globe related include dependencies
+		//
+		// A bit of overkill for this functionality. Instead I opted for the
+		// 'brute force' approach below and accept the possibility of
+		// extra categories without a geoscape mission.
 		ufoMissionName = ufo->getRules()->getType() + "_UNDERWATER";
+		// Anybody in for some skinny-dipping?
 		addToCats(_game->getMod()->getDeployment(ufoMissionName));
 	}
 
