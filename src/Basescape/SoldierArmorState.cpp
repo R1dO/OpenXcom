@@ -30,6 +30,7 @@
 #include "../Interface/Text.h"
 #include "../Interface/TextEdit.h"
 #include "../Interface/TextList.h"
+#include "../Interface/ToggleTextButton.h"
 #include "../Interface/ComboBox.h"
 #include "../Menu/ErrorMessageState.h"
 #include "../Mod/Armor.h"
@@ -81,6 +82,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 {
 	_screen = false;
 	_alternateScreen = Options::alternateBaseScreens;
+	_inCompareModus = false;
 
 	// Create objects
 	_window = new Window(this, 192, 160, 64, 20, POPUP_BOTH);
@@ -92,6 +94,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_lstArmor = new TextList(160, 80, 73, 68);
 	_sortName = new ArrowButton(ARROW_NONE, 11, 8, 80, 52);
 	_cbxCategory = new ComboBox(this, 120, 16, 73, 48);
+	_btnCompare = new ToggleTextButton(83, 16, 73, 156);
 
 	// Set palette
 	if (_origin == SA_BATTLESCAPE)
@@ -112,6 +115,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	add(_lstArmor, "list", "soldierArmor");
 	add(_sortName, "text", "soldierArmor");
 	add(_cbxCategory, "text", "soldierArmor");
+	add(_btnCompare, "button", "soldierArmor");
 
 	centerAllSurfaces();
 
@@ -121,6 +125,8 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_btnCancel->setText(tr("STR_CANCEL_UC"));
 	_btnCancel->onMouseClick((ActionHandler)&SoldierArmorState::btnCancelClick);
 	_btnCancel->onKeyboardPress((ActionHandler)&SoldierArmorState::btnCancelClick, Options::keyCancel);
+	_btnCompare->setText(tr("STR_COMPARE"));
+	_btnCompare->onMousePress((ActionHandler)&SoldierArmorState::btnCompareClick);
 
 	Soldier *s = _base->getSoldiers()->at(_soldier);
 	_txtTitle->setAlign(ALIGN_CENTER);
@@ -137,37 +143,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 
 	_sortName->setX(_sortName->getX() + _txtType->getTextWidth() + 4);
 	_sortName->onMouseClick((ActionHandler)&SoldierArmorState::sortNameClick);
-
-	// Don't depend on item listOrder, it does not exist for "STR_NONE" armors (storeItem is nullpointer).
-	int screenListOrder = 0;
-	const auto &armors = _game->getMod()->getArmorsForSoldiers();
-	for (auto* a : armors)
-	{
-		if (a->getRequiredResearch() && !_game->getSavedGame()->isResearched(a->getRequiredResearch()))
-			continue;
-		if (!a->getCanBeUsedBy(s->getRules()))
-			continue;
-
-		bool addSoldierArmor = (s->getArmor()->getStoreItem() == a->getStoreItem()); // True for the complete armor family
-		if (a->hasInfiniteSupply())
-		{
-			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), "", screenListOrder));
-		}
-		else if ((_base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor) > 0) // Uses integral promotion bool->int.
-		{
-			std::ostringstream ss;
-			if (_game->getSavedGame()->getMonthsPassed() > -1)
-			{
-				ss << _base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor; // Uses integral promotion bool->int.
-			}
-			else
-			{
-				ss << "-";
-			}
-			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), ss.str(), screenListOrder));
-		}
-		screenListOrder++;
-	}
 
 	// Add deployment to filter categories IF it has startingConditions on armors.
 	auto addToCats = [&](AlienDeployment *deploymentRule)
@@ -248,7 +223,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_armorOrder = ARMOR_SORT_NONE;
 	_previousOrder = ARMOR_SORT_NONE;
 	updateArrows();
-	updateList();
 
 	_lstArmor->onMouseClick((ActionHandler)&SoldierArmorState::lstArmorClick);
 	_lstArmor->onMouseClick((ActionHandler)&SoldierArmorState::lstArmorClickMiddle, SDL_BUTTON_MIDDLE);
@@ -272,6 +246,18 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	{
 		_cbxCategory->setVisible(false);
 	}
+	// Compare functionality
+	if (_alternateScreen)
+	{
+		_btnCancel->setWidth(_btnCompare->getWidth());
+		_btnCancel->setX(_btnCompare->getX() + _btnCompare->getWidth() + 8);
+	}
+	else
+	{
+		_btnCompare->setVisible(false);
+	}
+
+	fillArmorList();
 }
 
 /**
@@ -280,6 +266,71 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 SoldierArmorState::~SoldierArmorState()
 {
 
+}
+
+/**
+ * Rebuild list based on mode (assign vs compare).
+ */
+void SoldierArmorState::fillArmorList()
+{
+	_armors.clear();
+	Soldier *s = _base->getSoldiers()->at(_soldier);
+
+	// Don't depend on item listOrder, it does not exist for "STR_NONE" armors (storeItem is nullpointer).
+	int screenListOrder = 0;
+	const auto &armors = _game->getMod()->getArmorsForSoldiers();
+	for (auto* a : armors)
+	{
+		if (a->getRequiredResearch() && !_game->getSavedGame()->isResearched(a->getRequiredResearch()))
+			continue;
+		if (!a->getCanBeUsedBy(s->getRules()))
+			continue;
+
+		bool addSoldierArmor = (s->getArmor()->getStoreItem() == a->getStoreItem()); // True for the complete armor family
+		if (_inCompareModus) // Add or condition -> has a mission so include special types.
+		{
+			// Only allow armors from which we can see the ufopaedia entry.
+			ArticleDefinition* article = _game->getMod()->getUfopaediaArticle(a->getType(), false);
+			if (article && _game->getSavedGame()->isResearched(article->requires))
+			{
+				std::ostringstream ss;
+				int inStores = _base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor;
+				if (_game->getSavedGame()->getMonthsPassed() > -1 && inStores > 0)
+				{
+					ss << _base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor; // Uses integral promotion bool->int.
+				}
+				else if (a->hasInfiniteSupply())
+				{
+					ss << "";
+				}
+				else
+				{
+					ss << "-";
+				}
+				_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), ss.str(), screenListOrder));
+			}
+		}
+		else if (a->hasInfiniteSupply())
+		{
+			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), "", screenListOrder));
+		}
+		else if ((_base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor) > 0) // Uses integral promotion bool->int.
+		{
+			std::ostringstream ss;
+			if (_game->getSavedGame()->getMonthsPassed() > -1)
+			{
+				ss << _base->getStorageItems()->getItem(a->getStoreItem()) + addSoldierArmor; // Uses integral promotion bool->int.
+			}
+			else
+			{
+				ss << "-";
+			}
+			_armors.push_back(ArmorItem(a->getType(), tr(a->getType()), ss.str(), screenListOrder));
+		}
+		screenListOrder++;
+	}
+
+	updateList();
 }
 
 /**
@@ -354,6 +405,7 @@ void SoldierArmorState::updateList()
 			// Check if armor can be used based on deployment rules. In order of prio as
 			// derived from: `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
 			bool isAllowedOnMission = false;
+
 			// 1. Deployment based environmental armor transforms
 			if (deployEnviro && deployEnviro->getArmorTransformation(_game->getMod()->getArmor((*j).type)) != nullptr)
 			{
@@ -406,6 +458,14 @@ void SoldierArmorState::updateList()
 		}
 
 		_lstArmor->addRow(2, (*j).name.c_str(), (*j).quantity.c_str());
+
+		// Mark armor currently worn.
+		Soldier *s = _base->getSoldiers()->at(_soldier);
+		if ((*j).type == s->getArmor()->getType())
+		{
+			// Use tertiary color since secondary is not defined in default interfaces.rul.
+			_lstArmor->setRowColor(_lstArmor->getLastRowIndex(), _lstArmor->getScrollbarColor());
+		}
 		_indices.push_back(index);
 	}
 }
@@ -417,6 +477,16 @@ void SoldierArmorState::updateList()
 void SoldierArmorState::btnCancelClick(Action *)
 {
 	_game->popState();
+}
+
+/**
+ * Put screen in compare mode.
+ * @param action Pointer to an action.
+ */
+void SoldierArmorState::btnCompareClick(Action *)
+{
+	_inCompareModus = _btnCompare->getPressed();
+	fillArmorList();
 }
 
 /**

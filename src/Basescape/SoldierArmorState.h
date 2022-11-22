@@ -31,6 +31,7 @@ enum SoldierArmorOrigin
 
 class Base;
 class TextButton;
+class ToggleTextButton;
 class Window;
 class Text;
 class TextEdit;
@@ -70,6 +71,7 @@ private:
 
 	SoldierArmorOrigin _origin;
 	TextButton *_btnCancel;
+	ToggleTextButton *_btnCompare;
 	TextEdit *_btnQuickSearch;
 	Window *_window;
 	Text *_txtTitle, *_txtType, *_txtQuantity;
@@ -81,11 +83,15 @@ private:
 	void updateArrows();
 
 	bool _alternateScreen;
+	bool _inCompareModus;
 	ComboBox *_cbxCategory;
 	std::vector<std::string> _cats;
 
 	/// Handler for changing the category filter.
 	void cbxCategoryChange(Action *action);
+	/// Handler for clicking the Compare button.
+	void btnCompareClick(Action *action);
+	void fillArmorList();
 public:
 	/// Creates the Soldier Armor state.
 	SoldierArmorState(Base *base, size_t soldier, SoldierArmorOrigin origin);
