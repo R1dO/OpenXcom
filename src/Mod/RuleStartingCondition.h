@@ -93,6 +93,9 @@ public:
 	bool isVehiclePermitted(const std::string& vehicleType) const;
 	/// Checks if the item type is permitted.
 	bool isItemPermitted(const std::string& itemType, Mod* mod, Craft* craft) const;
+
+	// Get default armors for selected Soldiertype
+	const std::vector<std::string> getDefaultArmors(const std::string& soldierType) const;
 };
 
 }
