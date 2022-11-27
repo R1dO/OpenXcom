@@ -51,13 +51,27 @@ enum ArmorSort
 struct ArmorItem
 {
 	ArmorItem(const std::string &_type, const std::string &_name, const std::string &_quantity, const int &_listOrder)
-		: type(_type), name(_name), quantity(_quantity), listOrder(_listOrder)
+		: type(_type), name(_name), quantity(_quantity)
 	{
 	}
 	std::string type;
 	std::string name, quantity;
-	int listOrder;
+	const Armor *armor = nullptr; // Reduces '_game->getMod()->getArmor()' calls
+	int qty = 0;            // Quantity in base stores, -1 for infinite.
+	int listOrder = 0;      // Screen specific listOrder.
+	int id = 0;             // Subtotal if 'id == parentId'.
+	int parentId = 0;       // To allow grouping of child rows (for folding).
+	bool isKnown = false;   // Can we see ufopaedia entry (e.g. is researched).
+	bool isVisible = false; // By default children are hidden unless unfolded.
+
+	void resetIdsAndVisibility(bool visible = false)
+	{
+		id = 0;
+		parentId = 0;
+		isVisible = visible;
+	}
 };
+
 
 /**
  * Select Armor window that allows changing
@@ -92,6 +106,7 @@ private:
 	/// Handler for clicking the Compare button.
 	void btnCompareClick(Action *action);
 	void fillArmorList();
+	void drawList();
 public:
 	/// Creates the Soldier Armor state.
 	SoldierArmorState(Base *base, size_t soldier, SoldierArmorOrigin origin);

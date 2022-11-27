@@ -466,6 +466,7 @@ en-GB:
 # SellState.cpp
 # SoldierArmorState.cpp
   STR_COMPARE: "Compare"
+  STR_DEFAULT: "Default"
 # TransferItemsState.cpp
   STR_COST_OF_TRANSFERS: "Cost of Transfers>{ALT}{0}"
   STR_ITEMS_AT_ORIGIN: "Items at Origin"
