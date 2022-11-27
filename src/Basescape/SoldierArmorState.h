@@ -31,6 +31,7 @@ enum SoldierArmorOrigin
 
 class Base;
 class TextButton;
+class ToggleTextButton;
 class Window;
 class Text;
 class TextEdit;
@@ -50,13 +51,27 @@ enum ArmorSort
 struct ArmorItem
 {
 	ArmorItem(const std::string &_type, const std::string &_name, const std::string &_quantity, const int &_listOrder)
-		: type(_type), name(_name), quantity(_quantity), listOrder(_listOrder)
+		: type(_type), name(_name), quantity(_quantity)
 	{
 	}
 	std::string type;
 	std::string name, quantity;
-	int listOrder;
+	const Armor *armor = nullptr; // Reduces '_game->getMod()->getArmor()' calls
+	int qty = 0;            // Quantity in base stores, -1 for infinite.
+	int listOrder = 0;      // Screen specific listOrder.
+	int id = 0;             // Subtotal if 'id == parentId'.
+	int parentId = 0;       // To allow grouping of child rows (for folding).
+	bool isKnown = false;   // Can we see ufopaedia entry (e.g. is researched).
+	bool isVisible = false; // By default children are hidden unless unfolded.
+
+	void resetIdsAndVisibility(bool visible = false)
+	{
+		id = 0;
+		parentId = 0;
+		isVisible = visible;
+	}
 };
+
 
 /**
  * Select Armor window that allows changing
@@ -70,22 +85,30 @@ private:
 
 	SoldierArmorOrigin _origin;
 	TextButton *_btnCancel;
+	ToggleTextButton *_btnCompare;
 	TextEdit *_btnQuickSearch;
 	Window *_window;
 	Text *_txtTitle, *_txtType, *_txtQuantity;
 	TextList *_lstArmor;
 	ArrowButton *_sortName;
 	std::vector<ArmorItem> _armors;
-	std::vector<int> _indices;
+	std::vector<size_t> _indices;
 	ArmorSort _armorOrder, _previousOrder;
 	void updateArrows();
 
 	bool _alternateScreen;
+	bool _inCompareModus;
 	ComboBox *_cbxCategory;
 	std::vector<std::string> _cats;
 
 	/// Handler for changing the category filter.
 	void cbxCategoryChange(Action *action);
+	/// Handler for clicking the Compare button.
+	void btnCompareClick(Action *action);
+	void fillArmorList();
+	void drawList();
+	size_t _sel;
+	ArmorItem &getRow() {return _armors[_indices[_sel]];}
 public:
 	/// Creates the Soldier Armor state.
 	SoldierArmorState(Base *base, size_t soldier, SoldierArmorOrigin origin);
@@ -104,6 +127,7 @@ public:
 	void lstArmorClick(Action *action);
 	/// Handler for clicking the Weapons list.
 	void lstArmorClickMiddle(Action *action);
+	void lstArmorClickRight(Action *action);
 	/// Handler for clicking the Name arrow.
 	void sortNameClick(Action *action);
 };
