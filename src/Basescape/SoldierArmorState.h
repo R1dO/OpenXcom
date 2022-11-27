@@ -92,7 +92,7 @@ private:
 	TextList *_lstArmor;
 	ArrowButton *_sortName;
 	std::vector<ArmorItem> _armors;
-	std::vector<int> _indices;
+	std::vector<size_t> _indices;
 	ArmorSort _armorOrder, _previousOrder;
 	void updateArrows();
 
@@ -107,6 +107,8 @@ private:
 	void btnCompareClick(Action *action);
 	void fillArmorList();
 	void drawList();
+	size_t _sel;
+	ArmorItem &getRow() {return _armors[_indices[_sel]];}
 public:
 	/// Creates the Soldier Armor state.
 	SoldierArmorState(Base *base, size_t soldier, SoldierArmorOrigin origin);
@@ -125,6 +127,7 @@ public:
 	void lstArmorClick(Action *action);
 	/// Handler for clicking the Weapons list.
 	void lstArmorClickMiddle(Action *action);
+	void lstArmorClickRight(Action *action);
 	/// Handler for clicking the Name arrow.
 	void sortNameClick(Action *action);
 };

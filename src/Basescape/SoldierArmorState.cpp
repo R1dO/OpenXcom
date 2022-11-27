@@ -229,6 +229,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 
 	_lstArmor->onMouseClick((ActionHandler)&SoldierArmorState::lstArmorClick);
 	_lstArmor->onMouseClick((ActionHandler)&SoldierArmorState::lstArmorClickMiddle, SDL_BUTTON_MIDDLE);
+	_lstArmor->onMouseClick((ActionHandler)&SoldierArmorState::lstArmorClickRight, SDL_BUTTON_RIGHT);
 
 	// switch to battlescape theme if called from inventory
 	if (_origin == SA_BATTLESCAPE)
@@ -686,6 +687,49 @@ void SoldierArmorState::lstArmorClickMiddle(Action *action)
 	auto armor = _armors[_indices[_lstArmor->getSelectedRow()]].armor;
 	std::string articleId = armor->getUfopediaType();
 	Ufopaedia::openArticle(_game, articleId);
+}
+
+/**
+* Toggles folding state of a category
+* @param action Pointer to an action.
+*/
+void SoldierArmorState::lstArmorClickRight(Action *action)
+{
+	_sel = _lstArmor->getSelectedRow();
+	if (getRow().id == 0) return;
+
+	// Safety
+	if (getRow().id == getRow().parentId && _indices[_sel] + 1 >= _armors.size())
+		return;
+
+	// Prevent collapsed list from jumping around when there is a scrollbar.
+	if (getRow().id == getRow().parentId && _armors[_indices[_sel] + 1].parentId != getRow().parentId)
+		return;
+
+	if (getRow().id == getRow().parentId && !(_armors[_indices[_sel] + 1].isVisible))
+	{
+		// Show all elements contributing to parent.
+		for (size_t i = 0; i < _armors.size(); ++i)
+		{
+			if (_armors[i].parentId == getRow().id)
+			{
+				_armors[i].isVisible = true;
+			}
+		}
+	}
+	else
+	{
+		// Collapse all elements contributing to parent.
+		for (size_t i = 0; i < _armors.size(); ++i)
+		{
+			if (_armors[i].parentId == getRow().parentId && (_armors[i].id != _armors[i].parentId))
+			{
+				_armors[i].isVisible = false;
+			}
+		}
+	}
+
+	drawList();
 }
 
 /**
