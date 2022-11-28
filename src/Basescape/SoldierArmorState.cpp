@@ -144,28 +144,42 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_sortName->setX(_sortName->getX() + _txtType->getTextWidth() + 4);
 	_sortName->onMouseClick((ActionHandler)&SoldierArmorState::sortNameClick);
 
-	// Add deployment to filter categories IF it has startingConditions on armors.
+	// Add deployment to filter categories if one of the following conditions hold.
+	// - it has startingConditions on armors.
+	// - it has environmental armorTransformations defined.
 	auto addToCats = [&](AlienDeployment *deploymentRule)
 	{
 		if (deploymentRule == 0) return;
 
-		const RuleStartingCondition *startingCondition = _game->getMod()->getStartingCondition(deploymentRule->getStartingCondition());
-		if (startingCondition == 0) return;
+		const RuleStartingCondition *startConditions = _game->getMod()->getStartingCondition(deploymentRule->getStartingCondition());
+		const RuleEnviroEffects *enviroEffects = _game->getMod()->getEnviroEffects(deploymentRule->getEnviroEffects());
 
-		auto listAllowed = startingCondition->getAllowedArmors();
-		auto listForbidden = startingCondition->getForbiddenArmors();
-		if (listAllowed.empty() && listForbidden.empty()) return;
+		if (startConditions == 0 && enviroEffects == 0) return;
 
-		// updateList() is responsible for research check.
-		// To prevent accidental display of non-researched armors when
-		// 'listForbidden' is in effect.
-		_cats.push_back(deploymentRule->getType());
+		auto listAllowed = startConditions->getAllowedArmors();
+		auto listForbidden = startConditions->getForbiddenArmors();
+		if (!listAllowed.empty() || !listForbidden.empty() || enviroEffects->hasArmorTransformation())
+		{
+			_cats.push_back(deploymentRule->getType());
+			return;
+		}
+
+		// Terrain might have environmental effects defined.
+		for (auto terrain : deploymentRule->getTerrains())
+		{
+			RuleTerrain* terrainRule = _game->getMod()->getTerrain(terrain);
+			enviroEffects = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
+			if (enviroEffects->hasArmorTransformation())
+			{
+				_cats.push_back(deploymentRule->getType());
+				return;
+			}
+		}
 	};
 
 	_cats.push_back("STR_DEFAULT");
 	// Filter categories of allowed armors for detected alien deployments.
 	// Based on: 'ConfirmLandingState::checkStartingCondition()'
-	// Not using environmental effects, those do not impose a limit they only provide temporal transformations.
 	for (auto missionSite : *_game->getSavedGame()->getMissionSites())
 	{
 		if (!missionSite->getDetected()) continue;
@@ -273,10 +287,10 @@ SoldierArmorState::~SoldierArmorState()
 }
 
 /**
- * Build workhorse armor vector of struct.
+ * Build workhorse vector of armors available for this soldier.
  *
- * Includes all armors subject to following condition:
- * In stores OR visible in Ufopaedia.
+ * Includes all armors subject to the following condition:
+ * - In stores or visible in Ufopaedia.
  */
 void SoldierArmorState::fillArmorList()
 {
@@ -307,7 +321,7 @@ void SoldierArmorState::fillArmorList()
 			isKnown = true;
 		}
 
-		// No need to include this armor
+		// Armor does not satisfy condition as mentioned in method description.
 		if (qty == 0 && !isKnown) continue;
 
 		ArmorItem row = {a->getType(), tr(a->getType()), "", {} };
