@@ -662,9 +662,11 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
 	}
 	else if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
 	{
+		_lstScroll = _lstEquipment->getScroll();
 		if (action->getAbsoluteXMouse() >= _lstEquipment->getArrowsLeftEdge() &&
 			action->getAbsoluteXMouse() <= _lstEquipment->getArrowsRightEdge())
 		{
+			// Prevent potential clash with RMB functionality of arrows.
 			return;
 		}
 		RuleItem *rule = _game->getMod()->getItem(_items[_sel]);

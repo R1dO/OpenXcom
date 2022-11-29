@@ -1038,6 +1038,7 @@ void PurchaseState::lstItemsRightArrowClick(Action *action)
 void PurchaseState::lstItemsMousePress(Action *action)
 {
 	_sel = _lstItems->getSelectedRow();
+	size_t scrollPos = _lstItems->getScroll();
 	if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
 	{
 		_timerInc->stop();
@@ -1119,15 +1120,14 @@ void PurchaseState::lstItemsMousePress(Action *action)
 				_game->getSavedGame()->setHiddenPurchaseItemsStatus(itemName, true);
 			}
 
-			// update screen
-			size_t scrollPos = _lstItems->getScroll();
-			updateList();
-			_lstItems->scrollTo(scrollPos);
 		}
 		else if (!itemName.empty() && getRow().type == TRANSFER_ITEM)
 		{
 			_game->pushState(new ManufactureDependenciesTreeState(itemName));
 		}
+		// update screen
+		updateList();
+		_lstItems->scrollTo(scrollPos);
 	}
 }
 
