@@ -60,7 +60,7 @@ struct ArmorItem
 	int qty = 0;            // Quantity in base stores, -1 for infinite.
 	int listOrder = 0;      // Screen specific listOrder.
 	int id = 0;             // Subtotal if 'id == parentId'.
-	int parentId = 0;       // To allow grouping of child rows (for folding).
+	int parentId = 0;       // To allow grouping of child rows (for folding), '0' means orphan.
 	bool isKnown = false;   // Can we see ufopaedia entry (e.g. is researched).
 	bool isVisible = false; // By default children are hidden unless unfolded.
 
@@ -97,14 +97,11 @@ private:
 	void updateArrows();
 
 	bool _alternateScreen;
-	bool _inCompareModus;
 	ComboBox *_cbxCategory;
 	std::vector<std::string> _cats;
 
 	/// Handler for changing the category filter.
 	void cbxCategoryChange(Action *action);
-	/// Handler for clicking the Compare button.
-	void btnCompareClick(Action *action);
 	void fillArmorList();
 	void drawList();
 	size_t _sel;

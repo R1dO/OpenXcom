@@ -82,7 +82,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 {
 	_screen = false;
 	_alternateScreen = Options::alternateBaseScreens;
-	_inCompareModus = false;
 
 	// Create objects
 	_window = new Window(this, 192, 160, 64, 20, POPUP_BOTH);
@@ -94,7 +93,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_lstArmor = new TextList(160, 80, 73, 68);
 	_sortName = new ArrowButton(ARROW_NONE, 11, 8, 80, 52);
 	_cbxCategory = new ComboBox(this, 120, 16, 73, 48);
-	_btnCompare = new ToggleTextButton(83, 16, 73, 156);
 
 	// Set palette
 	if (_origin == SA_BATTLESCAPE)
@@ -115,7 +113,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	add(_lstArmor, "list", "soldierArmor");
 	add(_sortName, "text", "soldierArmor");
 	add(_cbxCategory, "text", "soldierArmor");
-	add(_btnCompare, "button", "soldierArmor");
 
 	centerAllSurfaces();
 
@@ -125,8 +122,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_btnCancel->setText(tr("STR_CANCEL_UC"));
 	_btnCancel->onMouseClick((ActionHandler)&SoldierArmorState::btnCancelClick);
 	_btnCancel->onKeyboardPress((ActionHandler)&SoldierArmorState::btnCancelClick, Options::keyCancel);
-	_btnCompare->setText(tr("STR_COMPARE"));
-	_btnCompare->onMousePress((ActionHandler)&SoldierArmorState::btnCompareClick);
 
 	Soldier *s = _base->getSoldiers()->at(_soldier);
 	_txtTitle->setAlign(ALIGN_CENTER);
@@ -144,28 +139,42 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_sortName->setX(_sortName->getX() + _txtType->getTextWidth() + 4);
 	_sortName->onMouseClick((ActionHandler)&SoldierArmorState::sortNameClick);
 
-	// Add deployment to filter categories IF it has startingConditions on armors.
+	// Add deployment to filter categories if one of the following conditions hold.
+	// - it has startingConditions on armors.
+	// - it has environmental armorTransformations defined.
 	auto addToCats = [&](AlienDeployment *deploymentRule)
 	{
 		if (deploymentRule == 0) return;
 
-		const RuleStartingCondition *startingCondition = _game->getMod()->getStartingCondition(deploymentRule->getStartingCondition());
-		if (startingCondition == 0) return;
+		const RuleStartingCondition *startConditions = _game->getMod()->getStartingCondition(deploymentRule->getStartingCondition());
+		const RuleEnviroEffects *enviroEffects = _game->getMod()->getEnviroEffects(deploymentRule->getEnviroEffects());
 
-		auto listAllowed = startingCondition->getAllowedArmors();
-		auto listForbidden = startingCondition->getForbiddenArmors();
-		if (listAllowed.empty() && listForbidden.empty()) return;
+		if (startConditions == 0 && enviroEffects == 0) return;
 
-		// updateList() is responsible for research check.
-		// To prevent accidental display of non-researched armors when
-		// 'listForbidden' is in effect.
-		_cats.push_back(deploymentRule->getType());
+		auto listAllowed = startConditions->getAllowedArmors();
+		auto listForbidden = startConditions->getForbiddenArmors();
+		if (!listAllowed.empty() || !listForbidden.empty() || enviroEffects->hasArmorTransformation())
+		{
+			_cats.push_back(deploymentRule->getType());
+			return;
+		}
+
+		// Terrain might have environmental effects defined.
+		for (auto terrain : deploymentRule->getTerrains())
+		{
+			RuleTerrain* terrainRule = _game->getMod()->getTerrain(terrain);
+			enviroEffects = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
+			if (enviroEffects->hasArmorTransformation())
+			{
+				_cats.push_back(deploymentRule->getType());
+				return;
+			}
+		}
 	};
 
 	_cats.push_back("STR_DEFAULT");
 	// Filter categories of allowed armors for detected alien deployments.
 	// Based on: 'ConfirmLandingState::checkStartingCondition()'
-	// Not using environmental effects, those do not impose a limit they only provide temporal transformations.
 	for (auto missionSite : *_game->getSavedGame()->getMissionSites())
 	{
 		if (!missionSite->getDetected()) continue;
@@ -250,16 +259,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	{
 		_cbxCategory->setVisible(false);
 	}
-	// Compare functionality
-	if (_alternateScreen)
-	{
-		_btnCancel->setWidth(_btnCompare->getWidth());
-		_btnCancel->setX(_btnCompare->getX() + _btnCompare->getWidth() + 8);
-	}
-	else
-	{
-		_btnCompare->setVisible(false);
-	}
 
 	fillArmorList();
 }
@@ -273,18 +272,23 @@ SoldierArmorState::~SoldierArmorState()
 }
 
 /**
- * Build workhorse armor vector of struct.
+ * Build workhorse vector of armors available for this soldier.
  *
- * Includes all armors subject to following condition:
- * In stores OR visible in Ufopaedia.
+ * Includes all armors subject to the following condition:
+ * - In stores or visible in Ufopaedia.
  */
 void SoldierArmorState::fillArmorList()
 {
 	_armors.clear();
 	Soldier *s = _base->getSoldiers()->at(_soldier);
 
+	// 'Subtotal' for armors with unknown parents.
+	// Since 'type = ""' is not allowed in rulesets there should not be collisions.
+	ArmorItem headerRow = {"", tr("STR_UNKNOWN"), "", {}};
+	_armors.push_back(headerRow);
+
 	// Don't depend on item listOrder, it does not exist for "STR_NONE" armors (storeItem is nullpointer).
-	int screenListOrder = 0;
+	int screenListOrder = 1;
 	const auto &armors = _game->getMod()->getArmorsForSoldiers();
 	for (auto* a : armors)
 	{
@@ -307,7 +311,7 @@ void SoldierArmorState::fillArmorList()
 			isKnown = true;
 		}
 
-		// No need to include this armor
+		// Armor does not satisfy condition as mentioned in method description.
 		if (qty == 0 && !isKnown) continue;
 
 		ArmorItem row = {a->getType(), tr(a->getType()), "", {} };
@@ -371,14 +375,14 @@ void SoldierArmorState::updateList()
 {
 	// There is a trade-off here.
 	// To prevent listing of all armors 'fillArmorList()' could only include
-	// unknown armors with a 'storItem' on base. This means transformed armors
+	// unknown armors with a 'storeItem' on base. This means transformed armors
 	// will only be recognized if they have a pedia entry.
 
 	size_t selCategory = _cbxCategory->getSelected();
 	const std::string selectedCategory = _cats[selCategory];
 	bool categoryFilterEnabled = (selectedCategory != "STR_DEFAULT");
 
-	// Early sort to ensure both parents and childs honor setting.
+	// Early sort to ensure both parents and children honor setting.
 	sortList();
 
 	if (categoryFilterEnabled)
@@ -386,102 +390,130 @@ void SoldierArmorState::updateList()
 		const AlienDeployment *filterDeployment = _game->getMod()->getDeployment(selectedCategory);
 		const RuleStartingCondition *filterStartCondition = _game->getMod()->getStartingCondition(filterDeployment->getStartingCondition());
 		const RuleEnviroEffects *filterEnviroEffects = _game->getMod()->getEnviroEffects(filterDeployment->getEnviroEffects());
+		if (!filterEnviroEffects)
+		{
+			// Try to get one from deployment terrain. First one with transformations wins.
+			// Acceptable since actual terrain is determined at map generation (not known here).
+			for (auto terrain : filterDeployment->getTerrains())
+			{
+				RuleTerrain *terrainRule = _game->getMod()->getTerrain(terrain);
+				if (terrainRule->getEnviroEffects() != "" && _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects())->hasArmorTransformation())
+				{
+					filterEnviroEffects = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
+					break;
+				}
+			}
+		}
+		// There also exist terrain and deployment from missionTexture.
+		// Those need access to globe though, hence not implemented.
+		// Besides that, those are only needed in case '*filter...'
+		// variables are still 'nullptrs' at this stage.
 
 		auto listAllowed = filterStartCondition->getAllowedArmors();
 		auto listForbidden = filterStartCondition->getForbiddenArmors();
 
-		// Check if armor is allowed
-		auto isAllowedArmor = [&](std::string armorType) -> bool
+		// Get resulting armor as if it was an actual deployment.
+		// Based on: `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
+		auto getResultingArmor = [&](const Armor* original) -> const Armor*
 		{
-			// Both lists are supposed to be mutual exclusive.
-			if (!listAllowed.empty() && std::find(listAllowed.begin(), listAllowed.end(), armorType) == listAllowed.end())
-			{
-				return false; // Armor not in list of allowed ones
-			}
-			else if (!listForbidden.empty() && std::find(listForbidden.begin(), listForbidden.end(), armorType) != listForbidden.end())
-			{
-				return false; // Armor in list of forbidden ones
-			}
-			return true;
-		};
-		// Find parent of selected armor.
-		auto findParentId = [&](Armor *convertedArmor) -> int
-		{
-			auto bean = std::find_if(_armors.begin(), _armors.end(),
-				[&](const ArmorItem row) {return row.armor == convertedArmor;});
-			if (bean == _armors.end())
-			{
-				return 0;
-			}
-			return (*bean).parentId;
-		};
+			Armor* resultingArmor = nullptr;
 
-		// 1st pass. Mark all (regular + virtual) armors allowed on mission, reset all others.
-		int parentId = 1; // Reserve 0 for 'not set'
-		for (std::vector<ArmorItem>::iterator j = _armors.begin(); j != _armors.end(); ++j)
-		{
-			// Limit to known armors only when in compare modus
-			if (_inCompareModus && !(*j).isKnown)
+			// 1. Deployment and Terrain based environmental armor transforms
+			if (filterEnviroEffects)
 			{
-				(*j).resetIdsAndVisibility();
-				continue;
-			}
-			if (!isAllowedArmor((*j).type))
-			{
-				(*j).resetIdsAndVisibility();
-				continue;
+				resultingArmor = filterEnviroEffects->getArmorTransformation(original);
 			}
 
-			(*j).id = (*j).parentId = parentId;
-			(*j).isVisible = true;
-			parentId++;
-		}
-
-		// 2nd pass, mark all (child) armors subject to transformations.
-		int idArmor = parentId + 1;
-		for (std::vector<ArmorItem>::iterator j = _armors.begin(); j != _armors.end(); ++j)
-		{
-			// Limit to known armors only when in compare modus
-			if (_inCompareModus && !(*j).isKnown) continue;
-
-			// Allowed armors were already set on 1st pass.
-			if (isAllowedArmor((*j).type)) continue;
-
-			// Check if armor can be used based on deployment rules.
-			// In order of prio as derived from:
-			// `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
-			parentId = 0; // Reset needed to determine if this armor is allowed to end up in the list.
-			// 1. Deployment based environmental armor transforms
-			if (filterEnviroEffects && filterEnviroEffects->getArmorTransformation((*j).armor) != nullptr)
+			// 2. Deployment startingConditions (allowed, denied and default armors)
+			if (!resultingArmor && filterStartCondition)
 			{
-				parentId = findParentId(filterEnviroEffects->getArmorTransformation((*j).armor));
-			}
-			// 2. Terrain based environmental armor transforms
-			if (parentId == 0)
-			{
-				for (auto terrain : filterDeployment->getTerrains())
+				std::string soldierType = _base->getSoldiers()->at(_soldier)->getRules()->getType();
+				std::string replacedArmorType = filterStartCondition->getArmorReplacement(soldierType, original->getType());
+				if (replacedArmorType == "")
 				{
-					RuleTerrain* terrainRule = _game->getMod()->getTerrain(terrain);
-					RuleEnviroEffects* terrainEnviro = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
-					if (terrainEnviro && terrainEnviro->getArmorTransformation((*j).armor) != nullptr)
-					{
-						parentId = findParentId(terrainEnviro->getArmorTransformation((*j).armor));
-						break;
-					}
+					return original;
+				}
+
+				resultingArmor = _game->getMod()->getArmor(replacedArmorType, true);
+				if (resultingArmor && resultingArmor->getSize() > original->getSize())
+				{
+					// Cannot switch into a bigger armor size!
+					resultingArmor = nullptr;
 				}
 			}
-			// 3. Deployment startingConditions (allowed, denied and default armors)
-			// Based on: RuleStartingCondition::getArmorReplacement()
-			// Not needed since allowed & denied are already parents.
-			// Default replacement does not really makes sense for this filter (it is a fallback mechanism).
-			// Bonus: No need to decide where an armor belongs to if multiple weighted default transformations are defined.
+			return resultingArmor;
+		};
 
-			// 4. It appears current filter does not allow this armor (or falls under default replacement).
-			if (parentId == 0) continue;
+		// Find parent of selected armor.
+		auto findParentId = [&](const Armor *convertedArmor) -> int
+		{
+			auto bean = std::find_if(_armors.begin(), _armors.end(),
+				[&](const ArmorItem row) { return row.armor == convertedArmor; });
+			if (bean != _armors.end())
+			{
+				return (*bean).parentId;
+			}
+			// No (known) parent found or convertedArmor was nullptr.
+			// Categorize as "Unknown" (and mark parent for display).
+			auto crumb = std::find_if(_armors.begin(), _armors.end(),
+				[&](ArmorItem row) { return row.type == ""; });
+			if (crumb != _armors.end())
+			{
+				(*crumb).isVisible |= true;
+				return (*crumb).parentId;
+			}
 
-			(*j).id = idArmor;
-			(*j).parentId = parentId;
-			(*j).isVisible = true; // Unfolded by default, seems a better fit for this screen.
+			return -1; // Warning indicator: Armor will be pushed to the top.
+		};
+
+		// 2-pass logic to ensure both 'subtotals' and 'elements' conform to sort order.
+		// 1st pass: Handle all parents, reset all others.
+		int parentId = 1; // Reserve 0 for blank slates.
+		for (auto& armorItem : _armors)
+		{
+			if (armorItem.type == "" && armorItem.armor == nullptr)
+			{
+				// "Unknown" category. 2nd pass will set visibility.
+				armorItem.id = armorItem.parentId = parentId;
+				armorItem.isVisible = false;
+				parentId++;
+				continue;
+			}
+			else if (armorItem.armor == nullptr)
+			{
+				armorItem.resetIdsAndVisibility();
+				continue;
+			}
+
+			const Armor* transformedArmor = getResultingArmor(armorItem.armor);
+
+			// Armor cannot be used or is not a parent
+			if (!transformedArmor || transformedArmor != armorItem.armor)
+			{
+				armorItem.resetIdsAndVisibility();
+			}
+			else
+			{
+				armorItem.id = armorItem.parentId = parentId;
+				armorItem.isVisible = true;
+				parentId++;
+			}
+		}
+		// 2nd pass: Mark all (child) armors subject to transformations.
+		int idArmor = parentId + 1;
+		for (auto& armorItem : _armors)
+		{
+			// Parents were already set.
+			if (armorItem.parentId != 0 || armorItem.armor == nullptr) continue;
+
+			const Armor* transformedArmor = getResultingArmor(armorItem.armor);
+
+			// For as far as I can tell 'transformedArmor == nullptr' means
+			// soldier will keep original armor when placed on the battlescape.
+			// In that case "Unknown" category is acceptable.
+			armorItem.parentId = findParentId(transformedArmor);
+			armorItem.id = idArmor;
+			armorItem.isVisible = true;
 			idArmor++;
 		}
 
@@ -492,8 +524,7 @@ void SoldierArmorState::updateList()
 				return std::tie(a.id, a.parentId) < std::tie(b.id, b.parentId);
 			}
 		);
-
-		// Group elements and parents.
+		// Group parents and childs.
 		std::stable_sort(_armors.begin(), _armors.end(),
 			[](const ArmorItem a, const ArmorItem b)
 			{
@@ -505,15 +536,9 @@ void SoldierArmorState::updateList()
 	{
 		for (std::vector<ArmorItem>::iterator j = _armors.begin(); j != _armors.end(); ++j)
 		{
-			if ((*j).qty == 0 && !_inCompareModus)
+			if ((*j).qty == 0)
 			{
 				(*j).resetIdsAndVisibility();
-				continue;
-			}
-			else if (_inCompareModus && !(*j).isKnown)
-			{
-				(*j).resetIdsAndVisibility();
-				continue;
 			}
 			else
 			{
@@ -601,17 +626,6 @@ void SoldierArmorState::btnCancelClick(Action *)
 }
 
 /**
- * Put screen in compare mode.
- * @param action Pointer to an action.
- */
-void SoldierArmorState::btnCompareClick(Action *)
-{
-	// Only show researched armors.
-	_inCompareModus = _btnCompare->getPressed();
-	updateList();
-}
-
-/**
  * Quick search toggle.
  * @param action Pointer to an action.
  */
@@ -684,6 +698,9 @@ void SoldierArmorState::lstArmorClick(Action *)
 */
 void SoldierArmorState::lstArmorClickMiddle(Action *action)
 {
+	if (!_armors[_indices[_lstArmor->getSelectedRow()]].isKnown)
+		return;
+
 	auto armor = _armors[_indices[_lstArmor->getSelectedRow()]].armor;
 	std::string articleId = armor->getUfopediaType();
 	Ufopaedia::openArticle(_game, articleId);
@@ -696,7 +713,6 @@ void SoldierArmorState::lstArmorClickMiddle(Action *action)
 void SoldierArmorState::lstArmorClickRight(Action *action)
 {
 	_sel = _lstArmor->getSelectedRow();
-	if (getRow().id == 0) return;
 
 	// Safety
 	if (getRow().id == getRow().parentId && _indices[_sel] + 1 >= _armors.size())
