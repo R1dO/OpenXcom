@@ -385,6 +385,24 @@ void SoldierArmorState::updateList()
 		const AlienDeployment *filterDeployment = _game->getMod()->getDeployment(selectedCategory);
 		const RuleStartingCondition *filterStartCondition = _game->getMod()->getStartingCondition(filterDeployment->getStartingCondition());
 		const RuleEnviroEffects *filterEnviroEffects = _game->getMod()->getEnviroEffects(filterDeployment->getEnviroEffects());
+		if (!filterEnviroEffects)
+		{
+			// Try to get one from deployment terrain. First one with transformations wins.
+			// Acceptable since actual terrain is determined at map generation (not known here).
+			for (auto terrain : filterDeployment->getTerrains())
+			{
+				RuleTerrain *terrainRule = _game->getMod()->getTerrain(terrain);
+				if (terrainRule->getEnviroEffects() != "" && _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects())->hasArmorTransformation())
+				{
+					filterEnviroEffects = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
+					break;
+				}
+			}
+		}
+		// There also exist terrain and deployment from missionTexture.
+		// Those need access to globe though, hence not implemented.
+		// Besides that, those are only needed in case '*filter...'
+		// variables are still 'nullptrs' at this stage.
 
 		auto listAllowed = filterStartCondition->getAllowedArmors();
 		auto listForbidden = filterStartCondition->getForbiddenArmors();
@@ -395,29 +413,13 @@ void SoldierArmorState::updateList()
 		{
 			Armor* resultingArmor = nullptr;
 
-			// 1. Deployment based environmental armor transforms
+			// 1. Deployment and Terrain based environmental armor transforms
 			if (filterEnviroEffects)
 			{
 				resultingArmor = filterEnviroEffects->getArmorTransformation(original);
 			}
-			// 2. Terrain based environmental armor transforms
-			// Unfortunately we don't have access to actual terrain (without extensive modifications).
-			// Picking the first terrain (or first transform) is worse than skipping section altogether
-			// since it is most likely going to lie to the player.
-// 			else
-// 			{
-// 				for (auto terrain : filterDeployment->getTerrains())
-// 				{
-// 					RuleTerrain* terrainRule = _game->getMod()->getTerrain(terrain);
-// 					RuleEnviroEffects* terrainEnviro = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
-// 					if (terrainEnviro)
-// 					{
-// 						resultingArmor = terrainEnviro->getArmorTransformation(original);
-// 						break;
-// 					}
-// 				}
-// 			}
-			// 3. Deployment startingConditions (allowed, denied and default armors)
+
+			// 2. Deployment startingConditions (allowed, denied and default armors)
 			if (!resultingArmor && filterStartCondition)
 			{
 				std::string soldierType = _base->getSoldiers()->at(_soldier)->getRules()->getType();
