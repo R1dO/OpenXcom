@@ -8,6 +8,9 @@
     <ClCompile Include="Basescape\MonthlyCostsState.cpp">
       <Filter>Basescape</Filter>
     </ClCompile>
+    <ClCompile Include="Basescape\MonthlyCostsDetailsState.cpp">
+      <Filter>Basescape</Filter>
+    </ClCompile>
     <ClCompile Include="Basescape\PlaceFacilityState.cpp">
       <Filter>Basescape</Filter>
     </ClCompile>
@@ -1137,6 +1140,9 @@
       <Filter>Basescape</Filter>
     </ClInclude>
     <ClInclude Include="Basescape\MonthlyCostsState.h">
+      <Filter>Basescape</Filter>
+    </ClInclude>
+    <ClInclude Include="Basescape\MonthlyCostsDetailsState.h">
       <Filter>Basescape</Filter>
     </ClInclude>
     <ClInclude Include="Basescape\PlaceFacilityState.h">

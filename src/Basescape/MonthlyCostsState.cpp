@@ -17,9 +17,12 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "MonthlyCostsState.h"
+#include "MonthlyCostsDetailsState.h"
 #include <sstream>
+#include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Mod/Mod.h"
+#include "../Engine/Font.h"
 #include "../Engine/LocalizedText.h"
 #include "../Engine/Options.h"
 #include "../Engine/Unicode.h"
@@ -40,8 +43,10 @@ namespace OpenXcom
  * @param game Pointer to the core game.
  * @param base Pointer to the base to get info from.
  */
-MonthlyCostsState::MonthlyCostsState(Base *base) : _base(base)
+MonthlyCostsState::MonthlyCostsState(Base *base) : _base(base), _alternateScreen(false)
 {
+	_alternateScreen = Options::alternateBaseScreens;
+
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
 	_btnOk = new TextButton(300, 20, 10, 170);
@@ -57,6 +62,7 @@ MonthlyCostsState::MonthlyCostsState(Base *base) : _base(base)
 	_lstSalaries = new TextList(288, 40, 10, 88);
 	_lstMaintenance = new TextList(300, 9, 10, 128);
 	_lstTotal = new TextList(100, 9, 205, 150);
+	_lstGlobalResult = new TextList(150, 17, 10, 146);
 
 	// Set palette
 	setInterface("costsInfo");
@@ -75,6 +81,7 @@ MonthlyCostsState::MonthlyCostsState(Base *base) : _base(base)
 	add(_txtIncome, "list", "costsInfo");
 	add(_txtMaintenance, "list", "costsInfo");
 	add(_lstTotal, "text2", "costsInfo");
+	add(_lstGlobalResult, "list", "costsInfo");
 
 	centerAllSurfaces();
 
@@ -100,13 +107,55 @@ MonthlyCostsState::MonthlyCostsState(Base *base) : _base(base)
 
 	_txtSalaries->setText(tr("STR_SALARIES"));
 
-	std::ostringstream ss;
-	ss << tr("STR_INCOME") << "=" << Unicode::formatFunding(_game->getSavedGame()->getCountryFunding());
-	_txtIncome->setText(ss.str());
+	if(_alternateScreen)
+	{
+		_txtIncome->setVisible(false);
+		_lstCrafts->onMouseClick((ActionHandler)&MonthlyCostsState::lstCraftsClick, SDL_BUTTON_RIGHT);
+		_lstSalaries->onMouseClick((ActionHandler)&MonthlyCostsState::lstSalariesClick, SDL_BUTTON_RIGHT);
+		_txtMaintenance->setVisible(false);
+		_lstMaintenance->onMouseClick((ActionHandler)&MonthlyCostsState::lstFacilitiesClick, SDL_BUTTON_RIGHT);
+		_lstGlobalResult->onMouseClick((ActionHandler)&MonthlyCostsState::lstGlobalResultClick, SDL_BUTTON_RIGHT);
+		_lstGlobalResult->setColumns(2, 74, 76); // Allow column 2 to display $999,999,999,999 (+3px overflow)
+		_lstGlobalResult->setDot(true);
+	}
+	else
+	{
+		_lstGlobalResult->setVisible(false);
+	}
 
-	std::ostringstream ss2;
-	ss2 << tr("STR_MAINTENANCE") << "=" << Unicode::formatFunding(_game->getSavedGame()->getBaseMaintenance());
-	_txtMaintenance->setText(ss2.str());
+	// Global Income
+	if (_alternateScreen)
+	{
+		int performanceBonus = 0;
+		int countryFunding = _game->getSavedGame()->getCountryFunding();
+		if (_game->getMod()->getPerformanceBonusFactor())
+		{
+			int currentScore = _game->getSavedGame()->getCurrentScore(_game->getSavedGame()->getMonthsPassed());
+			// No negative boni.
+			performanceBonus = std::max(0, currentScore * _game->getMod()->getPerformanceBonusFactor());
+		}
+		//_lstGlobalResult->addRow(2, tr("STR_INCOME").c_str(), Unicode::formatFunding(999999999999).c_str());
+		_lstGlobalResult->addRow(2, tr("STR_INCOME").c_str(), Unicode::formatFunding(countryFunding + performanceBonus).c_str());
+	}
+	else
+	{
+		std::ostringstream ss;
+		ss << tr("STR_INCOME") << "=" << Unicode::formatFunding(_game->getSavedGame()->getCountryFunding());
+		_txtIncome->setText(ss.str());
+	}
+
+	// Global Maintenance
+	if(_alternateScreen)
+	{
+		//_lstGlobalResult->addRow(2, tr("STR_MAINTENANCE").c_str(), Unicode::formatFunding(999999999999).c_str());
+		_lstGlobalResult->addRow(2, tr("STR_MAINTENANCE").c_str(), Unicode::formatFunding(_game->getSavedGame()->getBaseMaintenance()).c_str());
+	}
+	else
+	{
+		std::ostringstream ss2;
+		ss2 << tr("STR_MAINTENANCE") << "=" << Unicode::formatFunding(_game->getSavedGame()->getBaseMaintenance());
+		_txtMaintenance->setText(ss2.str());
+	}
 
 	_lstCrafts->setColumns(4, 125, 70, 44, 50);
 	_lstCrafts->setDot(true);
@@ -219,6 +268,59 @@ MonthlyCostsState::~MonthlyCostsState()
 void MonthlyCostsState::btnOkClick(Action *)
 {
 	_game->popState();
+}
+
+/**
+ * Open the global craft maintenance details sub-window.
+ * @param action Pointer to an action.
+ */
+void MonthlyCostsState::lstCraftsClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new MonthlyCostsDetailsState(_base, CC_CRAFTS));
+}
+
+/**
+ * Open the global salary details sub-window, based on the mouse-over row.
+ * @param action Pointer to an action.
+ */
+void MonthlyCostsState::lstSalariesClick(Action *action)
+{
+	if (!_alternateScreen) return;
+
+	// Implement own row selector. To prevent setting 'selectable' property on
+	// the list, which comes with a change in background upon mouse-over.
+	// Based on: 'void TextList::mouseOver()'.
+	int rowHeight = _game->getMod()->getFont("FONT_SMALL")->getHeight() + _game->getMod()->getFont("FONT_SMALL")->getSpacing();
+	int mouseInList = floor(action->getRelativeYMouse() / (rowHeight * action->getYScale()));
+	int currentScroll = _lstSalaries->getScroll();
+	int sel = std::max(0, currentScroll + mouseInList);
+
+	// Depends on scientist, engineer and items being single row entries!
+	if (sel <= _lstSalaries->getLastRowIndex() - 3)
+		_game->pushState(new MonthlyCostsDetailsState(_base, CC_SOLDIERS));
+	else if (sel == _lstSalaries->getLastRowIndex())
+		_game->pushState(new MonthlyCostsDetailsState(_base, CC_ITEMS));
+}
+
+/**
+ * Open the global facility maintenance/revenue details sub-window.
+ * @param action Pointer to an action.
+ */
+void MonthlyCostsState::lstFacilitiesClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new MonthlyCostsDetailsState(_base, CC_FACILITIES));
+}
+
+/**
+ * Open the global result category details sub-window.
+ * @param action Pointer to an action.
+ */
+void MonthlyCostsState::lstGlobalResultClick(Action *)
+{
+	if (!_alternateScreen) return;
+	_game->pushState(new MonthlyCostsDetailsState(_base, CC_GLOBAL_RESULT));
 }
 
 }

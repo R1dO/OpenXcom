@@ -1395,13 +1395,15 @@ void Soldier::resetDiary()
  */
 void Soldier::calcStatString(const std::vector<StatString *> &statStrings, bool psiStrengthEval)
 {
+	UnitStats statCaps = _rules->getStatCaps();
+
 	if (_rules->getStatStrings().empty())
 	{
-		_statString = StatString::calcStatString(_currentStats, statStrings, psiStrengthEval, _psiTraining);
+		_statString = StatString::calcStatString(_currentStats, statCaps, statStrings, psiStrengthEval, _psiTraining);
 	}
 	else
 	{
-		_statString = StatString::calcStatString(_currentStats, _rules->getStatStrings(), psiStrengthEval, _psiTraining);
+		_statString = StatString::calcStatString(_currentStats, statCaps, _rules->getStatStrings(), psiStrengthEval, _psiTraining);
 	}
 }
 

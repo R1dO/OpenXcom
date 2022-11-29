@@ -300,4 +300,26 @@ bool RuleStartingCondition::isItemPermitted(const std::string& itemType, Mod* mo
 	return itemCheckSubResult && categoryCheckSubResult;
 }
 
+/**
+ * Gets the soldierType based default armor(s).
+ * @param soldierType Soldier type name.
+ * @return Default armors for this soldier type.
+ */
+const std::vector<std::string> RuleStartingCondition::getDefaultArmors(const std::string& soldierType) const
+//std::string RuleStartingCondition::getArmorReplacement(const std::string& soldierType, const std::string& armorType) const
+{
+	std::vector<std::string> defaultArmors;
+
+	std::map<std::string, std::map<std::string, int> >::const_iterator j = _defaultArmor.find(soldierType);
+	if (j != _defaultArmor.end() && !j->second.empty())
+	{
+		for (std::map<std::string, int>::const_iterator k = (j->second).begin(); k != (j->second).end(); ++k)
+		{
+			defaultArmors.push_back(k->first);
+		}
+	}
+
+	return defaultArmors;
+}
+
 }

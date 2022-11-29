@@ -19,6 +19,7 @@
 #include "StatString.h"
 #include "Unit.h"
 #include <vector>
+#include <algorithm>
 #include "../Engine/Language.h"
 #include "../Engine/Unicode.h"
 
@@ -52,6 +53,11 @@ void StatString::load(const YAML::Node &node)
 		if (node[conditionNames[i]])
 		{
 			_conditions.push_back(getCondition(conditionNames[i], node));
+		}
+		// Recognize percentage based definitions.
+		if (node[conditionNames[i] + "Percent"])
+		{
+			_conditions.push_back(getCondition(conditionNames[i] + "Percent", node));
 		}
 	}
 }
@@ -99,14 +105,16 @@ std::string StatString::getString() const
 /**
  * Calculates the list of StatStrings that apply to certain unit stats.
  * @param currentStats Unit stats.
+ * @param statCaps  Unit type stat caps
  * @param statStrings List of statString rules.
  * @param psiStrengthEval Are psi stats available?
  * @return Resulting string of all valid StatStrings.
  */
-std::string StatString::calcStatString(UnitStats &currentStats, const std::vector<StatString *> &statStrings, bool psiStrengthEval, bool inTraining)
+std::string StatString::calcStatString(UnitStats &currentStats, UnitStats &statCaps, const std::vector<StatString *> &statStrings, bool psiStrengthEval, bool inTraining)
 {
 	std::string statString;
 	std::map<std::string, int> currentStatsMap = getCurrentStats(currentStats);
+	std::map<std::string, int> currentStatPercentageMap = getCurrentStatsPercent(currentStats, statCaps);
 	if (inTraining)
 	{
 		currentStatsMap["psiTraining"] = 1;
@@ -116,6 +124,14 @@ std::string StatString::calcStatString(UnitStats &currentStats, const std::vecto
 		bool conditionsMet = true;
 		for (std::vector<StatStringCondition*>::const_iterator j = (*i)->getConditions().begin(); j != (*i)->getConditions().end() && conditionsMet; ++j)
 		{
+			// Start with 'currentStatPercentageMap' so that reaching the end does not matter.
+			std::map<std::string, int>::iterator percent = currentStatPercentageMap.find((*j)->getConditionName());
+			if (percent != currentStatPercentageMap.end())
+			{
+				conditionsMet = conditionsMet && (*j)->isMet(percent->second, currentStats.psiSkill > 0 || psiStrengthEval);
+				continue; // Condition evaluated, go to next one.
+			}
+			// Not a percentage based condition, can safely continue to normal conditions (the original implementation).
 			std::map<std::string, int>::iterator name = currentStatsMap.find((*j)->getConditionName());
 			if (name != currentStatsMap.end())
 			{
@@ -166,5 +182,46 @@ std::map<std::string, int> StatString::getCurrentStats(UnitStats &currentStats)
 	return currentStatsMap;
 }
 
+/**
+ * Get a map associating stat names to unit's percentage of it's statCaps.
+ *
+ * @param currentStats Unit stats to use.
+ * @param currentCaps  Unit type stat caps
+ * @return Map of unit's stats percentage w.r.t. statCaps.
+ */
+std::map<std::string, int> StatString::getCurrentStatsPercent(UnitStats &currentStats, UnitStats &currentCaps)
+{
+	auto normalizedPercentage = [&](UnitStats::Type current, UnitStats::Type cap)
+	{
+		if ((int)cap == 0)
+		{
+			// Prevent non-existing stat from being used. Ensure return value is
+			// below default limit (0) as defined by 'getCondition()'.
+			return -1;
+		}
+		else
+		{
+			// Even though 'current' could be slightly larger than 'cap' due to circumstances,
+			// the resulting percentage (which will not be far from 100) wil not go beyond the
+			// default upper limit (255) as defined by 'getCondition()'.
+			return 100 * current / cap;
+		}
+	};
+
+	std::map<std::string, int> currentStatCapsMap;
+	currentStatCapsMap["psiStrengthPercent"] = normalizedPercentage(currentStats.psiStrength, currentCaps.psiStrength);
+	currentStatCapsMap["psiSkillPercent"] =  normalizedPercentage(currentStats.psiSkill, currentCaps.psiSkill);
+	currentStatCapsMap["braveryPercent"] =  normalizedPercentage(currentStats.bravery, currentCaps.bravery);
+	currentStatCapsMap["strengthPercent"] =  normalizedPercentage(currentStats.strength, currentCaps.strength);
+	currentStatCapsMap["firingPercent"] =  normalizedPercentage(currentStats.firing, currentCaps.firing);
+	currentStatCapsMap["reactionsPercent"] =  normalizedPercentage(currentStats.reactions, currentCaps.reactions);
+	currentStatCapsMap["staminaPercent"] =  normalizedPercentage(currentStats.stamina, currentCaps.stamina);
+	currentStatCapsMap["tuPercent"] =  normalizedPercentage(currentStats.tu, currentCaps.tu);
+	currentStatCapsMap["healthPercent"] =  normalizedPercentage(currentStats.health, currentCaps.health);
+	currentStatCapsMap["throwingPercent"] =  normalizedPercentage(currentStats.throwing, currentCaps.throwing);
+	currentStatCapsMap["meleePercent"] =  normalizedPercentage(currentStats.melee, currentCaps.melee);
+	currentStatCapsMap["manaPoolPercent"] =  normalizedPercentage(currentStats.mana, currentCaps.mana);
+	return currentStatCapsMap;
+}
 
 }
