@@ -82,7 +82,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 {
 	_screen = false;
 	_alternateScreen = Options::alternateBaseScreens;
-	_inCompareModus = false;
 
 	// Create objects
 	_window = new Window(this, 192, 160, 64, 20, POPUP_BOTH);
@@ -94,7 +93,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_lstArmor = new TextList(160, 80, 73, 68);
 	_sortName = new ArrowButton(ARROW_NONE, 11, 8, 80, 52);
 	_cbxCategory = new ComboBox(this, 120, 16, 73, 48);
-	_btnCompare = new ToggleTextButton(83, 16, 73, 156);
 
 	// Set palette
 	if (_origin == SA_BATTLESCAPE)
@@ -115,7 +113,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	add(_lstArmor, "list", "soldierArmor");
 	add(_sortName, "text", "soldierArmor");
 	add(_cbxCategory, "text", "soldierArmor");
-	add(_btnCompare, "button", "soldierArmor");
 
 	centerAllSurfaces();
 
@@ -125,8 +122,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	_btnCancel->setText(tr("STR_CANCEL_UC"));
 	_btnCancel->onMouseClick((ActionHandler)&SoldierArmorState::btnCancelClick);
 	_btnCancel->onKeyboardPress((ActionHandler)&SoldierArmorState::btnCancelClick, Options::keyCancel);
-	_btnCompare->setText(tr("STR_COMPARE"));
-	_btnCompare->onMousePress((ActionHandler)&SoldierArmorState::btnCompareClick);
 
 	Soldier *s = _base->getSoldiers()->at(_soldier);
 	_txtTitle->setAlign(ALIGN_CENTER);
@@ -263,16 +258,6 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 	else
 	{
 		_cbxCategory->setVisible(false);
-	}
-	// Compare functionality
-	if (_alternateScreen)
-	{
-		_btnCancel->setWidth(_btnCompare->getWidth());
-		_btnCancel->setX(_btnCompare->getX() + _btnCompare->getWidth() + 8);
-	}
-	else
-	{
-		_btnCompare->setVisible(false);
 	}
 
 	fillArmorList();
@@ -469,12 +454,6 @@ void SoldierArmorState::updateList()
 		int parentId = 1; // Reserve 0 for 'not set'
 		for (auto& armorItem : _armors)
 		{
-			// Limit to known armors only when in compare modus
-			if (_inCompareModus && !armorItem.isKnown)
-			{
-				armorItem.resetIdsAndVisibility();
-				continue;
-			}
 
 			const Armor* transformedArmor = getResultingArmor(armorItem.armor);
 
@@ -494,8 +473,6 @@ void SoldierArmorState::updateList()
 		int idArmor = parentId + 1;
 		for (auto& armorItem : _armors)
 		{
-			// Limit to known armors only when in compare modus
-			if (_inCompareModus && !armorItem.isKnown) continue;
 
 			// Parents were already set.
 			if (armorItem.parentId != 0) continue;
@@ -530,15 +507,9 @@ void SoldierArmorState::updateList()
 	{
 		for (std::vector<ArmorItem>::iterator j = _armors.begin(); j != _armors.end(); ++j)
 		{
-			if ((*j).qty == 0 && !_inCompareModus)
+			if ((*j).qty == 0)
 			{
 				(*j).resetIdsAndVisibility();
-				continue;
-			}
-			else if (_inCompareModus && !(*j).isKnown)
-			{
-				(*j).resetIdsAndVisibility();
-				continue;
 			}
 			else
 			{
@@ -623,17 +594,6 @@ void SoldierArmorState::drawList()
 void SoldierArmorState::btnCancelClick(Action *)
 {
 	_game->popState();
-}
-
-/**
- * Put screen in compare mode.
- * @param action Pointer to an action.
- */
-void SoldierArmorState::btnCompareClick(Action *)
-{
-	// Only show researched armors.
-	_inCompareModus = _btnCompare->getPressed();
-	updateList();
 }
 
 /**

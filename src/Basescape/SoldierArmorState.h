@@ -97,14 +97,11 @@ private:
 	void updateArrows();
 
 	bool _alternateScreen;
-	bool _inCompareModus;
 	ComboBox *_cbxCategory;
 	std::vector<std::string> _cats;
 
 	/// Handler for changing the category filter.
 	void cbxCategoryChange(Action *action);
-	/// Handler for clicking the Compare button.
-	void btnCompareClick(Action *action);
 	void fillArmorList();
 	void drawList();
 	size_t _sel;
