@@ -385,14 +385,14 @@ void SoldierArmorState::updateList()
 {
 	// There is a trade-off here.
 	// To prevent listing of all armors 'fillArmorList()' could only include
-	// unknown armors with a 'storItem' on base. This means transformed armors
+	// unknown armors with a 'storeItem' on base. This means transformed armors
 	// will only be recognized if they have a pedia entry.
 
 	size_t selCategory = _cbxCategory->getSelected();
 	const std::string selectedCategory = _cats[selCategory];
 	bool categoryFilterEnabled = (selectedCategory != "STR_DEFAULT");
 
-	// Early sort to ensure both parents and childs honor setting.
+	// Early sort to ensure both parents and children honor setting.
 	sortList();
 
 	if (categoryFilterEnabled)
@@ -404,98 +404,110 @@ void SoldierArmorState::updateList()
 		auto listAllowed = filterStartCondition->getAllowedArmors();
 		auto listForbidden = filterStartCondition->getForbiddenArmors();
 
-		// Check if armor is allowed
-		auto isAllowedArmor = [&](std::string armorType) -> bool
+		// Get resulting armor as if it was an actual deployment.
+		// Based on: `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
+		auto getResultingArmor = [&](const Armor* original) -> const Armor*
 		{
-			// Both lists are supposed to be mutual exclusive.
-			if (!listAllowed.empty() && std::find(listAllowed.begin(), listAllowed.end(), armorType) == listAllowed.end())
+			Armor* resultingArmor = nullptr;
+
+			// 1. Deployment based environmental armor transforms
+			if (filterEnviroEffects)
 			{
-				return false; // Armor not in list of allowed ones
+				resultingArmor = filterEnviroEffects->getArmorTransformation(original);
 			}
-			else if (!listForbidden.empty() && std::find(listForbidden.begin(), listForbidden.end(), armorType) != listForbidden.end())
+			// 2. Terrain based environmental armor transforms
+			// Unfortunately we don't have access to actual terrain (without extensive modifications).
+			// Picking the first terrain (or first transform) is worse than skipping section altogether
+			// since it is most likely going to lie to the player.
+// 			else
+// 			{
+// 				for (auto terrain : filterDeployment->getTerrains())
+// 				{
+// 					RuleTerrain* terrainRule = _game->getMod()->getTerrain(terrain);
+// 					RuleEnviroEffects* terrainEnviro = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
+// 					if (terrainEnviro)
+// 					{
+// 						resultingArmor = terrainEnviro->getArmorTransformation(original);
+// 						break;
+// 					}
+// 				}
+// 			}
+			// 3. Deployment startingConditions (allowed, denied and default armors)
+			if (!resultingArmor && filterStartCondition)
 			{
-				return false; // Armor in list of forbidden ones
+				std::string soldierType = _base->getSoldiers()->at(_soldier)->getRules()->getType();
+				std::string replacedArmorType = filterStartCondition->getArmorReplacement(soldierType, original->getType());
+				if (replacedArmorType == "")
+				{
+					return original;
+				}
+
+				resultingArmor = _game->getMod()->getArmor(replacedArmorType, true);
+				if (resultingArmor && resultingArmor->getSize() > original->getSize())
+				{
+					// Cannot switch into a bigger armor size!
+					resultingArmor = nullptr;
+				}
 			}
-			return true;
+			return resultingArmor;
 		};
+
 		// Find parent of selected armor.
-		auto findParentId = [&](Armor *convertedArmor) -> int
+		auto findParentId = [&](const Armor *convertedArmor) -> int
 		{
 			auto bean = std::find_if(_armors.begin(), _armors.end(),
-				[&](const ArmorItem row) {return row.armor == convertedArmor;});
+				[&](const ArmorItem row) { return row.armor == convertedArmor; });
 			if (bean == _armors.end())
 			{
-				return 0;
+				return 0; // No (known) parent found or convertedArmor was nullptr.
 			}
 			return (*bean).parentId;
 		};
 
-		// 1st pass. Mark all (regular + virtual) armors allowed on mission, reset all others.
+		// 2-pass logic to ensure both 'subtotals' and 'elements' conform to sort order.
+		// 1st pass: Handle all parents, reset all others.
 		int parentId = 1; // Reserve 0 for 'not set'
-		for (std::vector<ArmorItem>::iterator j = _armors.begin(); j != _armors.end(); ++j)
+		for (auto& armorItem : _armors)
 		{
 			// Limit to known armors only when in compare modus
-			if (_inCompareModus && !(*j).isKnown)
+			if (_inCompareModus && !armorItem.isKnown)
 			{
-				(*j).resetIdsAndVisibility();
-				continue;
-			}
-			if (!isAllowedArmor((*j).type))
-			{
-				(*j).resetIdsAndVisibility();
+				armorItem.resetIdsAndVisibility();
 				continue;
 			}
 
-			(*j).id = (*j).parentId = parentId;
-			(*j).isVisible = true;
-			parentId++;
+			const Armor* transformedArmor = getResultingArmor(armorItem.armor);
+
+			// Armor cannot be used or is not a parent
+			if (!transformedArmor || transformedArmor != armorItem.armor)
+			{
+				armorItem.resetIdsAndVisibility();
+			}
+			else
+			{
+				armorItem.id = armorItem.parentId = parentId;
+				armorItem.isVisible = true;
+				parentId++;
+			}
 		}
-
-		// 2nd pass, mark all (child) armors subject to transformations.
+		// 2nd pass: Mark all (child) armors subject to transformations.
 		int idArmor = parentId + 1;
-		for (std::vector<ArmorItem>::iterator j = _armors.begin(); j != _armors.end(); ++j)
+		for (auto& armorItem : _armors)
 		{
 			// Limit to known armors only when in compare modus
-			if (_inCompareModus && !(*j).isKnown) continue;
+			if (_inCompareModus && !armorItem.isKnown) continue;
 
-			// Allowed armors were already set on 1st pass.
-			if (isAllowedArmor((*j).type)) continue;
+			// Parents were already set.
+			if (armorItem.parentId != 0) continue;
 
-			// Check if armor can be used based on deployment rules.
-			// In order of prio as derived from:
-			// `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
-			parentId = 0; // Reset needed to determine if this armor is allowed to end up in the list.
-			// 1. Deployment based environmental armor transforms
-			if (filterEnviroEffects && filterEnviroEffects->getArmorTransformation((*j).armor) != nullptr)
-			{
-				parentId = findParentId(filterEnviroEffects->getArmorTransformation((*j).armor));
-			}
-			// 2. Terrain based environmental armor transforms
-			if (parentId == 0)
-			{
-				for (auto terrain : filterDeployment->getTerrains())
-				{
-					RuleTerrain* terrainRule = _game->getMod()->getTerrain(terrain);
-					RuleEnviroEffects* terrainEnviro = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
-					if (terrainEnviro && terrainEnviro->getArmorTransformation((*j).armor) != nullptr)
-					{
-						parentId = findParentId(terrainEnviro->getArmorTransformation((*j).armor));
-						break;
-					}
-				}
-			}
-			// 3. Deployment startingConditions (allowed, denied and default armors)
-			// Based on: RuleStartingCondition::getArmorReplacement()
-			// Not needed since allowed & denied are already parents.
-			// Default replacement does not really makes sense for this filter (it is a fallback mechanism).
-			// Bonus: No need to decide where an armor belongs to if multiple weighted default transformations are defined.
+			const Armor* transformedArmor = getResultingArmor(armorItem.armor);
 
-			// 4. It appears current filter does not allow this armor (or falls under default replacement).
-			if (parentId == 0) continue;
-
-			(*j).id = idArmor;
-			(*j).parentId = parentId;
-			(*j).isVisible = true; // Unfolded by default, seems a better fit for this screen.
+			// For as far as I can tell transformedArmor == nullptr means
+			// soldier will keep original armor when placed on the battlescape.
+			// In that case keep parent as 0 to indicate something fishy is going on.
+			armorItem.parentId = findParentId(transformedArmor);
+			armorItem.id = idArmor;
+			armorItem.isVisible = true;
 			idArmor++;
 		}
 
@@ -506,8 +518,7 @@ void SoldierArmorState::updateList()
 				return std::tie(a.id, a.parentId) < std::tie(b.id, b.parentId);
 			}
 		);
-
-		// Group elements and parents.
+		// Group parents and childs.
 		std::stable_sort(_armors.begin(), _armors.end(),
 			[](const ArmorItem a, const ArmorItem b)
 			{

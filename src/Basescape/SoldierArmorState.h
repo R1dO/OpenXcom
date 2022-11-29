@@ -60,7 +60,7 @@ struct ArmorItem
 	int qty = 0;            // Quantity in base stores, -1 for infinite.
 	int listOrder = 0;      // Screen specific listOrder.
 	int id = 0;             // Subtotal if 'id == parentId'.
-	int parentId = 0;       // To allow grouping of child rows (for folding).
+	int parentId = 0;       // To allow grouping of child rows (for folding), '0' means orphan.
 	bool isKnown = false;   // Can we see ufopaedia entry (e.g. is researched).
 	bool isVisible = false; // By default children are hidden unless unfolded.
 
