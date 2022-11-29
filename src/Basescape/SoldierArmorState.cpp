@@ -282,8 +282,13 @@ void SoldierArmorState::fillArmorList()
 	_armors.clear();
 	Soldier *s = _base->getSoldiers()->at(_soldier);
 
+	// 'Subtotal' for armors with unknown parents.
+	// Since 'type = ""' is not allowed in rulesets there should not be collisions.
+	ArmorItem headerRow = {"", tr("STR_UNKNOWN"), "", {}};
+	_armors.push_back(headerRow);
+
 	// Don't depend on item listOrder, it does not exist for "STR_NONE" armors (storeItem is nullpointer).
-	int screenListOrder = 0;
+	int screenListOrder = 1;
 	const auto &armors = _game->getMod()->getArmorsForSoldiers();
 	for (auto* a : armors)
 	{
@@ -444,18 +449,41 @@ void SoldierArmorState::updateList()
 		{
 			auto bean = std::find_if(_armors.begin(), _armors.end(),
 				[&](const ArmorItem row) { return row.armor == convertedArmor; });
-			if (bean == _armors.end())
+			if (bean != _armors.end())
 			{
-				return 0; // No (known) parent found or convertedArmor was nullptr.
+				return (*bean).parentId;
 			}
-			return (*bean).parentId;
+			// No (known) parent found or convertedArmor was nullptr.
+			// Categorize as "Unknown" (and mark parent for display).
+			auto crumb = std::find_if(_armors.begin(), _armors.end(),
+				[&](ArmorItem row) { return row.type == ""; });
+			if (crumb != _armors.end())
+			{
+				(*crumb).isVisible |= true;
+				return (*crumb).parentId;
+			}
+
+			return -1; // Warning indicator: Armor will be pushed to the top.
 		};
 
 		// 2-pass logic to ensure both 'subtotals' and 'elements' conform to sort order.
 		// 1st pass: Handle all parents, reset all others.
-		int parentId = 1; // Reserve 0 for 'not set'
+		int parentId = 1; // Reserve 0 for blank slates.
 		for (auto& armorItem : _armors)
 		{
+			if (armorItem.type == "" && armorItem.armor == nullptr)
+			{
+				// "Unknown" category. 2nd pass will set visibility.
+				armorItem.id = armorItem.parentId = parentId;
+				armorItem.isVisible = false;
+				parentId++;
+				continue;
+			}
+			else if (armorItem.armor == nullptr)
+			{
+				armorItem.resetIdsAndVisibility();
+				continue;
+			}
 
 			const Armor* transformedArmor = getResultingArmor(armorItem.armor);
 
@@ -475,15 +503,14 @@ void SoldierArmorState::updateList()
 		int idArmor = parentId + 1;
 		for (auto& armorItem : _armors)
 		{
-
 			// Parents were already set.
-			if (armorItem.parentId != 0) continue;
+			if (armorItem.parentId != 0 || armorItem.armor == nullptr) continue;
 
 			const Armor* transformedArmor = getResultingArmor(armorItem.armor);
 
-			// For as far as I can tell transformedArmor == nullptr means
+			// For as far as I can tell 'transformedArmor == nullptr' means
 			// soldier will keep original armor when placed on the battlescape.
-			// In that case keep parent as 0 to indicate something fishy is going on.
+			// In that case "Unknown" category is acceptable.
 			armorItem.parentId = findParentId(transformedArmor);
 			armorItem.id = idArmor;
 			armorItem.isVisible = true;
@@ -671,6 +698,9 @@ void SoldierArmorState::lstArmorClick(Action *)
 */
 void SoldierArmorState::lstArmorClickMiddle(Action *action)
 {
+	if (!_armors[_indices[_lstArmor->getSelectedRow()]].isKnown)
+		return;
+
 	auto armor = _armors[_indices[_lstArmor->getSelectedRow()]].armor;
 	std::string articleId = armor->getUfopediaType();
 	Ufopaedia::openArticle(_game, articleId);
@@ -683,7 +713,6 @@ void SoldierArmorState::lstArmorClickMiddle(Action *action)
 void SoldierArmorState::lstArmorClickRight(Action *action)
 {
 	_sel = _lstArmor->getSelectedRow();
-	if (getRow().id == 0) return;
 
 	// Safety
 	if (getRow().id == getRow().parentId && _indices[_sel] + 1 >= _armors.size())
