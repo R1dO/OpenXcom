@@ -149,11 +149,17 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		const RuleStartingCondition *startConditions = _game->getMod()->getStartingCondition(deploymentRule->getStartingCondition());
 		const RuleEnviroEffects *enviroEffects = _game->getMod()->getEnviroEffects(deploymentRule->getEnviroEffects());
 
-		if (startConditions == 0 && enviroEffects == 0) return;
-
-		auto listAllowed = startConditions->getAllowedArmors();
-		auto listForbidden = startConditions->getForbiddenArmors();
-		if (!listAllowed.empty() || !listForbidden.empty() || enviroEffects->hasArmorTransformation())
+		if (startConditions)
+		{
+			auto listAllowed = startConditions->getAllowedArmors();
+			auto listForbidden = startConditions->getForbiddenArmors();
+			if (!listAllowed.empty() || !listForbidden.empty())
+			{
+				_cats.push_back(deploymentRule->getType());
+				return;
+			}
+		}
+		if (enviroEffects && enviroEffects->hasArmorTransformation())
 		{
 			_cats.push_back(deploymentRule->getType());
 			return;
@@ -164,7 +170,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		{
 			RuleTerrain* terrainRule = _game->getMod()->getTerrain(terrain);
 			enviroEffects = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
-			if (enviroEffects->hasArmorTransformation())
+			if (enviroEffects && enviroEffects->hasArmorTransformation())
 			{
 				_cats.push_back(deploymentRule->getType());
 				return;
@@ -408,9 +414,6 @@ void SoldierArmorState::updateList()
 		// Those need access to globe though, hence not implemented.
 		// Besides that, those are only needed in case '*filter...'
 		// variables are still 'nullptrs' at this stage.
-
-		auto listAllowed = filterStartCondition->getAllowedArmors();
-		auto listForbidden = filterStartCondition->getForbiddenArmors();
 
 		// Get resulting armor as if it was an actual deployment.
 		// Based on: `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
