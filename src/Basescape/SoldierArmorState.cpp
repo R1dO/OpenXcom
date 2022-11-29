@@ -428,7 +428,12 @@ void SoldierArmorState::updateList()
 			}
 
 			// 2. Deployment startingConditions (allowed, denied and default armors)
-			if (!resultingArmor && filterStartCondition)
+			if (!resultingArmor && !filterStartCondition)
+			{
+				// No transformation AND no startcondition limitations.
+				return original;
+			}
+			else if (!resultingArmor)
 			{
 				std::string soldierType = _base->getSoldiers()->at(_soldier)->getRules()->getType();
 				std::string replacedArmorType = filterStartCondition->getArmorReplacement(soldierType, original->getType());
@@ -444,6 +449,7 @@ void SoldierArmorState::updateList()
 					resultingArmor = nullptr;
 				}
 			}
+
 			return resultingArmor;
 		};
 
