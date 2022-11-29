@@ -717,6 +717,9 @@ void SoldierArmorState::lstArmorClickRight(Action *action)
 {
 	_sel = _lstArmor->getSelectedRow();
 
+	// Blank state (all parents) does not have collapse functionality
+	if (getRow().parentId == 0) return;
+
 	// Safety
 	if (getRow().id == getRow().parentId && _indices[_sel] + 1 >= _armors.size())
 		return;
