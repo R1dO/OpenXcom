@@ -149,11 +149,17 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		const RuleStartingCondition *startConditions = _game->getMod()->getStartingCondition(deploymentRule->getStartingCondition());
 		const RuleEnviroEffects *enviroEffects = _game->getMod()->getEnviroEffects(deploymentRule->getEnviroEffects());
 
-		if (startConditions == 0 && enviroEffects == 0) return;
-
-		auto listAllowed = startConditions->getAllowedArmors();
-		auto listForbidden = startConditions->getForbiddenArmors();
-		if (!listAllowed.empty() || !listForbidden.empty() || enviroEffects->hasArmorTransformation())
+		if (startConditions)
+		{
+			auto listAllowed = startConditions->getAllowedArmors();
+			auto listForbidden = startConditions->getForbiddenArmors();
+			if (!listAllowed.empty() || !listForbidden.empty())
+			{
+				_cats.push_back(deploymentRule->getType());
+				return;
+			}
+		}
+		if (enviroEffects && enviroEffects->hasArmorTransformation())
 		{
 			_cats.push_back(deploymentRule->getType());
 			return;
@@ -164,7 +170,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		{
 			RuleTerrain* terrainRule = _game->getMod()->getTerrain(terrain);
 			enviroEffects = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
-			if (enviroEffects->hasArmorTransformation())
+			if (enviroEffects && enviroEffects->hasArmorTransformation())
 			{
 				_cats.push_back(deploymentRule->getType());
 				return;
@@ -409,9 +415,6 @@ void SoldierArmorState::updateList()
 		// Besides that, those are only needed in case '*filter...'
 		// variables are still 'nullptrs' at this stage.
 
-		auto listAllowed = filterStartCondition->getAllowedArmors();
-		auto listForbidden = filterStartCondition->getForbiddenArmors();
-
 		// Get resulting armor as if it was an actual deployment.
 		// Based on: `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
 		auto getResultingArmor = [&](const Armor* original) -> const Armor*
@@ -425,7 +428,12 @@ void SoldierArmorState::updateList()
 			}
 
 			// 2. Deployment startingConditions (allowed, denied and default armors)
-			if (!resultingArmor && filterStartCondition)
+			if (!resultingArmor && !filterStartCondition)
+			{
+				// No transformation AND no startcondition limitations.
+				return original;
+			}
+			else if (!resultingArmor)
 			{
 				std::string soldierType = _base->getSoldiers()->at(_soldier)->getRules()->getType();
 				std::string replacedArmorType = filterStartCondition->getArmorReplacement(soldierType, original->getType());
@@ -441,6 +449,7 @@ void SoldierArmorState::updateList()
 					resultingArmor = nullptr;
 				}
 			}
+
 			return resultingArmor;
 		};
 
@@ -713,6 +722,9 @@ void SoldierArmorState::lstArmorClickMiddle(Action *action)
 void SoldierArmorState::lstArmorClickRight(Action *action)
 {
 	_sel = _lstArmor->getSelectedRow();
+
+	// Blank state (all parents) does not have collapse functionality
+	if (getRow().parentId == 0) return;
 
 	// Safety
 	if (getRow().id == getRow().parentId && _indices[_sel] + 1 >= _armors.size())
