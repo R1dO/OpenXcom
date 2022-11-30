@@ -436,8 +436,8 @@ en-US:
   STR_ROUNDS_SHORT: "Ammo>{ALT}{0}"
 # ManufactureDependenciesTreeState.cpp
   STR_NO_PROVIDERS: "Cannot Buy/Manufacture"
-  STR_CAN_BUY: "Buyable> {ALT}{0}"
-  STR_CAN_RESEARCH: "Has research potential> {ALT}{0}"
+  STR_CAN_BUY: "{ALT}Can Buy> {ALT}{0}" # Inverse list color
+  STR_CAN_RESEARCH: "{ALT}Can Research> {ALT}{0}" # Inverse list color
   STR_DIRECT_PROVIDERS: "Get from direct Manufacturing"
   STR_RANDOM_PROVIDERS: "Get from random Manufacturing"
 # MonthlyCostsDetailsState (is there some guideline to name screen specific strings?)
