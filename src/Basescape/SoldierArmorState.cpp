@@ -149,11 +149,17 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		const RuleStartingCondition *startConditions = _game->getMod()->getStartingCondition(deploymentRule->getStartingCondition());
 		const RuleEnviroEffects *enviroEffects = _game->getMod()->getEnviroEffects(deploymentRule->getEnviroEffects());
 
-		if (startConditions == 0 && enviroEffects == 0) return;
-
-		auto listAllowed = startConditions->getAllowedArmors();
-		auto listForbidden = startConditions->getForbiddenArmors();
-		if (!listAllowed.empty() || !listForbidden.empty() || enviroEffects->hasArmorTransformation())
+		if (startConditions)
+		{
+			auto listAllowed = startConditions->getAllowedArmors();
+			auto listForbidden = startConditions->getForbiddenArmors();
+			if (!listAllowed.empty() || !listForbidden.empty())
+			{
+				_cats.push_back(deploymentRule->getType());
+				return;
+			}
+		}
+		if (enviroEffects && enviroEffects->hasArmorTransformation())
 		{
 			_cats.push_back(deploymentRule->getType());
 			return;
@@ -164,7 +170,7 @@ SoldierArmorState::SoldierArmorState(Base *base, size_t soldier, SoldierArmorOri
 		{
 			RuleTerrain* terrainRule = _game->getMod()->getTerrain(terrain);
 			enviroEffects = _game->getMod()->getEnviroEffects(terrainRule->getEnviroEffects());
-			if (enviroEffects->hasArmorTransformation())
+			if (enviroEffects && enviroEffects->hasArmorTransformation())
 			{
 				_cats.push_back(deploymentRule->getType());
 				return;
@@ -409,9 +415,6 @@ void SoldierArmorState::updateList()
 		// Besides that, those are only needed in case '*filter...'
 		// variables are still 'nullptrs' at this stage.
 
-		auto listAllowed = filterStartCondition->getAllowedArmors();
-		auto listForbidden = filterStartCondition->getForbiddenArmors();
-
 		// Get resulting armor as if it was an actual deployment.
 		// Based on: `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
 		auto getResultingArmor = [&](const Armor* original) -> const Armor*
@@ -425,7 +428,12 @@ void SoldierArmorState::updateList()
 			}
 
 			// 2. Deployment startingConditions (allowed, denied and default armors)
-			if (!resultingArmor && filterStartCondition)
+			if (!resultingArmor && !filterStartCondition)
+			{
+				// No transformation AND no startcondition limitations.
+				return original;
+			}
+			else if (!resultingArmor)
 			{
 				std::string soldierType = _base->getSoldiers()->at(_soldier)->getRules()->getType();
 				std::string replacedArmorType = filterStartCondition->getArmorReplacement(soldierType, original->getType());
@@ -441,6 +449,7 @@ void SoldierArmorState::updateList()
 					resultingArmor = nullptr;
 				}
 			}
+
 			return resultingArmor;
 		};
 
@@ -464,6 +473,14 @@ void SoldierArmorState::updateList()
 			}
 
 			return -1; // Warning indicator: Armor will be pushed to the top.
+		};
+
+		auto hasChildren = [&](const int parent) -> bool
+		{
+			auto candy = std::find_if(_armors.begin(), _armors.end(),
+			[&](const ArmorItem row) {return row.parentId == parent && row.id != parent;});
+
+			return !(candy == _armors.end());
 		};
 
 		// 2-pass logic to ensure both 'subtotals' and 'elements' conform to sort order.
@@ -503,8 +520,9 @@ void SoldierArmorState::updateList()
 		int idArmor = parentId + 1;
 		for (auto& armorItem : _armors)
 		{
-			// Parents were already set.
-			if (armorItem.parentId != 0 || armorItem.armor == nullptr) continue;
+			if (armorItem.parentId != 0) continue;    // Parents were already set.
+			if (armorItem.armor == nullptr) continue; // Safety
+			if (armorItem.qty == 0) continue;         // Only available armors.
 
 			const Armor* transformedArmor = getResultingArmor(armorItem.armor);
 
@@ -517,20 +535,29 @@ void SoldierArmorState::updateList()
 			idArmor++;
 		}
 
-		// Parents should always be listed before childs.
+		// Parents should always be listed before children.
 		std::stable_sort(_armors.begin(), _armors.end(),
 			[](const ArmorItem a, const ArmorItem b)
 			{
 				return std::tie(a.id, a.parentId) < std::tie(b.id, b.parentId);
 			}
 		);
-		// Group parents and childs.
+		// Group parents and children.
 		std::stable_sort(_armors.begin(), _armors.end(),
 			[](const ArmorItem a, const ArmorItem b)
 			{
 				return a.parentId < b.parentId;
 			}
 		);
+
+		// Only show 'virtual' (e.g. no-storeitem) parents if they have children
+		for (auto& armorItem : _armors)
+		{
+			if (armorItem.id == armorItem.parentId && armorItem.qty == 0)
+			{
+				armorItem.isVisible = hasChildren(armorItem.parentId);
+			}
+		}
 	}
 	else
 	{
@@ -713,6 +740,9 @@ void SoldierArmorState::lstArmorClickMiddle(Action *action)
 void SoldierArmorState::lstArmorClickRight(Action *action)
 {
 	_sel = _lstArmor->getSelectedRow();
+
+	// Blank state (all parents) does not have collapse functionality
+	if (getRow().parentId == 0) return;
 
 	// Safety
 	if (getRow().id == getRow().parentId && _indices[_sel] + 1 >= _armors.size())

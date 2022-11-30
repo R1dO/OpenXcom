@@ -1019,8 +1019,7 @@ int Base::getItemClaimByResearch(const RuleItem* item, bool excludeNonRefundable
 /**
  * Returns the amount of a storage item claimed by soldiers on base/in transfer.
  *
- * Prefers player managed layout.
- * Falls back to game managed layout if a personal one does not exist.
+ * Only recognizes game managed layout.
  *
  * @warning
  * Inclusion of armor is for display purposes only.
@@ -1041,16 +1040,12 @@ int Base::getItemClaimBySoldiers(const RuleItem* item,
 	{
 		if (!excludeArmor)
 		{
-			auto soldierArmor = soldier->getPersonalEquipmentArmor();
-			if (soldierArmor == nullptr)
-				soldierArmor = soldier->getArmor();
+			auto soldierArmor = soldier->getArmor();
 			if (soldierArmor != nullptr && soldierArmor->getStoreItem() == item)
 				qtyClaimed++;
 		}
 
-		auto* soldierEquipment = soldier->getPersonalEquipmentLayout();
-		if (soldierEquipment->empty()) // No personal layout.
-			soldierEquipment = soldier->getEquipmentLayout();
+		auto* soldierEquipment = soldier->getEquipmentLayout();
 		if (soldierEquipment->empty()) continue;
 
 		for (auto* equippedItem : *soldierEquipment)
@@ -1086,16 +1081,12 @@ int Base::getItemClaimBySoldiers(const RuleItem* item,
 		{
 			if (!excludeArmor)
 			{
-				auto soldierArmor = transfer->getSoldier()->getPersonalEquipmentArmor();
-				if (soldierArmor == nullptr)
-					soldierArmor = transfer->getSoldier()->getArmor();
+				auto soldierArmor = transfer->getSoldier()->getArmor();
 				if (soldierArmor != nullptr && soldierArmor->getStoreItem() == item)
 					qtyClaimed++;
 			}
 
-			auto* soldierEquipment = transfer->getSoldier()->getPersonalEquipmentLayout();
-			if (soldierEquipment->empty()) // No personal layout.
-				soldierEquipment = transfer->getSoldier()->getEquipmentLayout();
+			auto* soldierEquipment = transfer->getSoldier()->getEquipmentLayout();
 			if (soldierEquipment->empty()) continue;
 
 			for (auto* equippedItem : *soldierEquipment)
