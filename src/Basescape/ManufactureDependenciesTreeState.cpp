@@ -109,6 +109,8 @@ void ManufactureDependenciesTreeState::init()
 {
 	State::init();
 
+	fillTopicsList();
+
 	if (!Options::oxceDisableProductionDependencyTree)
 	{
 		if (_currentScreen == ST_DEPENDENCIES)
@@ -120,6 +122,50 @@ void ManufactureDependenciesTreeState::init()
 			screenProviders();
 		}
 	}
+}
+
+/**
+* Build workhorse vector of topics for this item.
+*/
+void ManufactureDependenciesTreeState::fillTopicsList()
+{
+	_topics.clear();
+
+	int id = 0;
+	int parentId = 0;
+	int screenListOrder = 0; // We have multiple topics with (duplicate) item listorders.
+	TopicsBackend row = {};
+
+	// Item research potential (independent of base facilities).
+	for (auto& researchProject : _game->getMod()->getResearchList())
+	{
+		if (researchProject != _selectedItem) continue;
+
+		RuleResearch *researchRule =  _game->getMod()->getResearch(researchProject);
+		if (!researchRule || !researchRule->needItem()) continue;
+
+		// Does there exist a possibility this project is/becomes researchable?
+		// Adapted snippet from SavedGame::getAvailableResearchProjects()
+		if (!_game->getSavedGame()->isResearched(researchRule, false) ||
+			_game->getSavedGame()->isResearchRuleStatusDisabled(researchRule->getName()) ||
+			_game->getSavedGame()->hasUndiscoveredGetOneFree(researchRule, false) ||
+			_game->getSavedGame()->hasUndiscoveredProtectedUnlock(researchRule, _game->getMod()))
+		{
+			row = {id, parentId, screenListOrder, true, true, tr("STR_CAN_RESEARCH").arg(tr("STR_YES"))};
+		}
+		else
+		{
+			// No point in showing (by default) if item is no longer available for research.
+			row = {id, parentId, screenListOrder, _showAll, true, tr("STR_CAN_RESEARCH").arg(tr("STR_NO"))};
+		}
+
+		_topics.push_back(row);
+		id++;
+		parentId++;
+		screenListOrder++;
+		break;
+	}
+	// If item cannot be used in research there is no need to add this element to the list.
 }
 
 /**
@@ -186,38 +232,7 @@ void ManufactureDependenciesTreeState::screenDependencies()
 		}
 	}
 
-	int row = 0;
-	std::ostringstream ss;
-	// Check if item has research potential
-	// Does not check if there are some requirements that temporary disables research potential
-	for (auto& researchProject : _game->getMod()->getResearchList())
-	{
-		RuleResearch *researchRule =  _game->getMod()->getResearch(researchProject);
-		if (!researchRule->needItem() || researchProject != _selectedItem)
-			continue;
 
-		// Adapted snippet from SavedGame::getAvailableResearchProjects()
-		if (!_game->getSavedGame()->isResearched(researchRule, false) ||
-			_game->getSavedGame()->hasUndiscoveredGetOneFree(researchRule, false) ||
-			_game->getSavedGame()->hasUndiscoveredProtectedUnlock(researchRule, _game->getMod()))
-		{
-			ss << Unicode::TOK_COLOR_FLIP << tr("STR_CAN_RESEARCH").arg(tr("STR_YES"));
-			break;
-		}
-		else
-		{
-			ss << Unicode::TOK_COLOR_FLIP << tr("STR_CAN_RESEARCH").arg(tr("STR_NO"));
-			break;
-		}
-	}
-	// If item cannot be used in research -> Show nothing.
-	if (!ss.str().empty())
-	{
-		_lstTopics->addRow(1, ss.str().c_str());
-		++row;
-		_lstTopics->addRow(1, "");
-		++row;
-	}
 
 	// breadth-first tree search
 	const std::vector<std::string> firstLevel = deps[_selectedItem];

@@ -35,6 +35,16 @@ enum ScreenType {ST_DEPENDENCIES, ST_PROVIDERS};
 class ManufactureDependenciesTreeState : public State
 {
 private:
+	struct TopicsBackend
+	{
+		int id = 0;
+		int parentId = 0;
+		int listOrder = 0;
+		bool isVisible = false;
+		bool isKnown = false;
+		std::string description;
+	};
+
 	Window *_window;
 	Text *_txtTitle;
 	TextList *_lstTopics;
@@ -43,6 +53,12 @@ private:
 	bool _showAll;
 	void screenDependencies();
 	void screenProviders();
+
+	std::vector<TopicsBackend> _topics;
+	std::vector<size_t> _indices;
+	size_t _sel;
+	TopicsBackend &getRow() { return _topics[_indices[_sel]]; }
+	void fillTopicsList();
 
 	ScreenType _currentScreen;
 public:
