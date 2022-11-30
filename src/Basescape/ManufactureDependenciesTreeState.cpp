@@ -136,6 +136,37 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 
 	// Collect helper data.
 	std::vector<std::string> providerDirect, providerRandom;
+	const std::vector<std::string> &manufactureProjects = _game->getMod()->getManufactureList();
+	for (std::vector<std::string>::const_iterator i = manufactureProjects.begin(); i != manufactureProjects.end(); ++i)
+	{
+		RuleManufacture *ruleProject = _game->getMod()->getManufacture((*i));
+		for (auto& ruleNormal : ruleProject->getProducedItems())
+		{
+			//std::map<const RuleItem*, int>
+			if (ruleNormal.first == ruleSelected)
+			{
+				providerDirect.push_back((*i));
+				break;
+			}
+		}
+		// Include random production, although not sure if that does expose too much.
+		for (auto& ruleRandom : ruleProject->getRandomProducedItems())
+		{
+			//std::vector<std::pair<int, std::map<const RuleItem*, int> > >
+			for (auto itemRandom : ruleRandom.second)
+			{
+				if (itemRandom.first == ruleSelected)
+				{
+					// Prevent duplicates
+					if ( std::find(providerRandom.begin(), providerRandom.end(), *i) == providerRandom.end() )
+					{
+						providerRandom.push_back((*i));
+						break;
+					}
+				}
+			}
+		}
+	}
 
 	int parentId = 0;
 	int childId = providerDirect.size() + providerRandom.size() + 2;
@@ -202,6 +233,75 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 
 	// Section divider (if we have a research or buy row)
 	if (parentId > 0) addSectionDivider();
+
+	// Potential to get item from manufacture projects.
+	if (!providerDirect.empty())
+	{
+		size_t currentParent = _topics.size();
+		row = {parentId, parentId, true, true, tr("STR_DIRECT_PROVIDERS").arg(providerDirect.size())};
+		_topics.push_back(row);
+
+		bool hasHiddenRows = false;
+		int countKnown = 0;
+		for (auto directManufacture : providerDirect)
+		{
+			if (_game->getSavedGame()->isResearched(_game->getMod()->getManufacture(directManufacture)->getRequirements()))
+			{
+				row = {childId, parentId, true, true, tr(directManufacture)};
+				countKnown++;
+			}
+			else
+			{
+				row = {childId, parentId, _showAll, false, tr(directManufacture)};
+				hasHiddenRows = !_showAll;
+			}
+			_topics.push_back(row);
+			childId++;
+		}
+		// Expose less info, only tell there exist unlocked opportunities.
+		if (hasHiddenRows)
+		{
+			// Fix subtopic description,
+			_topics[currentParent].description = tr("STR_DIRECT_PROVIDERS").arg(std::to_string(countKnown) + "+");
+			addThereIsMoreHint();
+		}
+		parentId++;
+	}
+	if (!providerRandom.empty())
+	{
+		size_t currentParent = _topics.size();
+		row = {parentId, parentId, true, true, tr("STR_RANDOM_PROVIDERS").arg(providerRandom.size())};
+		_topics.push_back(row);
+
+		bool hasHiddenRows = false;
+		int countKnown = 0;
+		for (auto randomManufacture : providerRandom)
+		{
+			if (_game->getSavedGame()->isResearched(_game->getMod()->getManufacture(randomManufacture)->getRequirements()))
+			{
+				row = {childId, parentId, true, true, tr(randomManufacture)};
+				countKnown++;
+			}
+			else
+			{
+				row = {childId, parentId, _showAll, false, tr(randomManufacture)};
+				hasHiddenRows = !_showAll;
+			}
+			_topics.push_back(row);
+			childId++;
+		}
+		// Expose less info, only tell there exist unlocked opportunities.
+		if (hasHiddenRows)
+		{
+			// Fix subtopic description,
+			_topics[currentParent].description = tr("STR_RANDOM_PROVIDERS").arg(std::to_string(countKnown) + "+");
+			addThereIsMoreHint();
+		}
+		parentId++;
+	}
+
+	// Section divider.
+	if (!providerDirect.empty() || !providerRandom.empty()) addSectionDivider();
 }
 
 /**
@@ -526,120 +626,7 @@ void ManufactureDependenciesTreeState::screenDependencies()
 */
 void ManufactureDependenciesTreeState::screenProviders()
 {
-	_lstTopics->clearList();
 
-	RuleItem *ruleSelected = _game->getMod()->getItem(_selectedItem);
-
-	// provider: Vector of manufacture projects that (might) provide this item.
-	std::vector<std::string> providerDirect, providerRandom;
-
-	const std::vector<std::string> &manufactureProjects = _game->getMod()->getManufactureList();
-	for (std::vector<std::string>::const_iterator i = manufactureProjects.begin(); i != manufactureProjects.end(); ++i)
-	{
-		RuleManufacture *ruleProject = _game->getMod()->getManufacture((*i));
-		for (auto& ruleNormal : ruleProject->getProducedItems())
-		{
-			//std::map<const RuleItem*, int>
-			if (ruleNormal.first == ruleSelected)
-			{
-				providerDirect.push_back((*i));
-				break;
-			}
-		}
-		// Include random production, not sure if that does expose too much.
-		for (auto& ruleRandom : ruleProject->getRandomProducedItems())
-		{
-			//std::vector<std::pair<int, std::map<const RuleItem*, int> > >
-			for (auto itemRandom : ruleRandom.second)
-			{
-				if (itemRandom.first == ruleSelected)
-				{
-					// Prevent duplicates
-					if ( std::find(providerRandom.begin(), providerRandom.end(), *i) == providerRandom.end() )
-					{
-						providerRandom.push_back((*i));
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	int row = 0;
-	if (providerDirect.empty() && providerRandom.empty())
-	{
-		_lstTopics->addRow(1, tr("STR_NO_PROVIDERS").c_str());
-		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-		++row;
-		return;
-	}
-
-
-
-	// Get from Manufacture directly
-	if (!providerDirect.empty())
-	{
-		_lstTopics->addRow(1, tr("STR_DIRECT_PROVIDERS").c_str());
-		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-		++row;
-
-		bool hasHiddenRows = false;
-		for (auto directManufacture : providerDirect)
-		{
-			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture(directManufacture)->getRequirements()))
-			{
-				_lstTopics->addRow(1, tr(directManufacture).c_str());
-				++row;
-			}
-			else
-			{
-				hasHiddenRows = true;
-			}
-		}
-		// Expose less info, only tell there exist unlocked opportunities.
-		if (hasHiddenRows)
-		{
-			_lstTopics->addRow(1, "***");
-			++row;
-		}
-
-		_lstTopics->addRow(1, "");
-		++row;
-	}
-
-	// Get from Manufacture as random item
-	if (!providerRandom.empty())
-	{
-		_lstTopics->addRow(1, tr("STR_RANDOM_PROVIDERS").c_str());
-		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-		++row;
-
-		bool hasHiddenRows = false;
-		for (auto randomManufacture : providerRandom)
-		{
-			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture(randomManufacture)->getRequirements()))
-			{
-				_lstTopics->addRow(1, tr(randomManufacture).c_str());
-				++row;
-			}
-			else
-			{
-				hasHiddenRows = true;
-			}
-		}
-		// Expose less info, only tell there exist unlocked opportunities.
-		if (hasHiddenRows)
-		{
-			_lstTopics->addRow(1, "***");
-			++row;
-		}
-
-		_lstTopics->addRow(1, "");
-		++row;
-	}
-
-	_lstTopics->addRow(1, tr("STR_END_OF_SEARCH").c_str());
-	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
 }
 
 }
