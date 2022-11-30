@@ -232,7 +232,14 @@ void ManufactureDependenciesTreeState::screenDependencies()
 		}
 	}
 
+	int row = 0;
+	for (size_t i = 0; i < _topics.size(); ++i)
+	{
+		if (!_topics[i].isVisible) continue;
 
+		_lstTopics->addRow(1, _topics[i].description.c_str());
+		++row;
+	}
 
 	// breadth-first tree search
 	const std::vector<std::string> firstLevel = deps[_selectedItem];
