@@ -475,6 +475,14 @@ void SoldierArmorState::updateList()
 			return -1; // Warning indicator: Armor will be pushed to the top.
 		};
 
+		auto hasChildren = [&](const int parent) -> bool
+		{
+			auto candy = std::find_if(_armors.begin(), _armors.end(),
+			[&](const ArmorItem row) {return row.parentId == parent && row.id != parent;});
+
+			return !(candy == _armors.end());
+		};
+
 		// 2-pass logic to ensure both 'subtotals' and 'elements' conform to sort order.
 		// 1st pass: Handle all parents, reset all others.
 		int parentId = 1; // Reserve 0 for blank slates.
@@ -512,8 +520,9 @@ void SoldierArmorState::updateList()
 		int idArmor = parentId + 1;
 		for (auto& armorItem : _armors)
 		{
-			// Parents were already set.
-			if (armorItem.parentId != 0 || armorItem.armor == nullptr) continue;
+			if (armorItem.parentId != 0) continue;    // Parents were already set.
+			if (armorItem.armor == nullptr) continue; // Safety
+			if (armorItem.qty == 0) continue;         // Only available armors.
 
 			const Armor* transformedArmor = getResultingArmor(armorItem.armor);
 
@@ -526,20 +535,29 @@ void SoldierArmorState::updateList()
 			idArmor++;
 		}
 
-		// Parents should always be listed before childs.
+		// Parents should always be listed before children.
 		std::stable_sort(_armors.begin(), _armors.end(),
 			[](const ArmorItem a, const ArmorItem b)
 			{
 				return std::tie(a.id, a.parentId) < std::tie(b.id, b.parentId);
 			}
 		);
-		// Group parents and childs.
+		// Group parents and children.
 		std::stable_sort(_armors.begin(), _armors.end(),
 			[](const ArmorItem a, const ArmorItem b)
 			{
 				return a.parentId < b.parentId;
 			}
 		);
+
+		// Only show 'virtual' (e.g. no-storeitem) parents if they have children
+		for (auto& armorItem : _armors)
+		{
+			if (armorItem.id == armorItem.parentId && armorItem.qty == 0)
+			{
+				armorItem.isVisible = hasChildren(armorItem.parentId);
+			}
+		}
 	}
 	else
 	{
