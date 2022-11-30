@@ -51,7 +51,6 @@ private:
 	std::string _selectedItem;
 	bool _showAll;
 	void screenDependencies();
-	void screenProviders();
 
 	std::vector<TopicsBackend> _topics;
 	std::vector<size_t> _indices;
@@ -59,10 +58,9 @@ private:
 	TopicsBackend &getRow() { return _topics[_indices[_sel]]; }
 	void fillTopicsList();
 
-	ScreenType _currentScreen;
 public:
 	/// Creates the ManufactureDependenciesTree state.
-	ManufactureDependenciesTreeState(const std::string &selectedItem, ScreenType screen = ST_DEPENDENCIES);
+	ManufactureDependenciesTreeState(const std::string &selectedItem);
 	/// Cleans up the ManufactureDependenciesTree state
 	~ManufactureDependenciesTreeState();
 	/// Initializes the state.
@@ -71,7 +69,5 @@ public:
 	void btnOkClick(Action *action);
 	/// Handler for clicking the [Show All] button.
 	void btnShowAllClick(Action *action);
-
-	void screenToggle(Action *action);
 };
 }

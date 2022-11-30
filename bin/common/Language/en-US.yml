@@ -435,7 +435,7 @@ en-US:
   STR_POWER_SHORT: "Pwr>{ALT}{0}"
   STR_ROUNDS_SHORT: "Ammo>{ALT}{0}"
 # ManufactureDependenciesTreeState.cpp
-  STR_NO_PROVIDERS: "Cannot Buy/Manufacture"
+  #STR_NO_PROVIDERS: "Cannot Buy/Manufacture"
   STR_CAN_BUY: "{ALT}Can Buy> {ALT}{0}" # Inverse list color
   STR_CAN_RESEARCH: "{ALT}Can Research> {ALT}{0}" # Inverse list color
   STR_DIRECT_PROVIDERS: "{ALT}Get from Manufacturing> {ALT}{0}" # Inverse list color
