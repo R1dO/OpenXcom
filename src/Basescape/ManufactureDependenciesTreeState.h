@@ -39,7 +39,6 @@ private:
 	{
 		int id = 0;
 		int parentId = 0;
-		int listOrder = 0;
 		bool isVisible = false;
 		bool isKnown = false;
 		std::string description;

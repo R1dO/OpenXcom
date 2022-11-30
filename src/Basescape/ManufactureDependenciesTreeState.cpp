@@ -134,26 +134,25 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 
 	_topics.clear();
 
-	int id = 0;
+	// Collect helper data.
+	std::vector<std::string> providerDirect, providerRandom;
+
 	int parentId = 0;
-	int screenListOrder = 0; // We have multiple topics with (duplicate) item listorders.
+	int childId = providerDirect.size() + providerRandom.size() + 2;
 	TopicsBackend row = {};
 
 	auto addSectionDivider = [&]()
 	{
-		TopicsBackend toAdd = {id, parentId, screenListOrder, true, true, ""};
+		TopicsBackend toAdd = {parentId, parentId, true, true, ""};
 		_topics.push_back(toAdd);
-		id++;
 		parentId++;
-		screenListOrder++;
 	};
 
 	auto addThereIsMoreHint = [&]()
 	{
-		TopicsBackend toAdd = {id, parentId, screenListOrder, true, true, "***"};
+		TopicsBackend toAdd = {childId, parentId, !_showAll, true, "***"};
 		_topics.push_back(toAdd);
-		id++;
-		screenListOrder++;
+		childId++;
 	};
 
 	// Item research potential (independent of base facilities).
@@ -171,18 +170,15 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 			_game->getSavedGame()->hasUndiscoveredGetOneFree(researchRule, false) ||
 			_game->getSavedGame()->hasUndiscoveredProtectedUnlock(researchRule, _game->getMod()))
 		{
-			row = {id, parentId, screenListOrder, true, true, tr("STR_CAN_RESEARCH").arg(tr("STR_YES"))};
+			row = {parentId, parentId, true, true, tr("STR_CAN_RESEARCH").arg(tr("STR_YES"))};
 		}
 		else
 		{
 			// No point in showing (by default) if item is no longer available for research.
-			row = {id, parentId, screenListOrder, _showAll, true, tr("STR_CAN_RESEARCH").arg(tr("STR_NO"))};
+			row = {parentId, parentId, _showAll, true, tr("STR_CAN_RESEARCH").arg(tr("STR_NO"))};
 		}
-
 		_topics.push_back(row);
-		id++;
 		parentId++;
-		screenListOrder++;
 		break;
 	}
 	// If item cannot be used in research there is no need to add this element to the list.
@@ -193,17 +189,14 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 		if (_game->getSavedGame()->isResearched(ruleSelected->getRequirements()) &&
 			_game->getSavedGame()->isResearched(ruleSelected->getBuyRequirements()))
 		{
-			row = {id, parentId, screenListOrder, true, true, tr("STR_CAN_BUY").arg(tr("STR_YES"))};
+			row = {parentId, parentId, true, true, tr("STR_CAN_BUY").arg(tr("STR_YES"))};
 		}
 		else
 		{
-			row = {id, parentId, screenListOrder, _showAll, true, tr("STR_CAN_BUY").arg(tr("STR_NO"))};
+			row = {parentId, parentId, _showAll, true, tr("STR_CAN_BUY").arg(tr("STR_NO"))};
 		}
-
 		_topics.push_back(row);
-		id++;
 		parentId++;
-		screenListOrder++;
 	}
 	// If item cannot be bought there is no need to add this element to the list.
 
