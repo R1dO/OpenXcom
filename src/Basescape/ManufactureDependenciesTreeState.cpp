@@ -129,12 +129,32 @@ void ManufactureDependenciesTreeState::init()
 */
 void ManufactureDependenciesTreeState::fillTopicsList()
 {
+	RuleItem *ruleSelected = _game->getMod()->getItem(_selectedItem);
+	if (!ruleSelected) return;
+
 	_topics.clear();
 
 	int id = 0;
 	int parentId = 0;
 	int screenListOrder = 0; // We have multiple topics with (duplicate) item listorders.
 	TopicsBackend row = {};
+
+	auto addSectionDivider = [&]()
+	{
+		TopicsBackend toAdd = {id, parentId, screenListOrder, true, true, ""};
+		_topics.push_back(toAdd);
+		id++;
+		parentId++;
+		screenListOrder++;
+	};
+
+	auto addThereIsMoreHint = [&]()
+	{
+		TopicsBackend toAdd = {id, parentId, screenListOrder, true, true, "***"};
+		_topics.push_back(toAdd);
+		id++;
+		screenListOrder++;
+	};
 
 	// Item research potential (independent of base facilities).
 	for (auto& researchProject : _game->getMod()->getResearchList())
@@ -166,6 +186,29 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 		break;
 	}
 	// If item cannot be used in research there is no need to add this element to the list.
+
+	// Potential to buy item.
+	if (ruleSelected->getBuyCost() != 0)
+	{
+		if (_game->getSavedGame()->isResearched(ruleSelected->getRequirements()) &&
+			_game->getSavedGame()->isResearched(ruleSelected->getBuyRequirements()))
+		{
+			row = {id, parentId, screenListOrder, true, true, tr("STR_CAN_BUY").arg(tr("STR_YES"))};
+		}
+		else
+		{
+			row = {id, parentId, screenListOrder, _showAll, true, tr("STR_CAN_BUY").arg(tr("STR_NO"))};
+		}
+
+		_topics.push_back(row);
+		id++;
+		parentId++;
+		screenListOrder++;
+	}
+	// If item cannot be bought there is no need to add this element to the list.
+
+	// Section divider (if we have a research or buy row)
+	if (parentId > 0) addSectionDivider();
 }
 
 /**
@@ -493,7 +536,6 @@ void ManufactureDependenciesTreeState::screenProviders()
 	_lstTopics->clearList();
 
 	RuleItem *ruleSelected = _game->getMod()->getItem(_selectedItem);
-	bool isBuyable = ruleSelected->getBuyCost() != 0;
 
 	// provider: Vector of manufacture projects that (might) provide this item.
 	std::vector<std::string> providerDirect, providerRandom;
@@ -531,7 +573,7 @@ void ManufactureDependenciesTreeState::screenProviders()
 	}
 
 	int row = 0;
-	if (providerDirect.empty() && providerRandom.empty() && !isBuyable)
+	if (providerDirect.empty() && providerRandom.empty())
 	{
 		_lstTopics->addRow(1, tr("STR_NO_PROVIDERS").c_str());
 		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
@@ -539,20 +581,7 @@ void ManufactureDependenciesTreeState::screenProviders()
 		return;
 	}
 
-	// Can we buy item
-	std::ostringstream ss;
-	if(_showAll || (_game->getSavedGame()->isResearched(ruleSelected->getRequirements()) && _game->getSavedGame()->isResearched(ruleSelected->getBuyRequirements())))
-	{
-		ss << Unicode::TOK_COLOR_FLIP << tr("STR_CAN_BUY").arg(isBuyable ? tr("STR_YES") : tr("STR_NO"));
-	}
-	else
-	{
-		ss << Unicode::TOK_COLOR_FLIP << tr("STR_CAN_BUY").arg(tr("STR_UNKNOWN"));
-	}
-	_lstTopics->addRow(1, ss.str().c_str());
-	++row;
-	_lstTopics->addRow(1, "");
-	++row;
+
 
 	// Get from Manufacture directly
 	if (!providerDirect.empty())
