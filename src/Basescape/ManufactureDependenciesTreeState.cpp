@@ -171,6 +171,7 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 	};
 
 	// Item research potential (independent of base facilities).
+	bool showDivider = false;
 	for (auto& researchProject : _game->getMod()->getResearchList())
 	{
 		if (researchProject != _selectedItem) continue;
@@ -186,11 +187,13 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 			_game->getSavedGame()->hasUndiscoveredProtectedUnlock(researchRule, _game->getMod()))
 		{
 			row = {parentId, parentId, true, true, tr("STR_CAN_RESEARCH").arg(tr("STR_YES"))};
+			showDivider |= true;
 		}
 		else
 		{
 			// No point in showing (by default) if item is no longer available for research.
 			row = {parentId, parentId, _showAll, true, tr("STR_CAN_RESEARCH").arg(tr("STR_NO"))};
+			showDivider |= _showAll;
 		}
 		_topics.push_back(row);
 		parentId++;
@@ -205,10 +208,12 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 			_game->getSavedGame()->isResearched(ruleSelected->getBuyRequirements()))
 		{
 			row = {parentId, parentId, true, true, tr("STR_CAN_BUY").arg(tr("STR_YES"))};
+			showDivider |= true;
 		}
 		else
 		{
 			row = {parentId, parentId, _showAll, true, tr("STR_CAN_BUY").arg(tr("STR_NO"))};
+			showDivider |= _showAll;
 		}
 		_topics.push_back(row);
 		parentId++;
@@ -216,7 +221,8 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 	// If item cannot be bought there is no need to add this element to the list.
 
 	// Section divider (if we have a research or buy row)
-	if (parentId > 0) addSectionDivider();
+	if (showDivider) addSectionDivider();
+	showDivider = false;
 
 	// Potential to get item from manufacture projects.
 	if (!providerDirect.empty())
@@ -225,7 +231,6 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 		row = {parentId, parentId, true, true, tr("STR_DIRECT_PROVIDERS").arg(providerDirect.size())};
 		_topics.push_back(row);
 
-		bool hasHiddenRows = false;
 		int countKnown = 0;
 		for (auto directManufacture : providerDirect)
 		{
@@ -237,13 +242,12 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 			else
 			{
 				row = {childId, parentId, _showAll, false, tr(directManufacture)};
-				hasHiddenRows = !_showAll;
 			}
 			_topics.push_back(row);
 			childId++;
 		}
 		// Expose less info, only tell there exist unlocked opportunities.
-		if (hasHiddenRows)
+		if (countKnown < providerDirect.size())
 		{
 			// Fix subtopic description,
 			_topics[currentParent].description = tr("STR_DIRECT_PROVIDERS").arg(std::to_string(countKnown) + "+");
@@ -257,7 +261,6 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 		row = {parentId, parentId, true, true, tr("STR_RANDOM_PROVIDERS").arg(providerRandom.size())};
 		_topics.push_back(row);
 
-		bool hasHiddenRows = false;
 		int countKnown = 0;
 		for (auto randomManufacture : providerRandom)
 		{
@@ -269,13 +272,12 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 			else
 			{
 				row = {childId, parentId, _showAll, false, tr(randomManufacture)};
-				hasHiddenRows = !_showAll;
 			}
 			_topics.push_back(row);
 			childId++;
 		}
 		// Expose less info, only tell there exist unlocked opportunities.
-		if (hasHiddenRows)
+		if (countKnown < providerRandom.size())
 		{
 			// Fix subtopic description,
 			_topics[currentParent].description = tr("STR_RANDOM_PROVIDERS").arg(std::to_string(countKnown) + "+");
