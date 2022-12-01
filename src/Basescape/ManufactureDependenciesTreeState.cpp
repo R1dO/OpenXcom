@@ -119,7 +119,7 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 	_topics.clear();
 
 	// Collect helper data.
-	std::vector<std::string> providerDirect, providerRandom;
+	std::vector<std::string> providersDirect, providersRandom;
 	const std::vector<std::string> &manufactureProjects = _game->getMod()->getManufactureList();
 	for (std::vector<std::string>::const_iterator i = manufactureProjects.begin(); i != manufactureProjects.end(); ++i)
 	{
@@ -129,7 +129,7 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 			//std::map<const RuleItem*, int>
 			if (ruleNormal.first == ruleSelected)
 			{
-				providerDirect.push_back((*i));
+				providersDirect.push_back((*i));
 				break;
 			}
 		}
@@ -142,9 +142,9 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 				if (itemRandom.first == ruleSelected)
 				{
 					// Prevent duplicates
-					if ( std::find(providerRandom.begin(), providerRandom.end(), *i) == providerRandom.end() )
+					if ( std::find(providersRandom.begin(), providersRandom.end(), *i) == providersRandom.end() )
 					{
-						providerRandom.push_back((*i));
+						providersRandom.push_back((*i));
 						break;
 					}
 				}
@@ -156,13 +156,14 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 	int childId = providerDirect.size() + providerRandom.size() + 2;
 	TopicsBackend row = {};
 
+	// Add whitespace row for visual separation.
 	auto addSectionDivider = [&]()
 	{
 		TopicsBackend toAdd = {parentId, parentId, true, true, ""};
 		_topics.push_back(toAdd);
 		parentId++;
 	};
-
+	// Tell there exist more opportunities without exposing too much.
 	auto addThereIsMoreHint = [&]()
 	{
 		TopicsBackend toAdd = {childId, parentId, !_showAll, true, "***"};
@@ -191,7 +192,7 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 		}
 		else
 		{
-			// No point in showing (by default) if item is no longer available for research.
+			// No point in showing if item is no longer available for research (for default view).
 			row = {parentId, parentId, _showAll, true, tr("STR_CAN_RESEARCH").arg(tr("STR_NO"))};
 			showDivider |= _showAll;
 		}
@@ -225,14 +226,14 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 	showDivider = false;
 
 	// Potential to get item from manufacture projects.
-	if (!providerDirect.empty())
+	if (!providersDirect.empty())
 	{
 		size_t currentParent = _topics.size();
-		row = {parentId, parentId, true, true, tr("STR_DIRECT_PROVIDERS").arg(providerDirect.size())};
+		row = {parentId, parentId, true, true, tr("STR_DIRECT_PROVIDERS").arg(providersDirect.size())};
 		_topics.push_back(row);
 
-		int countKnown = 0;
-		for (auto directManufacture : providerDirect)
+		size_t countKnown = 0;
+		for (auto directManufacture : providersDirect)
 		{
 			if (_game->getSavedGame()->isResearched(_game->getMod()->getManufacture(directManufacture)->getRequirements()))
 			{
@@ -246,23 +247,21 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 			_topics.push_back(row);
 			childId++;
 		}
-		// Expose less info, only tell there exist unlocked opportunities.
-		if (countKnown < providerDirect.size())
+		if (countKnown < providersDirect.size())
 		{
-			// Fix subtopic description,
 			_topics[currentParent].description = tr("STR_DIRECT_PROVIDERS").arg(std::to_string(countKnown) + "+");
 			addThereIsMoreHint();
 		}
 		parentId++;
 	}
-	if (!providerRandom.empty())
+	if (!providersRandom.empty())
 	{
 		size_t currentParent = _topics.size();
-		row = {parentId, parentId, true, true, tr("STR_RANDOM_PROVIDERS").arg(providerRandom.size())};
+		row = {parentId, parentId, true, true, tr("STR_RANDOM_PROVIDERS").arg(providersRandom.size())};
 		_topics.push_back(row);
 
-		int countKnown = 0;
-		for (auto randomManufacture : providerRandom)
+		size_t countKnown = 0;
+		for (auto randomManufacture : providersRandom)
 		{
 			if (_game->getSavedGame()->isResearched(_game->getMod()->getManufacture(randomManufacture)->getRequirements()))
 			{
@@ -276,10 +275,8 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 			_topics.push_back(row);
 			childId++;
 		}
-		// Expose less info, only tell there exist unlocked opportunities.
-		if (countKnown < providerRandom.size())
+		if (countKnown < providersRandom.size())
 		{
-			// Fix subtopic description,
 			_topics[currentParent].description = tr("STR_RANDOM_PROVIDERS").arg(std::to_string(countKnown) + "+");
 			addThereIsMoreHint();
 		}
@@ -287,7 +284,7 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 	}
 
 	// Section divider.
-	if (!providerDirect.empty() || !providerRandom.empty()) addSectionDivider();
+	if (!providersDirect.empty() || !providersRandom.empty()) addSectionDivider();
 }
 
 /**
