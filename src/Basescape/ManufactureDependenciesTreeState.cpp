@@ -362,7 +362,7 @@ void ManufactureDependenciesTreeState::addHowToAcquireItemSections(int& parentId
 	}
 
 	// 3) Random from manufacture
-	if (!providersRandom.empty())
+	if (_showAll && !providersRandom.empty())
 	{
 		size_t parentIndex = _topics.size();
 		row = {parentId, parentId, true, tr("STR_RANDOM_PROVIDERS").arg(providersRandom.size())};
