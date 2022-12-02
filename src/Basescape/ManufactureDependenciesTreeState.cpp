@@ -242,18 +242,10 @@ void ManufactureDependenciesTreeState::addResearchSection(int& parentId)
 			_game->getSavedGame()->hasUndiscoveredProtectedUnlock(researchRule, _game->getMod()))
 		{
 			row = {parentId, parentId, true, tr("STR_CAN_RESEARCH").arg(tr("STR_YES"))};
+			_topics.push_back(row);
+			parentId++;
 		}
-		else if (_showAll)
-		{
-			// Only need to show in cheat mode.
-			row = {parentId, parentId, true, tr("STR_CAN_RESEARCH").arg(tr("STR_NO"))};
-		}
-		else
-		{
-			break; // Make sure empty row does not end up in list.
-		}
-		_topics.push_back(row);
-		parentId++;
+		// Relation between items and research projects is 1-to-1.
 		break;
 	}
 
