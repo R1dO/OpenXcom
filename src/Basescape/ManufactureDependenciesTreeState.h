@@ -35,19 +35,36 @@ enum ScreenType {ST_DEPENDENCIES, ST_PROVIDERS};
 class ManufactureDependenciesTreeState : public State
 {
 private:
+	struct TopicsBackend
+	{
+		int childId = 0; // Duplicate numbers are allowed (it only needs to be >= parentId)
+		int parentId = 0;
+		bool isVisible = false;
+		std::string description;
+	};
+
 	Window *_window;
 	Text *_txtTitle;
 	TextList *_lstTopics;
 	TextButton *_btnOk, *_btnShowAll, *_btnToggle;
 	std::string _selectedItem;
 	bool _showAll;
-	void screenDependencies();
-	void screenProviders();
+	void drawList();
 
-	ScreenType _currentScreen;
+	std::vector<TopicsBackend> _topics;
+	std::vector<size_t> _indices;
+	size_t _sel;
+	TopicsBackend &getTopic() { return _topics[_indices[_sel]]; }
+
+	void addResearchSection(int& startParentId);
+	void addHowToAcquireItemSections(int& startParentId);
+	void addNeededForSpecialsSections(int& startParentId);
+	void addNeededForManufactureSections(int& startParentId);
+	void fillTopicsList();
+
 public:
 	/// Creates the ManufactureDependenciesTree state.
-	ManufactureDependenciesTreeState(const std::string &selectedItem, ScreenType screen = ST_DEPENDENCIES);
+	ManufactureDependenciesTreeState(const std::string &selectedItem);
 	/// Cleans up the ManufactureDependenciesTree state
 	~ManufactureDependenciesTreeState();
 	/// Initializes the state.
@@ -56,7 +73,7 @@ public:
 	void btnOkClick(Action *action);
 	/// Handler for clicking the [Show All] button.
 	void btnShowAllClick(Action *action);
-
-	void screenToggle(Action *action);
+	/// Handler for RMB click on list.
+	void lstTopicsClickRight(Action *Action);
 };
 }

@@ -1208,11 +1208,7 @@ void SellState::lstItemsMousePress(Action *action)
 		if (getRow().type == TRANSFER_ITEM)
 		{
 			RuleItem *rule = (RuleItem*)getRow().rule;
-			if (rule != 0 && _game->isAltPressed())
-			{
-				_game->pushState(new ManufactureDependenciesTreeState(rule->getType(), ST_PROVIDERS));
-			}
-			else if (rule != 0)
+			if (rule != 0)
 			{
 				_game->pushState(new ManufactureDependenciesTreeState(rule->getType()));
 			}
