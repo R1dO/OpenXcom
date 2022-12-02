@@ -345,7 +345,7 @@ void ManufactureDependenciesTreeState::addHowToAcquireItemSections(int& parentId
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture(directManufacture)->getRequirements()))
 			{
-				row = {childId, parentId, true, tr(directManufacture)};
+				row = {childId, parentId, false, tr(directManufacture)};
 				_topics.push_back(row);
 				childId++;
 				countKnown++;
@@ -355,7 +355,7 @@ void ManufactureDependenciesTreeState::addHowToAcquireItemSections(int& parentId
 		if (countKnown < providersDirect.size())
 		{
 			_topics[parentIndex].description = tr("STR_DIRECT_PROVIDERS").arg(std::to_string(countKnown) + "+");
-			row = {childId, parentId, true, "***"};
+			row = {childId, parentId, false, "***"};
 			_topics.push_back(row);
 		}
 		parentId++;
@@ -374,7 +374,7 @@ void ManufactureDependenciesTreeState::addHowToAcquireItemSections(int& parentId
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture(randomManufacture)->getRequirements()))
 			{
-				row = {childId, parentId, true, tr(randomManufacture)};
+				row = {childId, parentId, false, tr(randomManufacture)};
 				_topics.push_back(row);
 				childId++;
 				countKnown++;
@@ -383,7 +383,7 @@ void ManufactureDependenciesTreeState::addHowToAcquireItemSections(int& parentId
 		if (countKnown < providersRandom.size())
 		{
 			_topics[parentIndex].description = tr("STR_RANDOM_PROVIDERS").arg(std::to_string(countKnown) + "+");
-			row = {childId, parentId, true, "***"};
+			row = {childId, parentId, false, "***"};
 			_topics.push_back(row);
 		}
 		parentId++;
@@ -463,7 +463,7 @@ void ManufactureDependenciesTreeState::addNeededForSpecialsSections(int& parentI
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getSoldierTransformation(transform)->getRequiredResearch()))
 			{
-				row = {childId, parentId, true, tr(transform)};
+				row = {childId, parentId, false, tr(transform)};
 				_topics.push_back(row);
 				childId++;
 				countKnown++;
@@ -473,7 +473,7 @@ void ManufactureDependenciesTreeState::addNeededForSpecialsSections(int& parentI
 		if (countKnown < inputTransformations.size())
 		{
 			_topics[parentIndex].description = tr("STR_INPUT_TRANSFORMATIONS").arg(std::to_string(countKnown) + "+");
-			row = {childId, parentId, true, "***"};
+			row = {childId, parentId, false, "***"};
 			_topics.push_back(row);
 		}
 		parentId++;
@@ -492,7 +492,7 @@ void ManufactureDependenciesTreeState::addNeededForSpecialsSections(int& parentI
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(facilityRule->getRequirements()))
 			{
-				row = {childId, parentId, true, tr(facilityRule->getType())};
+				row = {childId, parentId, false, tr(facilityRule->getType())};
 				_topics.push_back(row);
 				childId++;
 				countKnown++;
@@ -502,7 +502,7 @@ void ManufactureDependenciesTreeState::addNeededForSpecialsSections(int& parentI
 		if (countKnown < inputFacilities.size())
 		{
 			_topics[parentIndex].description = tr("STR_INPUT_FACILITIES").arg(std::to_string(countKnown) + "+");
-			row = {childId, parentId, true, "***"};
+			row = {childId, parentId, false, "***"};
 			_topics.push_back(row);
 		}
 		parentId++;
@@ -520,7 +520,7 @@ void ManufactureDependenciesTreeState::addNeededForSpecialsSections(int& parentI
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(facilityRule->getRequirements()))
 			{
-				row = {childId, parentId, true, tr(facilityRule->getType())};
+				row = {childId, parentId, false, tr(facilityRule->getType())};
 				_topics.push_back(row);
 				childId++;
 				countKnown++;
@@ -530,7 +530,7 @@ void ManufactureDependenciesTreeState::addNeededForSpecialsSections(int& parentI
 		if (countKnown < ammoFacilities.size())
 		{
 			_topics[parentIndex].description = tr("STR_INPUT_DEFENSE").arg(std::to_string(countKnown) + "+");
-			row = {childId, parentId, true, "***"};
+			row = {childId, parentId, false, "***"};
 			_topics.push_back(row);
 		}
 		parentId++;
@@ -604,7 +604,7 @@ void ManufactureDependenciesTreeState::addNeededForManufactureSections(int& pare
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 			{
-				row = {childId, parentId, true, tr((*i))};
+				row = {childId, parentId, false, tr((*i))};
 				_topics.push_back(row);
 				childId++;
 				countKnown++;
@@ -626,7 +626,7 @@ void ManufactureDependenciesTreeState::addNeededForManufactureSections(int& pare
 			ss1 << countKnown << "+";
 			_topics[parentIndex].description = ss1.str();
 
-			row = {childId, parentId, true, "***"};
+			row = {childId, parentId, false, "***"};
 			_topics.push_back(row);
 		}
 		parentId++;
@@ -646,7 +646,7 @@ void ManufactureDependenciesTreeState::addNeededForManufactureSections(int& pare
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 			{
-				row = {childId, parentId, true, tr((*i))};
+				row = {childId, parentId, false, tr((*i))};
 				_topics.push_back(row);
 				childId++;
 				countKnown++;
@@ -670,7 +670,7 @@ void ManufactureDependenciesTreeState::addNeededForManufactureSections(int& pare
 			ss2 << countKnown << "+";
 			_topics[parentIndex].description = ss2.str();
 
-			row = {childId, parentId, true, "***"};
+			row = {childId, parentId, false, "***"};
 			_topics.push_back(row);
 		}
 		parentId++;
@@ -690,7 +690,7 @@ void ManufactureDependenciesTreeState::addNeededForManufactureSections(int& pare
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 			{
-				row = {childId, parentId, true, tr((*i))};
+				row = {childId, parentId, false, tr((*i))};
 				_topics.push_back(row);
 				childId++;
 				countKnown++;
@@ -714,7 +714,7 @@ void ManufactureDependenciesTreeState::addNeededForManufactureSections(int& pare
 			ss3 << countKnown << "+";
 			_topics[parentIndex].description = ss3.str();
 
-			row = {childId, parentId, true, "***"};
+			row = {childId, parentId, false, "***"};
 			_topics.push_back(row);
 		}
 		parentId++;
@@ -734,7 +734,7 @@ void ManufactureDependenciesTreeState::addNeededForManufactureSections(int& pare
 		{
 			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 			{
-				row = {childId, parentId, true, tr((*i))};
+				row = {childId, parentId, false, tr((*i))};
 				_topics.push_back(row);
 				childId++;
 				countKnown++;
@@ -758,7 +758,7 @@ void ManufactureDependenciesTreeState::addNeededForManufactureSections(int& pare
 			ss4 << countKnown << "+";
 			_topics[parentIndex].description = ss4.str();
 
-			row = {childId, parentId, true, "***"};
+			row = {childId, parentId, false, "***"};
 			_topics.push_back(row);
 		}
 		parentId++;
