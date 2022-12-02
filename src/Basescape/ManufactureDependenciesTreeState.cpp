@@ -23,6 +23,7 @@
 #include "../Mod/RuleBaseFacility.h"
 #include "../Mod/RuleItem.h"
 #include "../Mod/RuleManufacture.h"
+#include "../Mod/RuleSoldierTransformation.h"
 #include "../Engine/LocalizedText.h"
 #include "../Engine/Options.h"
 #include "../Interface/TextButton.h"
@@ -78,6 +79,8 @@ ManufactureDependenciesTreeState::ManufactureDependenciesTreeState(const std::st
 	_lstTopics->setBackground(_window);
 	_lstTopics->setMargin(0);
 	_lstTopics->setAlign(ALIGN_CENTER);
+	_lstTopics->setSelectable(true);
+	_lstTopics->onMouseClick((ActionHandler)&ManufactureDependenciesTreeState::lstTopicsClickRight, SDL_BUTTON_RIGHT);
 
 	if (Options::oxceDisableProductionDependencyTree)
 	{
@@ -104,21 +107,181 @@ void ManufactureDependenciesTreeState::init()
 	if (!Options::oxceDisableProductionDependencyTree)
 	{
 		fillTopicsList();
-		screenDependencies();
+		drawList();
 	}
 }
 
 /**
-* Build workhorse vector of topics for this item.
+ * Build workhorse vector of topics for this item.
+ *
+ * All topics are based on global acces (no base limitations).
 */
 void ManufactureDependenciesTreeState::fillTopicsList()
+{
+	_topics.clear();
+
+	int parentId = 0;
+	addResearchSection(parentId);
+	addHowToAcquireItemSections(parentId);
+	addNeededForSpecialsSections(parentId);
+	addNeededForManufactureSections(parentId);
+}
+
+/**
+ * Returns to the previous screen.
+ * @param action Pointer to an action.
+ */
+void ManufactureDependenciesTreeState::btnOkClick(Action *)
+{
+	_game->popState();
+}
+
+/**
+* Shows spoilers.
+* @param action Pointer to an action.
+*/
+void ManufactureDependenciesTreeState::btnShowAllClick(Action *)
+{
+	_showAll = true;
+	_btnOk->setWidth(_btnOk->getX() - _btnShowAll->getX() + _btnOk->getWidth());
+	_btnOk->setX(_btnShowAll->getX());
+	_btnShowAll->setVisible(false);
+
+	fillTopicsList(); // Have to rebuild since `_showAll` impact category headers.
+	drawList();
+}
+
+/**
+* Toggles folding state of a category.
+* @param action Pointer to an action.
+*/
+void ManufactureDependenciesTreeState::lstTopicsClickRight(Action *)
+{
+	_sel = _lstTopics->getSelectedRow();
+	//size_t scrollPos = _lstTopics->getScroll();
+
+	// Check if children of parent are visible.
+	auto isExpanded = [&](int parentId) -> bool
+	{
+		auto bread = std::find_if(_topics.begin(), _topics.end(),
+			[&](const TopicsBackend crumb)
+			{ return crumb.parentId == parentId && crumb.childId != parentId && crumb.isVisible; }
+		);
+		return bread != _topics.end();
+	};
+
+	// Children collapsed
+	if (getTopic().childId == getTopic().parentId && !isExpanded(getTopic().parentId))
+	{
+		// Show all elements contributing to parent.
+		for (auto& topic : _topics)
+		{
+			if (topic.parentId == getTopic().childId)
+			{
+				topic.isVisible = true;
+			}
+		}
+	}
+	else
+	{
+		// Collapse all elements contributing to parent.
+		for (auto& topic : _topics)
+		{
+			if (topic.parentId == getTopic().parentId && (topic.childId != topic.parentId))
+			{
+				topic.isVisible = false;
+			}
+		}
+	}
+
+	drawList();
+	//_lstTopics->scrollTo(scrollPos);
+}
+
+
+/**
+* Shows the dependencies tree.
+*/
+void ManufactureDependenciesTreeState::drawList()
+{
+	_lstTopics->clearList();
+	_indices.clear();
+
+	for (size_t i = 0; i < _topics.size(); ++i)
+	{
+		if (!_topics[i].isVisible) continue;
+
+		_lstTopics->addRow(1, _topics[i].description.c_str());
+		_indices.push_back(i);
+	}
+}
+
+/**
+ * Add item has research benefits section to '_topics` backend vector.
+ *
+ * @param parenId Id to use for the first parent that enters the list (will be updated).
+*/
+void ManufactureDependenciesTreeState::addResearchSection(int& parentId)
+{
+	int startingParent = parentId;
+	TopicsBackend row = {};
+
+	// Item research potential (only if theoretically possibility exist).
+	for (auto& researchProject : _game->getMod()->getResearchList())
+	{
+		if (researchProject != _selectedItem) continue;
+
+		RuleResearch *researchRule =  _game->getMod()->getResearch(researchProject);
+		if (!researchRule || !researchRule->needItem()) continue;
+
+		// Does there exist a possibility this project is/becomes researchable?
+		// Adapted snippet from SavedGame::getAvailableResearchProjects()
+		if (!_game->getSavedGame()->isResearched(researchRule, false) ||
+			_game->getSavedGame()->isResearchRuleStatusDisabled(researchRule->getName()) ||
+			_game->getSavedGame()->hasUndiscoveredGetOneFree(researchRule, false) ||
+			_game->getSavedGame()->hasUndiscoveredProtectedUnlock(researchRule, _game->getMod()))
+		{
+			row = {parentId, parentId, true, tr("STR_CAN_RESEARCH").arg(tr("STR_YES"))};
+		}
+		else if (_showAll)
+		{
+			// Only need to show in cheat mode.
+			row = {parentId, parentId, true, tr("STR_CAN_RESEARCH").arg(tr("STR_NO"))};
+		}
+		else
+		{
+			break; // Make sure empty row does not end up in list.
+		}
+		_topics.push_back(row);
+		parentId++;
+		break;
+	}
+
+	// Section divider (no divider if research is hidden).
+	if (startingParent < parentId)
+	{
+		row = {parentId, parentId, true, ""};
+		_topics.push_back(row);
+		parentId++;
+	}
+}
+
+/**
+ * Add ways to acquire item sections to '_topics` backend vector.
+ *
+ * Recognize 3 possibilities:
+ * + Ability to buy this item.
+ * + Manufacture projects that give this item.
+ * + Manufacture projects with a random possibility to get this item.
+ *
+ * @param parenId Id to use for the first parent that enters the list (will be updated).
+*/
+void ManufactureDependenciesTreeState::addHowToAcquireItemSections(int& parentId)
 {
 	RuleItem *ruleSelected = _game->getMod()->getItem(_selectedItem);
 	if (!ruleSelected) return;
 
-	_topics.clear();
-
-	// Collect helper data.
+	// Helper data
 	std::vector<std::string> providersDirect, providersRandom;
 	const std::vector<std::string> &manufactureProjects = _game->getMod()->getManufactureList();
 	for (std::vector<std::string>::const_iterator i = manufactureProjects.begin(); i != manufactureProjects.end(); ++i)
@@ -152,171 +315,256 @@ void ManufactureDependenciesTreeState::fillTopicsList()
 		}
 	}
 
-	int parentId = 0;
-	int childId = providerDirect.size() + providerRandom.size() + 2;
+	int startingParent = parentId;
 	TopicsBackend row = {};
 
-	// Add whitespace row for visual separation.
-	auto addSectionDivider = [&]()
-	{
-		TopicsBackend toAdd = {parentId, parentId, true, true, ""};
-		_topics.push_back(toAdd);
-		parentId++;
-	};
-	// Tell there exist more opportunities without exposing too much.
-	auto addThereIsMoreHint = [&]()
-	{
-		TopicsBackend toAdd = {childId, parentId, !_showAll, true, "***"};
-		_topics.push_back(toAdd);
-		childId++;
-	};
-
-	// Item research potential (independent of base facilities).
-	bool showDivider = false;
-	for (auto& researchProject : _game->getMod()->getResearchList())
-	{
-		if (researchProject != _selectedItem) continue;
-
-		RuleResearch *researchRule =  _game->getMod()->getResearch(researchProject);
-		if (!researchRule || !researchRule->needItem()) continue;
-
-		// Does there exist a possibility this project is/becomes researchable?
-		// Adapted snippet from SavedGame::getAvailableResearchProjects()
-		if (!_game->getSavedGame()->isResearched(researchRule, false) ||
-			_game->getSavedGame()->isResearchRuleStatusDisabled(researchRule->getName()) ||
-			_game->getSavedGame()->hasUndiscoveredGetOneFree(researchRule, false) ||
-			_game->getSavedGame()->hasUndiscoveredProtectedUnlock(researchRule, _game->getMod()))
-		{
-			row = {parentId, parentId, true, true, tr("STR_CAN_RESEARCH").arg(tr("STR_YES"))};
-			showDivider |= true;
-		}
-		else
-		{
-			// No point in showing if item is no longer available for research (for default view).
-			row = {parentId, parentId, _showAll, true, tr("STR_CAN_RESEARCH").arg(tr("STR_NO"))};
-			showDivider |= _showAll;
-		}
-		_topics.push_back(row);
-		parentId++;
-		break;
-	}
-	// If item cannot be used in research there is no need to add this element to the list.
-
-	// Potential to buy item.
+	// 1) Ability to buy item (only if theoretically possibility exist).
+	// Does not take into account any limits from:
+	// - Available global stock
+	// - Country favor factor
+	// - Base placement.
 	if (ruleSelected->getBuyCost() != 0)
 	{
 		if (_game->getSavedGame()->isResearched(ruleSelected->getRequirements()) &&
 			_game->getSavedGame()->isResearched(ruleSelected->getBuyRequirements()))
 		{
-			row = {parentId, parentId, true, true, tr("STR_CAN_BUY").arg(tr("STR_YES"))};
-			showDivider |= true;
+			row = {parentId, parentId, true, tr("STR_CAN_BUY").arg(tr("STR_YES"))};
+			_topics.push_back(row);
+			parentId++;
 		}
-		else
+		else if (_showAll)
 		{
-			row = {parentId, parentId, _showAll, true, tr("STR_CAN_BUY").arg(tr("STR_NO"))};
-			showDivider |= _showAll;
+			row = {parentId, parentId, true, tr("STR_CAN_BUY").arg(tr("STR_NO"))};
+			_topics.push_back(row);
+			parentId++;
 		}
-		_topics.push_back(row);
-		parentId++;
 	}
-	// If item cannot be bought there is no need to add this element to the list.
 
-	// Section divider (if we have a research or buy row)
-	if (showDivider) addSectionDivider();
-	showDivider = false;
-
-	// Potential to get item from manufacture projects.
+	// 2) Direct manufacture
 	if (!providersDirect.empty())
 	{
-		size_t currentParent = _topics.size();
-		row = {parentId, parentId, true, true, tr("STR_DIRECT_PROVIDERS").arg(providersDirect.size())};
+		size_t parentIndex = _topics.size();
+		row = {parentId, parentId, true, tr("STR_DIRECT_PROVIDERS").arg(providersDirect.size())};
 		_topics.push_back(row);
 
 		size_t countKnown = 0;
+		int childId = parentId + 1; // 'childId' must be > 'parentId'.
 		for (auto directManufacture : providersDirect)
 		{
-			if (_game->getSavedGame()->isResearched(_game->getMod()->getManufacture(directManufacture)->getRequirements()))
+			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture(directManufacture)->getRequirements()))
 			{
-				row = {childId, parentId, true, true, tr(directManufacture)};
+				row = {childId, parentId, true, tr(directManufacture)};
+				_topics.push_back(row);
+				childId++;
 				countKnown++;
 			}
-			else
-			{
-				row = {childId, parentId, _showAll, false, tr(directManufacture)};
-			}
-			_topics.push_back(row);
-			childId++;
 		}
+
 		if (countKnown < providersDirect.size())
 		{
-			_topics[currentParent].description = tr("STR_DIRECT_PROVIDERS").arg(std::to_string(countKnown) + "+");
-			addThereIsMoreHint();
+			_topics[parentIndex].description = tr("STR_DIRECT_PROVIDERS").arg(std::to_string(countKnown) + "+");
+			row = {childId, parentId, true, "***"};
+			_topics.push_back(row);
 		}
 		parentId++;
 	}
+
+	// 3) Random from manufacture
 	if (!providersRandom.empty())
 	{
-		size_t currentParent = _topics.size();
-		row = {parentId, parentId, true, true, tr("STR_RANDOM_PROVIDERS").arg(providersRandom.size())};
+		size_t parentIndex = _topics.size();
+		row = {parentId, parentId, true, tr("STR_RANDOM_PROVIDERS").arg(providersRandom.size())};
 		_topics.push_back(row);
 
 		size_t countKnown = 0;
+		int childId = parentId + 1; // 'childId' must be > 'parentId'.
 		for (auto randomManufacture : providersRandom)
 		{
-			if (_game->getSavedGame()->isResearched(_game->getMod()->getManufacture(randomManufacture)->getRequirements()))
+			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture(randomManufacture)->getRequirements()))
 			{
-				row = {childId, parentId, true, true, tr(randomManufacture)};
+				row = {childId, parentId, true, tr(randomManufacture)};
+				_topics.push_back(row);
+				childId++;
 				countKnown++;
 			}
-			else
-			{
-				row = {childId, parentId, _showAll, false, tr(randomManufacture)};
-			}
-			_topics.push_back(row);
-			childId++;
 		}
 		if (countKnown < providersRandom.size())
 		{
-			_topics[currentParent].description = tr("STR_RANDOM_PROVIDERS").arg(std::to_string(countKnown) + "+");
-			addThereIsMoreHint();
+			_topics[parentIndex].description = tr("STR_RANDOM_PROVIDERS").arg(std::to_string(countKnown) + "+");
+			row = {childId, parentId, true, "***"};
+			_topics.push_back(row);
 		}
 		parentId++;
 	}
 
 	// Section divider.
-	if (!providersDirect.empty() || !providersRandom.empty()) addSectionDivider();
+	if (startingParent < parentId)
+	{
+		row = {parentId, parentId, true, ""};
+		_topics.push_back(row);
+		parentId++;
+	}
 }
 
 /**
- * Returns to the previous screen.
- * @param action Pointer to an action.
- */
-void ManufactureDependenciesTreeState::btnOkClick(Action *)
-{
-	_game->popState();
-}
-
-/**
-* Shows spoilers.
-* @param action Pointer to an action.
+ * Add item required for specials to '_topics` backend vector.
+ *
+ * Recognize 3 possibilities:
+ * + Soldier transformations.
+ * + Building facilities.
+ * + Ammo for base defenses.
+ *
+ * @param parenId Id to use for the first parent that enters the list (will be updated).
 */
-void ManufactureDependenciesTreeState::btnShowAllClick(Action *)
+void ManufactureDependenciesTreeState::addNeededForSpecialsSections(int& parentId)
 {
-	_showAll = true;
-	_btnOk->setWidth(_btnOk->getX() - _btnShowAll->getX() + _btnOk->getWidth());
-	_btnOk->setX(_btnShowAll->getX());
-	_btnShowAll->setVisible(false);
+	RuleItem *ruleSelected = _game->getMod()->getItem(_selectedItem);
+	if (!ruleSelected) return;
 
-	screenDependencies();
+	int startingParent = parentId;
+	TopicsBackend row = {};
 
+	// Helper data
+	std::vector<std::string> inputTransformations;
+	// Transformations, based on `SavedGame::getAvailableTransformations()`.
+	const std::vector<std::string> &soldierTransformations = _game->getMod()->getSoldierTransformationList();
+	for (auto transformation : soldierTransformations)
+	{
+		RuleSoldierTransformation *ruleTransformation = _game->getMod()->getSoldierTransformation(transformation);
+		for (auto item : ruleTransformation->getRequiredItems())
+		{
+			if (ruleSelected->getType() == item.first)
+			{
+				inputTransformations.push_back(transformation);
+				break;
+			}
+		}
+	}
+	std::vector<const RuleBaseFacility*> inputFacilities, ammoFacilities;
+	for (auto& facilityId : _game->getMod()->getBaseFacilitiesList())
+	{
+		RuleBaseFacility* facilityRule = _game->getMod()->getBaseFacility(facilityId);
+		for (auto& itemRequired : facilityRule->getBuildCostItems())
+		{
+			if (itemRequired.first == _selectedItem)
+			{
+				inputFacilities.push_back(facilityRule);
+				break;
+			}
+		}
+		if (facilityRule->getAmmoItem() == ruleSelected)
+		{
+			ammoFacilities.push_back(facilityRule);
+		}
+	}
+
+	// 1) Item required for soldier transformations.
+	if (!inputTransformations.empty())
+	{
+		size_t parentIndex = _topics.size();
+		row = {parentId, parentId, true, tr("STR_INPUT_TRANSFORMATIONS").arg(inputTransformations.size())};
+		_topics.push_back(row);
+
+		size_t countKnown = 0;
+		int childId = parentId + 1;
+		for (auto transform : inputTransformations)
+		{
+			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getSoldierTransformation(transform)->getRequiredResearch()))
+			{
+				row = {childId, parentId, true, tr(transform)};
+				_topics.push_back(row);
+				childId++;
+				countKnown++;
+			}
+		}
+
+		if (countKnown < inputTransformations.size())
+		{
+			_topics[parentIndex].description = tr("STR_INPUT_TRANSFORMATIONS").arg(std::to_string(countKnown) + "+");
+			row = {childId, parentId, true, "***"};
+			_topics.push_back(row);
+		}
+		parentId++;
+	}
+
+	// 2) Item required to build facilities.
+	if (!inputFacilities.empty())
+	{
+		size_t parentIndex = _topics.size();
+		row = {parentId, parentId, true, tr("STR_INPUT_FACILITIES").arg(inputFacilities.size())};
+		_topics.push_back(row);
+
+		size_t countKnown = 0;
+		int childId = parentId + 1;
+		for (auto facilityRule : inputFacilities)
+		{
+			if (_showAll || _game->getSavedGame()->isResearched(facilityRule->getRequirements()))
+			{
+				row = {childId, parentId, true, tr(facilityRule->getType())};
+				_topics.push_back(row);
+				childId++;
+				countKnown++;
+			}
+		}
+
+		if (countKnown < inputFacilities.size())
+		{
+			_topics[parentIndex].description = tr("STR_INPUT_FACILITIES").arg(std::to_string(countKnown) + "+");
+			row = {childId, parentId, true, "***"};
+			_topics.push_back(row);
+		}
+		parentId++;
+	}
+	// 3) Item used as ammo for defense facilities.
+	if (!ammoFacilities.empty())
+	{
+		size_t parentIndex = _topics.size();
+		row = {parentId, parentId, true, tr("STR_INPUT_DEFENSE").arg(ammoFacilities.size())};
+		_topics.push_back(row);
+
+		size_t countKnown = 0;
+		int childId = parentId + 1;
+		for (auto facilityRule : ammoFacilities)
+		{
+			if (_showAll || _game->getSavedGame()->isResearched(facilityRule->getRequirements()))
+			{
+				row = {childId, parentId, true, tr(facilityRule->getType())};
+				_topics.push_back(row);
+				childId++;
+				countKnown++;
+			}
+		}
+
+		if (countKnown < ammoFacilities.size())
+		{
+			_topics[parentIndex].description = tr("STR_INPUT_DEFENSE").arg(std::to_string(countKnown) + "+");
+			row = {childId, parentId, true, "***"};
+			_topics.push_back(row);
+		}
+		parentId++;
+	}
+
+	// Section divider.
+	if (startingParent < parentId)
+	{
+		row = {parentId, parentId, true, ""};
+		_topics.push_back(row);
+		parentId++;
+	}
 }
 
+
 /**
-* Shows the dependencies tree.
+ * Add item required for manufacture to '_topics` backend vector.
+ *
+ * Original Content of this screen (minus facilities).
+ *
+ * @param parenId Id to use for the first parent that enters the list (will be updated).
 */
-void ManufactureDependenciesTreeState::screenDependencies()
+void ManufactureDependenciesTreeState::addNeededForManufactureSections(int& parentId)
 {
-	_lstTopics->clearList();
+	int startingParent = parentId;
+	TopicsBackend row = {};
 
 	// dependency map (item -> vector of items that needs this item)
 	std::unordered_map< std::string, std::vector<std::string> > deps;
@@ -330,16 +578,6 @@ void ManufactureDependenciesTreeState::screenDependencies()
 			deps[j.first->getType()].push_back((*i));
 		}
 	}
-
-	int row = 0;
-	for (size_t i = 0; i < _topics.size(); ++i)
-	{
-		if (!_topics[i].isVisible) continue;
-
-		_lstTopics->addRow(1, _topics[i].description.c_str());
-		++row;
-	}
-
 	// breadth-first tree search
 	const std::vector<std::string> firstLevel = deps[_selectedItem];
 	std::vector<std::string> secondLevel;
@@ -354,225 +592,207 @@ void ManufactureDependenciesTreeState::screenDependencies()
 		alreadyVisited.insert((*i));
 	}
 
-	std::vector<const RuleBaseFacility*> facilitiesLevel;
-	for (auto& facilityId : _game->getMod()->getBaseFacilitiesList())
+	std::ostringstream ss1;
+	if (firstLevel.empty())
 	{
-		RuleBaseFacility* facilityRule = _game->getMod()->getBaseFacility(facilityId);
-		for (auto& itemRequired : facilityRule->getBuildCostItems())
+		ss1 << Unicode::TOK_COLOR_FLIP << tr("STR_NO_DEPENDENCIES");
+		row = {parentId, parentId, true, ss1.str()};
+		_topics.push_back(row);
+	}
+	else
+	{
+		size_t parentIndex = _topics.size();
+		ss1 << Unicode::TOK_COLOR_FLIP << tr("STR_DIRECT_DEPENDENCIES") << " " << Unicode::TOK_COLOR_FLIP;
+		row = {parentId, parentId, true, ss1.str() + std::to_string(firstLevel.size())};
+		_topics.push_back(row);
+
+		size_t countKnown = 0;
+		int childId = parentId + 1;
+		for (std::vector<std::string>::const_iterator i = firstLevel.begin(); i != firstLevel.end(); ++i)
 		{
-			if (itemRequired.first == _selectedItem)
+			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 			{
-				facilitiesLevel.push_back(facilityRule);
-				break;
+				row = {childId, parentId, true, tr((*i))};
+				_topics.push_back(row);
+				childId++;
+				countKnown++;
+			}
+
+			const std::vector<std::string> goDeeper = deps[(*i)];
+			for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
+			{
+				if (alreadyVisited.find((*j)) == alreadyVisited.end())
+				{
+					secondLevel.push_back((*j));
+					alreadyVisited.insert((*j));
+				}
 			}
 		}
+
+		if (countKnown < firstLevel.size())
+		{
+			ss1 << countKnown << "+";
+			_topics[parentIndex].description = ss1.str();
+
+			row = {childId, parentId, true, "***"};
+			_topics.push_back(row);
+		}
+		parentId++;
 	}
 
-	if (firstLevel.empty() && facilitiesLevel.empty())
+	if (!secondLevel.empty())
 	{
-		_lstTopics->addRow(1, tr("STR_NO_DEPENDENCIES").c_str());
-		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-		++row;
-		return;
-	}
+		size_t parentIndex = _topics.size();
+		std::ostringstream ss2;
+		ss2 << Unicode::TOK_COLOR_FLIP << tr("STR_LEVEL_2_DEPENDENCIES") << " " << Unicode::TOK_COLOR_FLIP;
+		row = {parentId, parentId, true, ss2.str() + std::to_string(secondLevel.size())};
+		_topics.push_back(row);
 
-	// first level
-	_lstTopics->addRow(1, tr("STR_DIRECT_DEPENDENCIES").c_str());
-	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-	++row;
-
-	bool hasHiddenRows = false;
-	// first list all the dependent base facilities
-	for (auto& i : facilitiesLevel)
-	{
-		if (_showAll || _game->getSavedGame()->isResearched(i->getRequirements()))
+		size_t countKnown = 0;
+		int childId = parentId + 1;
+		for (std::vector<std::string>::const_iterator i = secondLevel.begin(); i != secondLevel.end(); ++i)
 		{
-			_lstTopics->addRow(1, tr(i->getType()).c_str());
-			++row;
-		}
-		else
-		{
-			hasHiddenRows = true;
-		}
-	}
-
-	for (std::vector<std::string>::const_iterator i = firstLevel.begin(); i != firstLevel.end(); ++i)
-	{
-		if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
-		{
-			_lstTopics->addRow(1, tr((*i)).c_str());
-			++row;
-		}
-		else
-		{
-			hasHiddenRows = true;
-		}
-
-		const std::vector<std::string> goDeeper = deps[(*i)];
-		for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
-		{
-			if (alreadyVisited.find((*j)) == alreadyVisited.end())
+			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 			{
-				secondLevel.push_back((*j));
-				alreadyVisited.insert((*j));
+				row = {childId, parentId, true, tr((*i))};
+				_topics.push_back(row);
+				childId++;
+				countKnown++;
+			}
+
+			const std::vector<std::string> goDeeper = deps[(*i)];
+			for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
+			{
+				if (alreadyVisited.find((*j)) == alreadyVisited.end())
+				{
+					thirdLevel.push_back((*j));
+					alreadyVisited.insert((*j));
+				}
 			}
 		}
-	}
-	// Expose less info, only tell there exist unlocked opportunities.
-	if (hasHiddenRows)
-	{
-		_lstTopics->addRow(1, "***");
-		++row;
-	}
 
-	_lstTopics->addRow(1, "");
-	++row;
-	if (secondLevel.empty())
-	{
-		_lstTopics->addRow(1, tr("STR_END_OF_SEARCH").c_str());
-		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-		++row;
-		return;
-	}
-
-	// second level
-	_lstTopics->addRow(1, tr("STR_LEVEL_2_DEPENDENCIES").c_str());
-	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-	++row;
-
-	hasHiddenRows = false;
-	for (std::vector<std::string>::const_iterator i = secondLevel.begin(); i != secondLevel.end(); ++i)
-	{
-		if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
+		// Expose less info, only tell there exist unlocked opportunities.
+		if (countKnown < secondLevel.size())
 		{
-			_lstTopics->addRow(1, tr((*i)).c_str());
-			++row;
+			// Fix subtopic description,
+			ss2 << countKnown << "+";
+			_topics[parentIndex].description = ss2.str();
+
+			row = {childId, parentId, true, "***"};
+			_topics.push_back(row);
 		}
-		else
-		{
-			hasHiddenRows = true;
-		}
+		parentId++;
+	}
 
-		const std::vector<std::string> goDeeper = deps[(*i)];
-		for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
+	if (!thirdLevel.empty())
+	{
+		size_t parentIndex = _topics.size();
+		std::ostringstream ss3;
+		ss3 << Unicode::TOK_COLOR_FLIP << tr("STR_LEVEL_3_DEPENDENCIES") << " " << Unicode::TOK_COLOR_FLIP;
+		row = {parentId, parentId, true, ss3.str() + std::to_string(thirdLevel.size())};
+		_topics.push_back(row);
+
+		size_t countKnown = 0;
+		int childId = parentId + 1;
+		for (std::vector<std::string>::const_iterator i = thirdLevel.begin(); i != thirdLevel.end(); ++i)
 		{
-			if (alreadyVisited.find((*j)) == alreadyVisited.end())
+			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 			{
-				thirdLevel.push_back((*j));
-				alreadyVisited.insert((*j));
+				row = {childId, parentId, true, tr((*i))};
+				_topics.push_back(row);
+				childId++;
+				countKnown++;
+			}
+
+			const std::vector<std::string> goDeeper = deps[(*i)];
+			for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
+			{
+				if (alreadyVisited.find((*j)) == alreadyVisited.end())
+				{
+					fourthLevel.push_back((*j));
+					alreadyVisited.insert((*j));
+				}
 			}
 		}
-	}
-	// Expose less info, only tell there exist unlocked opportunities.
-	if (hasHiddenRows)
-	{
-		_lstTopics->addRow(1, "***");
-		++row;
-	}
 
-	_lstTopics->addRow(1, "");
-	++row;
-	if (thirdLevel.empty())
-	{
-		_lstTopics->addRow(1, tr("STR_END_OF_SEARCH").c_str());
-		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-		++row;
-		return;
-	}
-
-	// third level
-	_lstTopics->addRow(1, tr("STR_LEVEL_3_DEPENDENCIES").c_str());
-	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-	++row;
-
-	hasHiddenRows = false;
-	for (std::vector<std::string>::const_iterator i = thirdLevel.begin(); i != thirdLevel.end(); ++i)
-	{
-		if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
+		// Expose less info, only tell there exist unlocked opportunities.
+		if (countKnown < thirdLevel.size())
 		{
-			_lstTopics->addRow(1, tr((*i)).c_str());
-			++row;
+			// Fix subtopic description,
+			ss3 << countKnown << "+";
+			_topics[parentIndex].description = ss3.str();
+
+			row = {childId, parentId, true, "***"};
+			_topics.push_back(row);
 		}
-		else
-		{
-			hasHiddenRows = true;
-		}
+		parentId++;
+	}
 
-		const std::vector<std::string> goDeeper = deps[(*i)];
-		for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
+	if (!fourthLevel.empty())
+	{
+		size_t parentIndex = _topics.size();
+		std::ostringstream ss4;
+		ss4 << Unicode::TOK_COLOR_FLIP << tr("STR_LEVEL_4_DEPENDENCIES") << " " << Unicode::TOK_COLOR_FLIP;
+		row = {parentId, parentId, true, ss4.str() + std::to_string(fourthLevel.size())};
+		_topics.push_back(row);
+
+		size_t countKnown = 0;
+		int childId = parentId + 1;
+		for (std::vector<std::string>::const_iterator i = fourthLevel.begin(); i != fourthLevel.end(); ++i)
 		{
-			if (alreadyVisited.find((*j)) == alreadyVisited.end())
+			if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
 			{
-				fourthLevel.push_back((*j));
-				alreadyVisited.insert((*j));
+				row = {childId, parentId, true, tr((*i))};
+				_topics.push_back(row);
+				childId++;
+				countKnown++;
+			}
+
+			const std::vector<std::string> goDeeper = deps[(*i)];
+			for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
+			{
+				if (alreadyVisited.find((*j)) == alreadyVisited.end())
+				{
+					fifthLevel.push_back((*j));
+					alreadyVisited.insert((*j));
+				}
 			}
 		}
-	}
-	// Expose less info, only tell there exist unlocked opportunities.
-	if (hasHiddenRows)
-	{
-		_lstTopics->addRow(1, "***");
-		++row;
-	}
 
-	_lstTopics->addRow(1, "");
-	++row;
-	if (fourthLevel.empty())
-	{
-		_lstTopics->addRow(1, tr("STR_END_OF_SEARCH").c_str());
-		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-		++row;
-		return;
-	}
-
-	// fourth level
-	_lstTopics->addRow(1, tr("STR_LEVEL_4_DEPENDENCIES").c_str());
-	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-	++row;
-
-	hasHiddenRows = false;
-	for (std::vector<std::string>::const_iterator i = fourthLevel.begin(); i != fourthLevel.end(); ++i)
-	{
-		if (_showAll || _game->getSavedGame()->isResearched(_game->getMod()->getManufacture((*i))->getRequirements()))
+		// Expose less info, only tell there exist unlocked opportunities.
+		if (countKnown < fourthLevel.size())
 		{
-			_lstTopics->addRow(1, tr((*i)).c_str());
-			++row;
-		}
-		else
-		{
-			hasHiddenRows = true;
-		}
+			// Fix subtopic description,
+			ss4 << countKnown << "+";
+			_topics[parentIndex].description = ss4.str();
 
-		const std::vector<std::string> goDeeper = deps[(*i)];
-		for (std::vector<std::string>::const_iterator j = goDeeper.begin(); j != goDeeper.end(); ++j)
-		{
-			if (alreadyVisited.find((*j)) == alreadyVisited.end())
-			{
-				fifthLevel.push_back((*j));
-				alreadyVisited.insert((*j));
-			}
+			row = {childId, parentId, true, "***"};
+			_topics.push_back(row);
 		}
+		parentId++;
 	}
-	// Expose less info, only tell there exist unlocked opportunities.
-	if (hasHiddenRows)
+
+	// Section divider.
+	if (startingParent < parentId)
 	{
-		_lstTopics->addRow(1, "***");
-		++row;
+		row = {parentId, parentId, true, ""};
+		_topics.push_back(row);
+		parentId++;
 	}
 
-	_lstTopics->addRow(1, "");
-	++row;
-	if (fifthLevel.empty())
+	std::ostringstream ss5;
+	if (!fifthLevel.empty())
 	{
-		_lstTopics->addRow(1, tr("STR_END_OF_SEARCH").c_str());
-		_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-		++row;
-		return;
+		ss5 << Unicode::TOK_COLOR_FLIP << tr("STR_MORE_DEPENDENCIES");
+		row = {parentId, parentId, true, ss5.str()};
+		_topics.push_back(row);
 	}
-
-	_lstTopics->addRow(1, tr("STR_MORE_DEPENDENCIES").c_str());
-	_lstTopics->setRowColor(row, _lstTopics->getSecondaryColor());
-	++row;
+	else
+	{
+		ss5 << Unicode::TOK_COLOR_FLIP << tr("STR_END_OF_SEARCH");
+		row = {parentId, parentId, true, ss5.str()};
+		_topics.push_back(row);
+	}
 }
 
 }
