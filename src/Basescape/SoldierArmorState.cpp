@@ -415,6 +415,20 @@ void SoldierArmorState::updateList()
 		// Besides that, those are only needed in case '*filter...'
 		// variables are still 'nullptrs' at this stage.
 
+		// Soldier is not allowed on mission.
+		//'Unkown' should suffice to indicate something is going on.
+		// Hopefully that means: player choses to check mission description.
+		Soldier *soldier = _base->getSoldiers()->at(_soldier);
+		if (filterStartCondition && !filterStartCondition->isSoldierTypePermitted(soldier->getRules()->getType()))
+		{
+			for (auto& armorItem : _armors)
+			{
+				armorItem.isVisible = armorItem.type == "";
+			}
+			drawList();
+			return;
+		}
+
 		// Get resulting armor as if it was an actual deployment.
 		// Based on: `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
 		auto getResultingArmor = [&](const Armor* original) -> const Armor*
