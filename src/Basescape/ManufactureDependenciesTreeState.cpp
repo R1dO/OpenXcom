@@ -30,6 +30,7 @@
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
 #include "../Interface/TextList.h"
+#include "../Interface/TextEdit.h"
 #include "../Savegame/SavedGame.h"
 #include <unordered_map>
 #include <unordered_set>
@@ -50,6 +51,7 @@ ManufactureDependenciesTreeState::ManufactureDependenciesTreeState(const std::st
 	_lstTopics = new TextList(198, 96, 53, 54);
 	_btnShowAll = new TextButton(100, 16, 57, 153);
 	_btnOk = new TextButton(100, 16, 163, 153);
+	_btnQuickSearch = new TextEdit(this, 48, 9, 59, 45);
 
 	// Set palette
 	setInterface("dependencyTree");
@@ -59,6 +61,7 @@ ManufactureDependenciesTreeState::ManufactureDependenciesTreeState(const std::st
 	add(_btnShowAll, "button", "dependencyTree");
 	add(_btnOk, "button", "dependencyTree");
 	add(_lstTopics, "list", "dependencyTree");
+	add(_btnQuickSearch, "button", "dependencyTree");
 
 	centerAllSurfaces();
 
@@ -81,6 +84,11 @@ ManufactureDependenciesTreeState::ManufactureDependenciesTreeState(const std::st
 	_lstTopics->setAlign(ALIGN_CENTER);
 	_lstTopics->setSelectable(true);
 	_lstTopics->onMouseClick((ActionHandler)&ManufactureDependenciesTreeState::lstTopicsClickRight, SDL_BUTTON_RIGHT);
+
+	_btnQuickSearch->setText(""); // redraw
+	_btnQuickSearch->onEnter((ActionHandler)&ManufactureDependenciesTreeState::btnQuickSearchApply);
+	_btnQuickSearch->setVisible(false);
+	_btnOk->onKeyboardRelease((ActionHandler)&ManufactureDependenciesTreeState::btnQuickSearchToggle, Options::keyToggleQuickSearch);
 
 	if (Options::oxceDisableProductionDependencyTree)
 	{
@@ -204,11 +212,26 @@ void ManufactureDependenciesTreeState::lstTopicsClickRight(Action *)
 */
 void ManufactureDependenciesTreeState::drawList()
 {
+	std::string searchString = _btnQuickSearch->getText();
+	Unicode::upperCase(searchString);
+
 	_lstTopics->clearList();
 	_indices.clear();
 
 	for (size_t i = 0; i < _topics.size(); ++i)
 	{
+
+		// quick search
+		if (!searchString.empty() && _topics[i].childId != _topics[i].parentId)
+		{
+			std::string projectName = _topics[i].description;
+			Unicode::upperCase(projectName);
+			if (projectName.find(searchString) == std::string::npos)
+			{
+				continue;
+			}
+			_topics[i].isVisible = true;
+		}
 		if (!_topics[i].isVisible) continue;
 
 		_lstTopics->addRow(1, _topics[i].description.c_str());
@@ -785,6 +808,34 @@ void ManufactureDependenciesTreeState::addNeededForManufactureSections(int& pare
 		row = {parentId, parentId, true, ss5.str()};
 		_topics.push_back(row);
 	}
+}
+
+/**
+* Quick search toggle.
+* @param action Pointer to an action.
+*/
+void ManufactureDependenciesTreeState::btnQuickSearchToggle(Action *action)
+{
+	if (_btnQuickSearch->getVisible())
+	{
+		_btnQuickSearch->setText("");
+		_btnQuickSearch->setVisible(false);
+		btnQuickSearchApply(action);
+	}
+	else
+	{
+		_btnQuickSearch->setVisible(true);
+		_btnQuickSearch->setFocus(true);
+	}
+}
+
+/**
+* Quick search.
+* @param action Pointer to an action.
+*/
+void ManufactureDependenciesTreeState::btnQuickSearchApply(Action *)
+{
+	drawList();
 }
 
 }

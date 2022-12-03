@@ -26,6 +26,7 @@ class Window;
 class Text;
 class TextButton;
 class TextList;
+class TextEdit;
 
 enum ScreenType {ST_DEPENDENCIES, ST_PROVIDERS};
 
@@ -46,6 +47,7 @@ private:
 	Window *_window;
 	Text *_txtTitle;
 	TextList *_lstTopics;
+	TextEdit *_btnQuickSearch;
 	TextButton *_btnOk, *_btnShowAll, *_btnToggle;
 	std::string _selectedItem;
 	bool _showAll;
@@ -75,5 +77,8 @@ public:
 	void btnShowAllClick(Action *action);
 	/// Handler for RMB click on list.
 	void lstTopicsClickRight(Action *Action);
+	/// Handlers for Quick Search.
+	void btnQuickSearchToggle(Action *action);
+	void btnQuickSearchApply(Action *action);
 };
 }
