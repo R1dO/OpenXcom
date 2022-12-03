@@ -754,13 +754,11 @@ void SoldierArmorState::lstArmorClickMiddle(Action *action)
 void SoldierArmorState::lstArmorClickRight(Action *action)
 {
 	_sel = _lstArmor->getSelectedRow();
+	size_t scrollPos = _lstArmor->getScroll();
+	int listSizeOld = _lstArmor->getLastRowIndex();
 
 	// Blank state (all parents) does not have collapse functionality
 	if (getRow().parentId == 0) return;
-
-	// Prevent collapsed list from jumping around when there is a scrollbar.
-	if (getRow().id == getRow().parentId && _armors[_indices[_sel] + 1].parentId != getRow().parentId)
-		return;
 
 	// (Un)fold appropriate childs.
 	for (size_t i = 0; i < _armors.size(); ++i)
@@ -770,8 +768,11 @@ void SoldierArmorState::lstArmorClickRight(Action *action)
 			_armors[i].isVisible ^= true;
 		}
 	}
-
 	drawList();
+
+	// Approximate scroll position (size of list might have changed).
+	scrollPos = listSizeOld > 0 ? scrollPos * _lstArmor->getLastRowIndex() / listSizeOld : scrollPos;
+	_lstArmor->scrollTo(scrollPos);
 }
 
 /**
