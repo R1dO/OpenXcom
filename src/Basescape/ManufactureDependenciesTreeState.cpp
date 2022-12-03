@@ -168,37 +168,12 @@ void ManufactureDependenciesTreeState::lstTopicsClickRight(Action *)
 	_sel = _lstTopics->getSelectedRow();
 	//size_t scrollPos = _lstTopics->getScroll();
 
-	// Check if children of parent are visible.
-	auto isExpanded = [&](int parentId) -> bool
+	// (Un)fold appropriate childs.
+	for (auto& topic : _topics)
 	{
-		auto bread = std::find_if(_topics.begin(), _topics.end(),
-			[&](const TopicsBackend crumb)
-			{ return crumb.parentId == parentId && crumb.childId != parentId && crumb.isVisible; }
-		);
-		return bread != _topics.end();
-	};
-
-	// Children collapsed
-	if (getTopic().childId == getTopic().parentId && !isExpanded(getTopic().parentId))
-	{
-		// Show all elements contributing to parent.
-		for (auto& topic : _topics)
+		if (topic.parentId == getTopic().parentId && topic.childId != topic.parentId)
 		{
-			if (topic.parentId == getTopic().childId)
-			{
-				topic.isVisible = true;
-			}
-		}
-	}
-	else
-	{
-		// Collapse all elements contributing to parent.
-		for (auto& topic : _topics)
-		{
-			if (topic.parentId == getTopic().parentId && (topic.childId != topic.parentId))
-			{
-				topic.isVisible = false;
-			}
+			topic.isVisible ^= true;
 		}
 	}
 
@@ -230,8 +205,8 @@ void ManufactureDependenciesTreeState::drawList()
 			{
 				continue;
 			}
-			_topics[i].isVisible = true;
 		}
+
 		if (!_topics[i].isVisible) continue;
 
 		_lstTopics->addRow(1, _topics[i].description.c_str());
