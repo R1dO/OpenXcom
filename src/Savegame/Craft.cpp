@@ -1697,7 +1697,7 @@ int Craft::getItemClaimByCraft(const RuleItem* item,
 /**
  * Gets the items claimed by soldiers on the craft.
  *
- * Prefers player managed layout with fallback to game managed layout.
+ * Only recognizes game managed layout.
  *
  * @warning
  * Inclusion of armor is for display purposes only.
@@ -1716,18 +1716,14 @@ const ItemContainer *Craft::getItemsClaimedBySoldiers(bool excludeArmor) const
 
 		if (!excludeArmor)
 		{
-			auto soldierArmor = soldier->getPersonalEquipmentArmor();
-			if (soldierArmor == nullptr)
-				soldierArmor = soldier->getArmor();
+			auto soldierArmor = soldier->getArmor();
 			if (soldierArmor != nullptr)
 				claimedItems->addItem(soldierArmor->getType());
 		}
 
 		if (soldier->getCraft() == this)
 		{
-			auto* soldierEquipment = soldier->getPersonalEquipmentLayout();
-			if (soldierEquipment->empty())
-				soldierEquipment = soldier->getEquipmentLayout();
+			auto* soldierEquipment = soldier->getEquipmentLayout();
 			if (soldierEquipment->empty()) continue;
 
 			for (auto* equipment : *soldierEquipment)
