@@ -166,7 +166,8 @@ void ManufactureDependenciesTreeState::btnShowAllClick(Action *)
 void ManufactureDependenciesTreeState::lstTopicsClickRight(Action *)
 {
 	_sel = _lstTopics->getSelectedRow();
-	//size_t scrollPos = _lstTopics->getScroll();
+	size_t scrollPos = _lstTopics->getScroll();
+	int listSizeOld = _lstTopics->getLastRowIndex();
 
 	// (Un)fold appropriate childs.
 	for (auto& topic : _topics)
@@ -178,7 +179,10 @@ void ManufactureDependenciesTreeState::lstTopicsClickRight(Action *)
 	}
 
 	drawList();
-	//_lstTopics->scrollTo(scrollPos);
+
+	// Approximate scroll position (size of list might have changed).
+	scrollPos = listSizeOld > 0 ? scrollPos * _lstTopics->getLastRowIndex() / listSizeOld : scrollPos;
+	_lstTopics->scrollTo(scrollPos);
 }
 
 
@@ -195,7 +199,6 @@ void ManufactureDependenciesTreeState::drawList()
 
 	for (size_t i = 0; i < _topics.size(); ++i)
 	{
-
 		// quick search
 		if (!searchString.empty() && _topics[i].childId != _topics[i].parentId)
 		{

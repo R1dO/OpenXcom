@@ -28,8 +28,6 @@ class TextButton;
 class TextList;
 class TextEdit;
 
-enum ScreenType {ST_DEPENDENCIES, ST_PROVIDERS};
-
 /**
  * Window which displays manufacture dependencies tree.
  */
