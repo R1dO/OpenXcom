@@ -758,34 +758,16 @@ void SoldierArmorState::lstArmorClickRight(Action *action)
 	// Blank state (all parents) does not have collapse functionality
 	if (getRow().parentId == 0) return;
 
-	// Safety
-	if (getRow().id == getRow().parentId && _indices[_sel] + 1 >= _armors.size())
-		return;
-
 	// Prevent collapsed list from jumping around when there is a scrollbar.
 	if (getRow().id == getRow().parentId && _armors[_indices[_sel] + 1].parentId != getRow().parentId)
 		return;
 
-	if (getRow().id == getRow().parentId && !(_armors[_indices[_sel] + 1].isVisible))
+	// (Un)fold appropriate childs.
+	for (size_t i = 0; i < _armors.size(); ++i)
 	{
-		// Show all elements contributing to parent.
-		for (size_t i = 0; i < _armors.size(); ++i)
+		if (_armors[i].parentId == getRow().parentId && _armors[i].id != _armors[i].parentId)
 		{
-			if (_armors[i].parentId == getRow().id)
-			{
-				_armors[i].isVisible = true;
-			}
-		}
-	}
-	else
-	{
-		// Collapse all elements contributing to parent.
-		for (size_t i = 0; i < _armors.size(); ++i)
-		{
-			if (_armors[i].parentId == getRow().parentId && (_armors[i].id != _armors[i].parentId))
-			{
-				_armors[i].isVisible = false;
-			}
+			_armors[i].isVisible ^= true;
 		}
 	}
 
