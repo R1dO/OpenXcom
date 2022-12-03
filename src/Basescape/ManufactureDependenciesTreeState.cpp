@@ -810,6 +810,15 @@ void ManufactureDependenciesTreeState::btnQuickSearchToggle(Action *action)
 */
 void ManufactureDependenciesTreeState::btnQuickSearchApply(Action *)
 {
+	// Start with topics unfolded
+	for (auto& topic : _topics)
+	{
+		if (topic.childId != topic.parentId)
+		{
+			topic.isVisible = true;
+		}
+	}
+
 	drawList();
 }
 
