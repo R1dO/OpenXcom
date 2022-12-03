@@ -36,6 +36,7 @@
 #include "../Savegame/SavedGame.h"
 #include "../Menu/ErrorMessageState.h"
 #include "../Mod/RuleInterface.h"
+#include "ManufactureDependenciesTreeState.h"
 
 namespace OpenXcom
 {
@@ -138,6 +139,7 @@ ManufactureStartState::ManufactureStartState(Base *base, RuleManufacture *item) 
 	}
 	for (auto& iter : _item->getRequiredItems())
 	{
+		_requiredItemMap.push_back(std::make_pair(row, iter.first));
 		auto count = base->getStorageItems()->getItem(iter.first);
 
 		std::ostringstream s1, s2;
@@ -209,6 +211,8 @@ ManufactureStartState::ManufactureStartState(Base *base, RuleManufacture *item) 
 	_txtUnitRequiredColumn->setVisible(hasRequirements);
 	_txtUnitAvailableColumn->setVisible(hasRequirements);
 	_lstRequiredItems->setVisible(row);
+	_lstRequiredItems->setSelectable(true);
+	_lstRequiredItems->onMouseClick((ActionHandler)&ManufactureStartState::lstRequiredClickRight, SDL_BUTTON_RIGHT);
 
 	_btnStart->setText(tr("STR_START_PRODUCTION"));
 	_btnStart->onMouseClick((ActionHandler)&ManufactureStartState::btnStartClick);
@@ -251,6 +255,26 @@ void ManufactureStartState::btnStartClick(Action *)
 	else
 	{
 		_game->pushState(new ManufactureInfoState(_base, _item));
+	}
+}
+
+/**
+ * Handles the mouse-wheels on the arrow-buttons.
+ * @param action Pointer to an action.
+ */
+void ManufactureStartState::lstRequiredClickRight(Action *action)
+{
+	int selectedRow = _lstRequiredItems->getSelectedRow();
+
+	auto itemMap = std::find_if(_requiredItemMap.begin(), _requiredItemMap.end(),
+		[&] (const auto row) { return row.first == selectedRow; });
+	if (itemMap != _requiredItemMap.end())
+	{
+		const RuleItem* rule = (*itemMap).second;
+		if (rule != 0)
+		{
+			_game->pushState(new ManufactureDependenciesTreeState(rule->getType()));
+		}
 	}
 }
 
