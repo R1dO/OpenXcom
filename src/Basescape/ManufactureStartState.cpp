@@ -199,6 +199,7 @@ ManufactureStartState::ManufactureStartState(Base *base, RuleManufacture *item) 
 		// produced items
 		for (auto& iter : _item->getProducedItems())
 		{
+			_requiredItemMap.push_back(std::make_pair(row, iter.first));
 			std::ostringstream s1;
 			s1 << Unicode::TOK_COLOR_FLIP << iter.second;
 			_lstRequiredItems->addRow(2, tr(iter.first->getType()).c_str(), s1.str().c_str());
