@@ -46,7 +46,7 @@ private:
 	struct BeanCounter
 	{
 		// Use parent-child relation to enable collapsable details.
-		int id;             // We have a subtotal if 'id == parentId'.
+		int childId;        // We have a subtotal if 'childId == parentId'.
 		int parentId;       // To allow collapsing of child rows.
 		bool isVisible;     // By default children are hidden unless unfolded.
 		std::string description;

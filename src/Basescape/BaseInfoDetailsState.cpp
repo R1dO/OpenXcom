@@ -179,12 +179,12 @@ void BaseInfoDetailsState::lstDetailsMousePress(Action *action)
 	if (action->getDetails()->button.button != SDL_BUTTON_RIGHT) return;
 
 	_sel = _lstDetails->getSelectedRow();
-	if (getRow().id == getRow().parentId && !(_details[_rows[_sel] + 1].isVisible))
+	if (getRow().childId == getRow().parentId && !(_details[_rows[_sel] + 1].isVisible))
 	{
 		// Show all elements contributing to parent.
 		for (size_t i = 0; i < _details.size(); ++i)
 		{
-			if (_details[i].parentId == getRow().id)
+			if (_details[i].parentId == getRow().childId)
 			{
 				_details[i].isVisible = true;
 			}
@@ -195,7 +195,7 @@ void BaseInfoDetailsState::lstDetailsMousePress(Action *action)
 		// Collapse all elements contributing to parent.
 		for (size_t i = 0; i < _details.size(); ++i)
 		{
-			if (_details[i].parentId == getRow().parentId && (_details[i].id != _details[i].parentId))
+			if (_details[i].parentId == getRow().parentId && (_details[i].childId != _details[i].parentId))
 			{
 				_details[i].isVisible = false;
 			}
@@ -227,11 +227,11 @@ int BaseInfoDetailsState::addToDetailsVector(BeanCounter row, bool updateValueFi
 			// To ensure any implementation faults become a bit more visible (weird numbers on screen).
 			bean.amount += row.amount;
 
-			return row.id;
+			return row.childId;
 		}
 	}
 	_details.push_back(row);
-	return ++row.id;
+	return ++row.childId;
 }
 
 /**
@@ -261,7 +261,7 @@ int BaseInfoDetailsState::calculateSubtotalAmount(int parentId)
 	int64_t amount = 0;
 	for (auto element : _details)
 	{
-		if (element.parentId == parentId && element.id != element.parentId && element.amount != -1)
+		if (element.parentId == parentId && element.childId != element.parentId && element.amount != -1)
 		{
 			amount += element.amount;
 		}
@@ -280,7 +280,7 @@ int BaseInfoDetailsState::calculateSubtotalValue(int parentId)
 	int total = 0;
 	for (auto element : _details)
 	{
-		if (element.parentId == parentId && element.id != element.parentId && element.amount >= -1)
+		if (element.parentId == parentId && element.childId != element.parentId && element.amount >= -1)
 		{
 			total += element.value * std::abs(element.amount); // If '-1' we probably want to add a single instance of corresponding value.
 		}
@@ -300,7 +300,7 @@ int BaseInfoDetailsState::getSubtotalValueMax(int parentId)
 	int total = 0;
 	for (auto element : _details)
 	{
-		if (element.parentId == parentId && element.id != element.parentId)
+		if (element.parentId == parentId && element.childId != element.parentId)
 		{
 			total = std::max(total, element.value);
 		}
@@ -998,7 +998,7 @@ void BaseInfoDetailsState::categoryWorkshops()
  */
 void BaseInfoDetailsState::categoryAlienContainment()
 {
-	int idItem = 100; // Ensure details use id's > than theoretical maximum subcategories of 36.
+	int idItem = 100; // Ensure details use childId's > than theoretical maximum subcategories of 36.
 	int idParent = 0;
 	int itemValue;
 	std::vector<BeanCounter> subCategories;
@@ -1187,7 +1187,7 @@ void BaseInfoDetailsState::categoryHangars()
 */
 void BaseInfoDetailsState::categoryDefense()
 {
-	int idItem = 100; // Just to ensure details use id's > idParents
+	int idItem = 100; // Just to ensure details use childId's > idParents
 	int idParent = 0; // Unique subcategories.
 	int itemValue;    // Prefer positive values only for details (subtotals are allowed to be negative)
 	std::vector<BeanCounter> subCategories;
@@ -1199,7 +1199,7 @@ void BaseInfoDetailsState::categoryDefense()
 		double detectionFail = 1.0;
 		for (auto element : _details)
 		{
-			if (element.parentId == parentId && element.id != element.parentId)
+			if (element.parentId == parentId && element.childId != element.parentId)
 			{
 				for (int i = 0 ; i < element.amount ; i++ )
 				{
@@ -1297,7 +1297,7 @@ void BaseInfoDetailsState::categoryDefense()
  */
 void BaseInfoDetailsState::categoryDetection()
 {
-	int idItem = 100; // Ensure details use id's > than theoretical maximum subcategories of 74 (2*36 + 2).
+	int idItem = 100; // Ensure details use childId's > than theoretical maximum subcategories of 74 (2*36 + 2).
 	int idParent = 0; // Unique subcategories.
 	int itemValue;    // Prefer positive values only for details (subtotals are allowed to be negative)
 	std::vector<BeanCounter> subCategories;
@@ -1314,7 +1314,7 @@ void BaseInfoDetailsState::categoryDetection()
 		double detectionFail = 1.0;
 		for (auto element : _details)
 		{
-			if (element.parentId == parentId && element.id != element.parentId)
+			if (element.parentId == parentId && element.childId != element.parentId)
 			{
 				for (int i = 0 ; i < element.amount ; i++ )
 				{
@@ -1502,7 +1502,7 @@ void BaseInfoDetailsState::updateList()
 		std::string description = _details[i].description;
 		std::ostringstream ssAmount, ssValue;
 		//bool unconditionallyShowSign = true;
-		if (_details[i].parentId != _details[i].id) // Not a subtotal.
+		if (_details[i].parentId != _details[i].childId) // Not a subtotal.
 		{
 			description.insert(0, " "); // Do not use dots for description indentation.
 			ssAmount << tr("MCDS_DOTTED_INDENTATION");
@@ -1530,7 +1530,7 @@ void BaseInfoDetailsState::updateList()
 		}
 		_rows.push_back(i);
 
-		if(_details[i].parentId == _details[i].id)
+		if(_details[i].parentId == _details[i].childId)
 		{
 			_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), _lstDetails->getSecondaryColor());
 		}
