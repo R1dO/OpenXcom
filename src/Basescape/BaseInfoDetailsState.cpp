@@ -202,14 +202,14 @@ void BaseInfoDetailsState::lstDetailsMousePress(Action *action)
 		}
 	}
 
-	updateList();
+	drawList();
 }
 
 /**
 * Adds another contribution to the '_details' vector.
 *
 * Creates a new entry if needed, updates if an entry already exist.
-* An entry is defined by the unique combination of 'parentID','description' and 'colResultOverride'.
+* An entry is defined by the unique combination of 'parentID','description' and 'valueOverride'.
 *
 * @param row The contents of the row we want to insert.
 * @param updateValueField Whether or not we want to update 'value' on existing entries.
@@ -219,7 +219,7 @@ int BaseInfoDetailsState::addToDetailsVector(BeanCounter row, bool updateValueFi
 {
 	for (auto &bean : _details)
 	{
-		if (bean.parentId == row.parentId && bean.description == row.description && bean.colResultOverride == row.colResultOverride)
+		if (bean.parentId == row.parentId && bean.description == row.description && bean.valueOverride == row.valueOverride)
 		{
 			bean.value += row.value * updateValueField; // Branchless programming trick.
 			// No checking if bean.amount > -1.
@@ -366,7 +366,7 @@ void BaseInfoDetailsState::drawBody()
 	}
 
 	_txtTitle->setText(ssTitle.str().c_str());
-	updateList();
+	drawList();
 }
 
 /**
@@ -449,21 +449,21 @@ void BaseInfoDetailsState::categoryQuarters()
 
 		itemValue = facility->getRules()->getPersonnel();
 		idParent = itemValue >= 0 ? 0 : 1;
-		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, std::abs(itemValue), ""};
+		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, std::abs(itemValue), {}};
 		idItem = addToDetailsVector(row, false);
 	}
 	// Personnel claiming living space.
 	idParent = 1;
 	itemValue = _base->getTotalScientists(); // Includes transfers
-	row = {idItem, idParent, false, tr("STR_SCIENTISTS") , -1, itemValue, ""};
+	row = {idItem, idParent, false, tr("STR_SCIENTISTS"), 0, itemValue, ".", ""};
 	idItem = addToDetailsVector(row, false);
 	itemValue = _base->getTotalEngineers(); // Includes transfers
-	row = {idItem, idParent, false, tr("STR_ENGINEERS") , -1, itemValue, ""};
+	row = {idItem, idParent, false, tr("STR_ENGINEERS"), 0, itemValue, ".", ""};
 	idItem = addToDetailsVector(row, false);
 	// Soldiers
 	for (auto soldier : *_base->getSoldiers())
 	{
-		row = {idItem, idParent, false, tr(soldier->getRules()->getType()), -1, 1, ""};
+		row = {idItem, idParent, false, tr(soldier->getRules()->getType()), 1, 1, ".", ""};
 		idItem = addToDetailsVector(row);
 	}
 	for (auto transfer : *_base->getTransfers())
@@ -471,7 +471,7 @@ void BaseInfoDetailsState::categoryQuarters()
 		if (transfer->getType() != TRANSFER_SOLDIER) continue;
 		// Soldiers and all transformers.
 
-		row = {idItem, idParent, false, tr(transfer->getSoldier()->getRules()->getType()), -1, 1, ""};
+		row = {idItem, idParent, false, tr(transfer->getSoldier()->getRules()->getType()), 0, itemValue, ".", ""};
 		idItem = addToDetailsVector(row);
 	}
 	// Any person being 'produced'.
@@ -482,7 +482,7 @@ void BaseInfoDetailsState::categoryQuarters()
 
 		// Assume it is not possible to produce multiple persons with a single project.
 		// Seems correct looking at Base::getUsedQuarters()
-		row = {idItem, idParent, false, tr(conceived->getRules()->getSpawnedPersonType()), -1, 1, ""};
+		row = {idItem, idParent, false, tr(conceived->getRules()->getSpawnedPersonType()), 0, itemValue, ".", ""};
 		idItem = addToDetailsVector(row);
 	}
 	idParent++;
@@ -506,7 +506,7 @@ void BaseInfoDetailsState::categoryQuarters()
 
 				providesService = true;
 				row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, 1, ""};
-				row.colResultOverride = ".";
+				row.valueOverride = ".";
 				idItem = addToDetailsVector(row, false);
 			}
 			//if (providesService)
@@ -515,7 +515,7 @@ void BaseInfoDetailsState::categoryQuarters()
 				int subAmount = calculateSubtotalAmount(idParent) > 0 ? calculateSubtotalAmount(idParent) : -1;
 
 				row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_SERVICE").arg(serviceName), subAmount, 1, ""};
-				row.colResultOverride = providesService ? tr("STR_YES") : tr("STR_NO");
+				row.valueOverride = providesService ? tr("STR_YES") : tr("STR_NO");
 				subCategories.push_back(row);
 
 				idParent++;
@@ -798,7 +798,7 @@ void BaseInfoDetailsState::categoryLabs()
 
 				providesService = true;
 				row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, 1, ""};
-				row.colResultOverride = ".";
+				row.valueOverride = ".";
 				idItem = addToDetailsVector(row, false);
 			}
 			//if (providesService)
@@ -807,7 +807,7 @@ void BaseInfoDetailsState::categoryLabs()
 				int subAmount = calculateSubtotalAmount(idParent) > 0 ? calculateSubtotalAmount(idParent) : -1;
 
 				row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_SERVICE").arg(serviceName), subAmount, 1, ""};
-				row.colResultOverride = providesService ? tr("STR_YES") : tr("STR_NO");
+				row.valueOverride = providesService ? tr("STR_YES") : tr("STR_NO");
 				subCategories.push_back(row);
 
 				idParent++;
@@ -954,7 +954,7 @@ void BaseInfoDetailsState::categoryWorkshops()
 
 				providesService = true;
 				row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, 1, ""};
-				row.colResultOverride = ".";
+				row.valueOverride = ".";
 				idItem = addToDetailsVector(row, false);
 			}
 			//if (providesService)
@@ -963,7 +963,7 @@ void BaseInfoDetailsState::categoryWorkshops()
 				int subAmount = calculateSubtotalAmount(idParent) > 0 ? calculateSubtotalAmount(idParent) : -1;
 
 				row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_SERVICE").arg(serviceName), subAmount, 1, ""};
-				row.colResultOverride = providesService ? tr("STR_YES") : tr("STR_NO");
+				row.valueOverride = providesService ? tr("STR_YES") : tr("STR_NO");
 				subCategories.push_back(row);
 
 				idParent++;
@@ -1040,7 +1040,7 @@ void BaseInfoDetailsState::categoryAlienContainment()
 			int inUse = _base->getUsedContainment(prisonType);
 			// Total usage detail row.
 			row = {idItem, idParent, false, tr("BIDS_DETAIL_CONTAINMENT_USAGE"), inUse, 1, ""}; // or use "trAlt() so modder can show a specified description."
-			row.colResultOverride = trAlt("STR_ALIEN", prisonType);
+			row.valueOverride = trAlt("STR_ALIEN", prisonType);
 			idItem = addToDetailsVector(row, false);
 
 			// Subtotal
@@ -1049,7 +1049,7 @@ void BaseInfoDetailsState::categoryAlienContainment()
 			int subTotal = _base->getAvailableContainment(prisonType);
 			row = {idParent, idParent, true, description.str().c_str(), -1, subTotal, ""};
 			usage << inUse << "/" << subTotal;
-			row.colResultOverride = usage.str();
+			row.valueOverride = usage.str();
 			subCategories.push_back(row);
 		}
 		idParent++;
@@ -1228,7 +1228,7 @@ void BaseInfoDetailsState::categoryDefense()
 		// Hit ratio
 		itemValue = facility->getRules()->getHitRatio();
 		row = {idItem, idParent + 1, false, tr(facility->getRules()->getType()), 1, itemValue, ""};
-		row.colResultOverride = Unicode::formatPercentage(itemValue);
+		row.valueOverride = Unicode::formatPercentage(itemValue);
 		idItem = addToDetailsVector(row, false);
 	}
 	if (hasDefenses)
@@ -1240,7 +1240,7 @@ void BaseInfoDetailsState::categoryDefense()
 
 		subTotal = atLeastOneHit(idParent + 1);
 		row = {idParent + 1, idParent + 1 , true, tr("STR_HIT_RATIO"), subAmount, subTotal, ""};
-		row.colResultOverride = Unicode::formatPercentage(subTotal);
+		row.valueOverride = Unicode::formatPercentage(subTotal);
 		subCategories.push_back(row);
 
 		idParent += 2;
@@ -1368,7 +1368,7 @@ void BaseInfoDetailsState::categoryDetection()
 		int subTotal = 100 - _base->getDetectionChance();
 
 		row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_CAMOUFLAGE"), -1, subTotal, ""};
-		row.colResultOverride = Unicode::formatPercentage(subTotal);
+		row.valueOverride = Unicode::formatPercentage(subTotal);
 		subCategories.push_back(row);
 
 		idParent++;
@@ -1392,7 +1392,7 @@ void BaseInfoDetailsState::categoryDetection()
 			// Facility detection chance
 			itemValue = facility->getRules()->getRadarChance();
 			row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, itemValue, ""};
-			row.colResultOverride = Unicode::formatPercentage(itemValue);
+			row.valueOverride = Unicode::formatPercentage(itemValue);
 			idItem = addToDetailsVector(row, false);
 
 			if (!facility->getRules()->isHyperwave())
@@ -1402,7 +1402,7 @@ void BaseInfoDetailsState::categoryDetection()
 			hasHyperwaveFunctionality = true;
 			itemValue = 0; // This entry should not influence subtotal chance calculation.
 			row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, itemValue, ""};
-			row.colResultOverride = tr("BIDS_DETAIL_DETECTION_HYPERWAVE");
+			row.valueOverride = tr("BIDS_DETAIL_DETECTION_HYPERWAVE");
 			idItem = addToDetailsVector(row, false);
 		}
 
@@ -1419,7 +1419,7 @@ void BaseInfoDetailsState::categoryDetection()
 		int subAmount = -1;
 		int subTotal = detectionResult(idParent);
 		row = {idParent, idParent, true, description.c_str(), subAmount, subTotal, ""};
-		row.colResultOverride = Unicode::formatPercentage(subTotal);
+		row.valueOverride = Unicode::formatPercentage(subTotal);
 		subCategories.push_back(row);
 
 		idParent++;
@@ -1451,7 +1451,7 @@ void BaseInfoDetailsState::categoryDetection()
 				itemValue = 50 - (detectionRange/2 * 50) / facility->getRules()->getSightRange();
 			}
 			row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, itemValue, ""};
-			row.colResultOverride = Unicode::formatPercentage(itemValue);
+			row.valueOverride = Unicode::formatPercentage(itemValue);
 			idItem = addToDetailsVector(row, false);
 		}
 
@@ -1459,7 +1459,7 @@ void BaseInfoDetailsState::categoryDetection()
 		int subAmount = -1;
 		int subTotal = detectionResult(idParent);
 		row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_ALIEN_BASE_DETECTION").arg(detectionRange), subAmount, subTotal, ""};
-		row.colResultOverride = Unicode::formatPercentage(subTotal);
+		row.valueOverride = Unicode::formatPercentage(subTotal);
 		subCategories.push_back(row);
 
 		idParent++;
@@ -1488,7 +1488,7 @@ void BaseInfoDetailsState::categoryDetection()
 /**
 * Draw (en filter) the current details list.
 */
-void BaseInfoDetailsState::updateList()
+void BaseInfoDetailsState::drawList()
 {
 	_lstDetails->clearList();
 	_rows.clear();
@@ -1510,15 +1510,24 @@ void BaseInfoDetailsState::updateList()
 			//unconditionallyShowSign = false;
 		}
 
-		if (_details[i].colResultOverride != "")
+		if (_details[i].amountOverride != "")
 		{
-			ssValue << _details[i].colResultOverride;
+			ssAmount << _details[i].amountOverride;
+		}
+		else
+		{
+			ssAmount << _details[i].amount;
+		}
+
+		if (_details[i].valueOverride != "")
+		{
+			ssValue << _details[i].valueOverride;
 		}
 		else
 		{
 			ssValue << _details[i].value;
 		}
-		ssAmount << _details[i].amount;
+
 
 		if (_details[i].amount > -1)
 		{

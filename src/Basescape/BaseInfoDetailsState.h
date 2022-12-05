@@ -46,17 +46,14 @@ private:
 	struct BeanCounter
 	{
 		// Use parent-child relation to enable collapsable details.
-		int childId;        // We have a subtotal if 'childId == parentId'.
-		int parentId;       // To allow collapsing of child rows.
-		bool isVisible;     // By default children are hidden unless unfolded.
-		std::string description;
-		/**
-		 * How many times a contribution is present on the base.
-		 * "-1" indicates: Do not draw this column.
-		 */
-		int amount;
-		int value;                     // Value for this contribution.
-		std::string colResultOverride; // Specialized string for 'result' column.
+		int childId = 0;        // We have a subtotal if 'childId == parentId'.
+		int parentId = 0;       // To allow collapsing of child rows.
+		bool isVisible = false; // By default children are hidden unless unfolded.
+		std::string description = "";
+		int amount = 0;         // How many times a contribution is present on the base (-1 means do not draw).
+		int value = 0;          // Value for this contribution.
+		std::string amountOverride = ""; // Specialized string for 'amount' column.
+		std::string valueOverride = "";  // Specialized string for 'result' column.
 	};
 
 	Base *_base;
@@ -79,7 +76,7 @@ private:
 	void categoryHangars();
 	void categoryDefense();
 	void categoryDetection();
-	void updateList();
+	void drawList();
 	void lstDetailsMousePress(Action *action);
 
 	BeanCounter &getRow() {return _details[_rows[_sel]];}
