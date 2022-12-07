@@ -362,6 +362,22 @@ void BaseInfoDetailsState::drawBody()
 	default:
 		ssTitle << "Cost Category " << _currentCategory << " not implemented yet";
 
+		BeanCounter row;
+		int parent, childId = 0;
+		for (auto i = 0; i < 5; i++)
+		{
+			parent = childId;
+			row = {childId, parent, true, "Long text explaining the source", 999, 999999999, {}};
+			_details.push_back(row);
+			childId++;
+			for (auto j = 0; j < 5; j++)
+			{
+				row = {childId, parent, false, "Normally collapsed (moaar details)", 99, 999999999, {}};
+				_details.push_back(row);
+				childId++;
+			}
+		}
+		_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(999999999999).c_str());
 		break;
 	}
 
