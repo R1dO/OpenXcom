@@ -19,6 +19,7 @@
  */
 
 #include "../Engine/State.h"
+#include "../Mod/RuleBaseFacilityFunctions.h"
 
 namespace OpenXcom
 {
@@ -66,6 +67,7 @@ private:
 	std::vector<BeanCounter> _details;
 	std::vector<int> _rows;
 	size_t _sel;
+	RuleBaseFacilityFunctions _unlockedServicesBaseType = 0;
 
 	void drawBody();
 	void categorySoldiers();
