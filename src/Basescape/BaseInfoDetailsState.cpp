@@ -112,7 +112,7 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, DetailsCategory currentCa
 	_lstTotal->setDot(true);
 	_lstTotal->setColor(_lstTotal->getSecondaryColor());
 
-	// Check which services are allowed on this base.
+	// Check which services are known for this base type.
 	// Based on: BuildFacilitiesState::populateBuildList()
 	for (auto facilityType : _game->getMod()->getBaseFacilitiesList())
 	{
@@ -424,6 +424,7 @@ void BaseInfoDetailsState::drawBody()
  *  + Wound regeneration.
  *  + Health regeneration
  *  + Mana regeneration
+ *  + Transformations related (it only acts on existing soldiers)
  */
 void BaseInfoDetailsState::categorySoldiers()
 {
@@ -435,6 +436,7 @@ void BaseInfoDetailsState::categorySoldiers()
 	addSubCategoryWoundRecovery(idParent);
 	addSubCategoryHealthRecovery(idParent);
 	addSubCategoryManaRecovery(idParent);
+	addSubCategoriesTransformations(idParent);
 
 	drawList();
 }
@@ -714,6 +716,79 @@ void BaseInfoDetailsState::addSubCategoryPsionicTraining(int& parentId)
 	parentId++;
 }
 
+
+
+/**
+ * Add transformation related facilities to _details vector.
+ *
+ * Per recognized required transformation service:
+ * - List of facilities providing said service.
+ *
+ * @param parentId  Identifier for subcategory (will be updated).
+ */
+void BaseInfoDetailsState::addSubCategoriesTransformations(int& parentId)
+{
+	// Determine dependencies on unlocked (potential) base services
+	// We want to show facilities providing those (even if not build).
+	// Based on: SavedGame::getAvailableTransformations()
+	RuleBaseFacilityFunctions requiredServices;
+	for (auto transformer : _game->getMod()->getSoldierTransformationList())
+	{
+		RuleSoldierTransformation *ruleTransform = _game->getMod()->getSoldierTransformation(transformer);
+		if (!_game->getSavedGame()->isResearched(ruleTransform->getRequiredResearch()))
+			continue;
+		requiredServices |= ruleTransform->getRequiredBaseFuncs();
+	}
+	requiredServices &= _unlockedServicesBaseType;
+	if (requiredServices.none()) return;
+
+	// Facilities per required service
+	// Based on 'Mod::getBaseFunctionNames()'.
+	BeanCounter row;
+	for (size_t bitPosition = 0; bitPosition < requiredServices.size(); ++bitPosition)
+	{
+		if (requiredServices.test(bitPosition))
+		{
+			size_t parentIndex = _details.size();
+			int idItem = parentId;
+
+			RuleBaseFacilityFunctions currentService = 0;
+			currentService.set(bitPosition);
+
+			std::string serviceName = tr(_game->getMod()->getBaseFunctionNames(currentService).front());
+			row = {parentId, parentId, true, tr("STR_BIDS_SUBTOTAL_TRANSFORMATION_SERVICE").arg(serviceName), 0, 0, "", tr("STR_NO")};
+			idItem = addToDetailsVector(row, false);
+
+			int facilities = 0;
+			for (auto *facility : *_base->getFacilities())
+			{
+				if (facility->getBuildTime() > 0) continue;
+
+				auto facilityServices = facility->getRules()->getProvidedBaseFunc();
+				if ((facilityServices & currentService).none()) continue;
+
+				row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, 0, "", "."};
+				idItem = addToDetailsVector(row, false);
+
+				facilities++;
+			}
+			if (facilities > 0)
+			{
+				// Prefer alphabetical sort of facilities
+				int startOffset = parentIndex + 1; // 1 <-- Subtotal only.
+				std::sort(std::next(_details.begin(), startOffset), _details.end(),
+					[](const BeanCounter a, const BeanCounter b)
+					{ return Unicode::naturalCompare(a.description, b.description); }
+				);
+
+				_details[parentIndex].amount = facilities;
+				_details[parentIndex].valueOverride = tr("STR_YES");
+			}
+			parentId++;
+		}
+	}
+}
+
 /**
  * Add wound recovery overview to _details vector.
  *
@@ -832,16 +907,6 @@ void BaseInfoDetailsState::categoryQuarters()
 		RuleSoldier *rule = _game->getMod()->getSoldier(soldierType);
 		requiredServices |= rule->getRequiresBuyBaseFunc();
 	}
-	// Transformations TODO:DELETE
-	// Based on: SavedGame::getAvailableTransformations()
-	for (auto transformer : _game->getMod()->getSoldierTransformationList())
-	{
-		RuleSoldierTransformation *ruleTransform = _game->getMod()->getSoldierTransformation(transformer);
-		if (!_game->getSavedGame()->isResearched(ruleTransform->getRequiredResearch()))
-			continue;
-		requiredServices |= ruleTransform->getRequiredBaseFuncs();
-	}
-	// END DELETE
 	// Manufacture of personnel
 	for (auto manufactureProject : _game->getMod()->getManufactureList())
 	{

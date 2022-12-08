@@ -76,6 +76,7 @@ private:
 	void addSubCategoryWoundRecovery(int& parentId);
 	void addSubCategoryHealthRecovery(int& parentId);
 	void addSubCategoryManaRecovery(int& parentId);
+	void addSubCategoriesTransformations(int& parentId);
 	void categoryQuarters();
 	void categoryStorage();
 	void categoryLabs();
