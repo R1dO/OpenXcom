@@ -430,6 +430,7 @@ en-GB:
   STR_AMOUNT: "Amount"
   STR_RESULT: "Result"
 # BaseInfoDetailsState.cpp
+  STR_BIDS_ASSIGNED_VS_TOTAL: "{0}/{1}"
   BIDS_TITEL_DETECTION: "Detection and Camouflage"
   BIDS_SUBTOTAL_CAMOUFLAGE: "Base Camouflage"
   BIDS_DETAIL_CAMOUFLAGE_BASE_SIZE: "Base size"
@@ -456,6 +457,10 @@ en-GB:
   STR_BIDS_SUBTOTAL_STORAGE_USERS: "Requires storage space"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_PROVIDERS: "Provides living space"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_USERS: "Requires living space"
+  STR_BIDS_SUBTOTAL_PSI_TRAINING: "Psionic training"
+  STR_BIDS_SUBTOTAL_WOUND_RECOVERY: "Wound recovery facilities"
+  STR_BIDS_SUBTOTAL_HEALTH_RECOVERY: "Health recovery facilities"
+  STR_BIDS_SUBTOTAL_MANA_RECOVERY: "Mana recovery facilities"
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"

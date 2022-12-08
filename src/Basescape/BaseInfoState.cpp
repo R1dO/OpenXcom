@@ -482,22 +482,7 @@ void BaseInfoState::btnMonthlyCostsClick(Action *)
 }
 
 /**
- * Open sub-window showing which facilities provide benefits for soldiers.
-
- *
- * This includes:
- * + List of facilities providing psilab space
- *   - variable: 'psiLabs'.
- * + List of facilities providing training space
- *   - variable: 'trainingRooms'.
- * + List of facilities providing mana regeneration
- *   - variable: 'manaRecoveryPerDay'.
- *   - Note: Not stacking, only max is used. But list all.
- * + List of facilities providing health regeneration
- *   - variable: 'healthRecoveryPerDay', 'sickBayAbsoluteBonus', 'sickBayRelativeBonus'
- *   - Note: health revorey does not stack, bonus recovery does stack
- *   - Subtotal will be something along the line: "Health recovery xxHP + yy%"
- *
+ * Open sub-window showing details on facility based soldier 'benefits'.
  * @param action Pointer to an action.
  */
 void BaseInfoState::rowSoldiersClick(Action *)

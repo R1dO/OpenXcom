@@ -68,6 +68,12 @@ private:
 	size_t _sel;
 
 	void drawBody();
+	void categorySoldiers();
+	void addSubCategoryPsionicTraining(int& parentId);
+	void addSubCategoryPhysicalTraining(int& parentId);
+	void addSubCategoryWoundRecovery(int& parentId);
+	void addSubCategoryHealthRecovery(int& parentId);
+	void addSubCategoryManaRecovery(int& parentId);
 	void categoryQuarters();
 	void categoryStorage();
 	void categoryLabs();
@@ -85,6 +91,12 @@ private:
 	int calculateSubtotalValue(int parentId);
 	int calculateSubtotalAmount(int parentId);
 	int getSubtotalValueMax(int parentId);
+
+	// Helpers
+	std::string toStringHp(float value);
+	std::string toStringHp(int value);
+	std::string toStringMana(int value);
+	std::string toStringPercent(float value);
 public:
 	/// Creates the cost details state.
 	BaseInfoDetailsState(Base *base, DetailsCategory currentCategory);
