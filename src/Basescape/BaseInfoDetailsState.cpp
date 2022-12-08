@@ -143,6 +143,10 @@ void BaseInfoDetailsState::btnNextClick(Action *)
 	case DC_DETECTION:
 		_currentCategory = DC_SOLDIERS;
 		break;
+	case DC_ENGINEERS:
+	case DC_SCIENTISTS:
+		_currentCategory = DC_QUARTERS;
+		break;
 	default:
 		_currentCategory = (DetailsCategory)(_currentCategory + 1);
 		break;
@@ -161,6 +165,10 @@ void BaseInfoDetailsState::btnPrevClick(Action *)
 	{
 	case DC_SOLDIERS:
 		_currentCategory = DC_DETECTION;
+		break;
+	case DC_ENGINEERS:
+	case DC_SCIENTISTS:
+		_currentCategory = DC_SOLDIERS;
 		break;
 	default:
 		_currentCategory = (DetailsCategory)(_currentCategory - 1);
