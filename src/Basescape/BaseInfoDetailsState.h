@@ -64,6 +64,7 @@ private:
 	Window *_window;
 	Text *_txtTitle, *_txtSource, *_txtQuantity, *_txtResult;
 	TextList *_lstDetails, *_lstTotal;
+	//std::vector<BaseFacility*> _facilities; // missivhine toch niet, global is niet echt nodig
 	std::vector<BeanCounter> _details;
 	std::vector<int> _rows;
 	size_t _sel;
@@ -73,9 +74,12 @@ private:
 	void categorySoldiers();
 	void addSubCategoryPsionicTraining(int& parentId);
 	void addSubCategoryPhysicalTraining(int& parentId);
-	void addSubCategoriesWoundRecovery(int& parentId);
-	void addSubCategoriesHealthRecovery(int& parentId);
-	void addSubCategoriesManaRecovery(int& parentId);
+	void addSubCategoryWoundRecovery(int& parentId);
+	void addSubCategoryWoundRecoveryInProgress(int& parentId);
+	void addSubCategoryHealthRecovery(int& parentId);
+	void addSubCategoryHealthRecoveryInProgress(int& parentId);
+	void addSubCategoryManaRecovery(int& parentId);
+	void addSubCategoryManaRecoveryInProgress(int& parentId);
 	void addSubCategoryTransformations(int& parentId);
 	void categoryQuarters();
 	void categoryStorage();
