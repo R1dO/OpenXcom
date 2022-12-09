@@ -461,7 +461,7 @@ en-US:
   STR_BIDS_SUBTOTAL_WOUND_RECOVERY: "Wound recovery facilities"
   STR_BIDS_SUBTOTAL_HEALTH_RECOVERY: "Health recovery facilities"
   STR_BIDS_SUBTOTAL_MANA_RECOVERY: "Mana recovery facilities"
-  STR_BIDS_SUBTOTAL_TRANSFORMATION_SERVICE: "Transform service - {0}"
+  STR_BIDS_SUBTOTAL_TRANSFORMATION_SERVICES: "Transformation services"
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"

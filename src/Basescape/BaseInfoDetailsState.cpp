@@ -436,7 +436,7 @@ void BaseInfoDetailsState::categorySoldiers()
 	addSubCategoryWoundRecovery(idParent);
 	addSubCategoryHealthRecovery(idParent);
 	addSubCategoryManaRecovery(idParent);
-	addSubCategoriesTransformations(idParent);
+	addSubCategoryTransformations(idParent);
 
 	drawList();
 }
@@ -716,20 +716,17 @@ void BaseInfoDetailsState::addSubCategoryPsionicTraining(int& parentId)
 	parentId++;
 }
 
-
-
 /**
  * Add transformation related facilities to _details vector.
  *
- * Per recognized required transformation service:
- * - List of facilities providing said service.
+ * A list of facilities providing required services for transformations.
+ * appended with a list of missing services.
  *
  * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoriesTransformations(int& parentId)
+void BaseInfoDetailsState::addSubCategoryTransformations(int& parentId)
 {
-	// Determine dependencies on unlocked (potential) base services
-	// We want to show facilities providing those (even if not build).
+	// Required services for known transformations.
 	// Based on: SavedGame::getAvailableTransformations()
 	RuleBaseFacilityFunctions requiredServices;
 	for (auto transformer : _game->getMod()->getSoldierTransformationList())
@@ -739,54 +736,65 @@ void BaseInfoDetailsState::addSubCategoriesTransformations(int& parentId)
 			continue;
 		requiredServices |= ruleTransform->getRequiredBaseFuncs();
 	}
+	// Determine dependencies on unlocked (potential) base services.
+	// We want to include missing services (but only if player can solve that problem).
 	requiredServices &= _unlockedServicesBaseType;
 	if (requiredServices.none()) return;
 
-	// Facilities per required service
-	// Based on 'Mod::getBaseFunctionNames()'.
 	BeanCounter row;
-	for (size_t bitPosition = 0; bitPosition < requiredServices.size(); ++bitPosition)
+	int idItem = parentId;
+	size_t parentIndex = _details.size();
+	// Subcategory header (show if we have facilities or missing services).
+	row = {parentId, parentId, false, tr("STR_BIDS_SUBTOTAL_TRANSFORMATION_SERVICES"), {}};
+	idItem = addToDetailsVector(row, false);
+
+	int facilities = 0;
+	auto missingServices = requiredServices;
+	for (auto *facility : *_base->getFacilities())
 	{
-		if (requiredServices.test(bitPosition))
+		if (facility->getBuildTime() > 0) continue;
+
+		auto facilityServices = facility->getRules()->getProvidedBaseFunc();
+		facilityServices &= requiredServices; // Only transformation services
+		if (facilityServices.count() == 0) continue;
+
+		auto services = _game->getMod()->getBaseFunctionNames(facilityServices);
+		for (auto service : services)
 		{
-			size_t parentIndex = _details.size();
-			int idItem = parentId;
-
-			RuleBaseFacilityFunctions currentService = 0;
-			currentService.set(bitPosition);
-
-			std::string serviceName = tr(_game->getMod()->getBaseFunctionNames(currentService).front());
-			row = {parentId, parentId, true, tr("STR_BIDS_SUBTOTAL_TRANSFORMATION_SERVICE").arg(serviceName), 0, 0, "", tr("STR_NO")};
+			row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, 0, "", service};
 			idItem = addToDetailsVector(row, false);
-
-			int facilities = 0;
-			for (auto *facility : *_base->getFacilities())
-			{
-				if (facility->getBuildTime() > 0) continue;
-
-				auto facilityServices = facility->getRules()->getProvidedBaseFunc();
-				if ((facilityServices & currentService).none()) continue;
-
-				row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, 0, "", "."};
-				idItem = addToDetailsVector(row, false);
-
-				facilities++;
-			}
-			if (facilities > 0)
-			{
-				// Prefer alphabetical sort of facilities
-				int startOffset = parentIndex + 1; // 1 <-- Subtotal only.
-				std::sort(std::next(_details.begin(), startOffset), _details.end(),
-					[](const BeanCounter a, const BeanCounter b)
-					{ return Unicode::naturalCompare(a.description, b.description); }
-				);
-
-				_details[parentIndex].amount = facilities;
-				_details[parentIndex].valueOverride = tr("STR_YES");
-			}
-			parentId++;
 		}
+		facilities++;
+		missingServices ^= facilityServices;
 	}
+	if (facilities > 0)
+	{
+		// Prefer alphabetical sort of facilities
+		int startOffset = parentIndex + 1; // 1 <-- Subtotal only.
+		std::stable_sort(std::next(_details.begin(), startOffset), _details.end(),
+			[](const BeanCounter a, const BeanCounter b)
+			{ return Unicode::naturalCompare(a.description, b.description); }
+		);
+		_details[parentIndex].amount = facilities;
+		_details[parentIndex].isVisible = true;
+	}
+	int totalServices = requiredServices.count();
+	int activeServices = totalServices;
+	if (missingServices.count() > 0)
+	{
+		auto servicesMissing = _game->getMod()->getBaseFunctionNames(missingServices);
+		for (auto service : servicesMissing)
+		{
+			row = {idItem, parentId, false, tr("STR_FILTER_FACILITY_REQUIRED"), 0, 0, ".", service}; // common/Language/OXCE
+			idItem = addToDetailsVector(row, false);
+		}
+
+		activeServices -= missingServices.count();
+		_details[parentIndex].isVisible = true;
+	}
+	_details[parentIndex].valueOverride = tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(activeServices).arg(totalServices);
+
+	parentId++;
 }
 
 /**
