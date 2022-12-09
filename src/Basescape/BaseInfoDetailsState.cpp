@@ -955,7 +955,7 @@ void BaseInfoDetailsState::categoryQuarters()
 		if (transfer->getType() != TRANSFER_SOLDIER) continue;
 		// Soldiers and all transformers.
 
-		row = {idItem, idParent, false, tr(transfer->getSoldier()->getRules()->getType()), 0, itemValue, ".", ""};
+		row = {idItem, idParent, false, tr(transfer->getSoldier()->getRules()->getType()), 0, 1, ".", ""};
 		idItem = addToDetailsVector(row);
 	}
 	// Any person being 'produced'.
@@ -966,7 +966,7 @@ void BaseInfoDetailsState::categoryQuarters()
 
 		// Assume it is not possible to produce multiple persons with a single project.
 		// Seems correct looking at Base::getUsedQuarters()
-		row = {idItem, idParent, false, tr(conceived->getRules()->getSpawnedPersonType()), 0, itemValue, ".", ""};
+		row = {idItem, idParent, false, tr(conceived->getRules()->getSpawnedPersonType()), 0, 1, ".", ""};
 		idItem = addToDetailsVector(row);
 	}
 	idParent++;
