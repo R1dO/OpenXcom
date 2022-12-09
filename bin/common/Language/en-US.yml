@@ -430,6 +430,7 @@ en-US:
   STR_AMOUNT: "Amount"
   STR_RESULT: "Result"
 # BaseInfoDetailsState.cpp
+  STR_BIDS_FACILITIES: "Facilities"
   STR_BIDS_ASSIGNED_VS_TOTAL: "{0}/{1}"
   BIDS_TITEL_DETECTION: "Detection and Camouflage"
   BIDS_SUBTOTAL_CAMOUFLAGE: "Base Camouflage"

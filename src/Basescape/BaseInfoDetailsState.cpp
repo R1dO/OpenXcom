@@ -398,6 +398,7 @@ void BaseInfoDetailsState::drawBody()
 		{
 			parent = childId;
 			row = {childId, parent, true, "Long text explaining the source", 999, 999999999, {}};
+			row.valueOverride = toStringHp(99.9f) + " + " + toStringPercent(99.9f);
 			_details.push_back(row);
 			childId++;
 			for (auto j = 0; j < 5; j++)
@@ -429,6 +430,7 @@ void BaseInfoDetailsState::drawBody()
 void BaseInfoDetailsState::categorySoldiers()
 {
 	_txtTitle->setText(tr("STR_SOLDIERS"));
+	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
 
 	int idParent = 0;
 	addSubCategoryPsionicTraining(idParent);
