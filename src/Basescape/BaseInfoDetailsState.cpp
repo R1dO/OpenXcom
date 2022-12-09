@@ -435,9 +435,9 @@ void BaseInfoDetailsState::categorySoldiers()
 	int idParent = 0;
 	addSubCategoryPsionicTraining(idParent);
 	addSubCategoryPhysicalTraining(idParent);
-	addSubCategoryWoundRecovery(idParent);
-	addSubCategoryHealthRecovery(idParent);
-	addSubCategoryManaRecovery(idParent);
+	addSubCategoriesWoundRecovery(idParent);
+	addSubCategoriesHealthRecovery(idParent);
+	addSubCategoriesManaRecovery(idParent);
 	addSubCategoryTransformations(idParent);
 
 	drawList();
@@ -446,12 +446,12 @@ void BaseInfoDetailsState::categorySoldiers()
 /**
  * Add health recovery overview to _details vector.
  *
- * Child elements include:
+ * Recognize the following subcategories:
  * - List of base facilities contributing to recovery.
  * - List of affected soldiers (since not visible on other screens).
  *
  * @note
- * Hp recovery after wounds are healed but soldier not yet at full HP.
+ * Hp recovery only after wounds are healed but soldier not yet at full HP.
  * Can occur due to health loss from battle or scripts.
  *
  * @note
@@ -459,18 +459,20 @@ void BaseInfoDetailsState::categorySoldiers()
  *
  * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryHealthRecovery(int& parentId)
+void BaseInfoDetailsState::addSubCategoriesHealthRecovery(int& parentId)
 {
 	size_t parentIndex = _details.size();
 	int idItem = parentId;
 	BeanCounter row;
 
 	auto recoveryRates = _base ? _base->getSumRecoveryPerDay() : BaseSumDailyRecovery();
+	// Negative health regeneration not possible, 0 is default.
 	if (recoveryRates.HealthRecovery == 0) return;
 
-	// Subcategory header
+	// Subcategory header (show unconditionally)
 	std::string valueOverride = toStringHp(recoveryRates.HealthRecovery);
-	row = {parentId, parentId, true, tr("STR_BIDS_SUBTOTAL_HEALTH_RECOVERY"), 0, 0, "", valueOverride};
+	std::string description = tr("STR_BIDS_SUBTOTAL_RECOVERY_FACILITIES").arg(tr("STR_HEALTH"));
+	row = {parentId, parentId, true, description, 0, 0, "", valueOverride};
 	idItem = addToDetailsVector(row, false);
 
 	int facilities = 0;
@@ -495,16 +497,23 @@ void BaseInfoDetailsState::addSubCategoryHealthRecovery(int& parentId)
 
 		_details[parentIndex].amount = facilities;
 	}
+	parentId++;
 
 	// Might as well list soldiers harassing nurses.
 	size_t soldierIndex = _details.size();
+	idItem = parentId;
+	// Subcategory header
+	description = tr("STR_BIDS_SUBTOTAL_RECOVERY_USAGE").arg(tr("STR_HEALTH")).arg(tr("STR_SOLDIERS"));
+	row = {parentId, parentId, false, description, 0, 0, ".", ""};
+	idItem = addToDetailsVector(row, false);
+
 	for (auto soldier : *_base->getSoldiers())
 	{
 		// Soldiers in sickbay are listed under a different subtotal.
 		if (soldier->getWoundRecoveryInt() >= 0) continue;
 
 		int itemValue = soldier->getHealthMissing();
-		if ( itemValue == 0) continue;
+		if (itemValue == 0) continue;
 
 		row = {idItem, parentId, false, soldier->getName(), 1, itemValue, ".", toStringHp(itemValue)};
 		idItem = addToDetailsVector(row);
@@ -512,19 +521,22 @@ void BaseInfoDetailsState::addSubCategoryHealthRecovery(int& parentId)
 	if (_details.size() > soldierIndex)
 	{
 		// Prefer alphabetical sort of names
-		std::sort(std::next(_details.begin(), soldierIndex), _details.end(),
+		int startOffset = soldierIndex + 1; // 1 <-- Subtotal only.
+		std::sort(std::next(_details.begin(), startOffset), _details.end(),
 			[](const BeanCounter a, const BeanCounter b)
 			{ return Unicode::naturalCompare(a.description, b.description); }
 		);
-	}
 
+		_details[soldierIndex].isVisible = true;
+		_details[soldierIndex].value = _details.size() - soldierIndex - 1;
+	}
 	parentId++;
 }
 
 /**
  * Add mana recovery overview to _details vector.
  *
- * Child elements include:
+ * Recognize the following subcategories:
  * - List of base facilities contributing to recovery.
  * - List of affected soldiers (since not visible on other screens).
  *
@@ -537,7 +549,7 @@ void BaseInfoDetailsState::addSubCategoryHealthRecovery(int& parentId)
  *
  * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryManaRecovery(int& parentId)
+void BaseInfoDetailsState::addSubCategoriesManaRecovery(int& parentId)
 {
 	if (!_game->getMod()->isManaFeatureEnabled()) return;
 	if (!_game->getSavedGame()->isManaUnlocked(_game->getMod())) return;
@@ -547,12 +559,13 @@ void BaseInfoDetailsState::addSubCategoryManaRecovery(int& parentId)
 	BeanCounter row;
 
 	auto recoveryRates = _base ? _base->getSumRecoveryPerDay() : BaseSumDailyRecovery();
-	// No check if manaRecoverRate is 0, in case mod defines facilities
-	// with both positive and negative recovery.
+	// No check if manaRecoverRate is 0
+	// In case mod defines facilities with both positive and negative recovery.
 
-	// Subcategory header
+	// Subcategory header (show unconditionally)
 	std::string valueOverride = toStringMana(recoveryRates.ManaRecovery);
-	row = {parentId, parentId, true, tr("STR_BIDS_SUBTOTAL_MANA_RECOVERY"), 0, 0, "", valueOverride};
+	std::string description = tr("STR_BIDS_SUBTOTAL_RECOVERY_FACILITIES").arg(tr("STR_MANA"));
+	row = {parentId, parentId, true, description, 0, 0, "", valueOverride};
 	idItem = addToDetailsVector(row, false);
 
 	int facilities = 0;
@@ -577,9 +590,16 @@ void BaseInfoDetailsState::addSubCategoryManaRecovery(int& parentId)
 
 		_details[parentIndex].amount = facilities;
 	}
+	parentId++;
 
 	// Might as well list soldiers experimenting with substances.
 	size_t soldierIndex = _details.size();
+	idItem = parentId;
+	// Subcategory header
+	description = tr("STR_BIDS_SUBTOTAL_RECOVERY_USAGE").arg(tr("STR_MANA")).arg(tr("STR_SOLDIERS"));
+	row = {parentId, parentId, false, description, 0, 0, ".", ""};
+	idItem = addToDetailsVector(row, false);
+
 	for (auto soldier : *_base->getSoldiers())
 	{
 		// Soldiers in sickbay are listed under a different subtotal.
@@ -594,12 +614,15 @@ void BaseInfoDetailsState::addSubCategoryManaRecovery(int& parentId)
 	if (_details.size() > soldierIndex)
 	{
 		// Prefer alphabetical sort of names
-		std::sort(std::next(_details.begin(), soldierIndex), _details.end(),
+		int startOffset = soldierIndex + 1; // 1 <-- Subtotal only.
+		std::sort(std::next(_details.begin(), startOffset), _details.end(),
 			[](const BeanCounter a, const BeanCounter b)
 			{ return Unicode::naturalCompare(a.description, b.description); }
 		);
-	}
 
+		_details[soldierIndex].isVisible = true;
+		_details[soldierIndex].value = _details.size() - soldierIndex - 1;
+	}
 	parentId++;
 }
 
@@ -802,7 +825,7 @@ void BaseInfoDetailsState::addSubCategoryTransformations(int& parentId)
 /**
  * Add wound recovery overview to _details vector.
  *
- * Child elements include:
+ * Recognize the following subcategories:
  * - List of base facilities contributing to recovery.
  * - List of affected soldiers (since not visible on other screens).
  *
@@ -815,19 +838,19 @@ void BaseInfoDetailsState::addSubCategoryTransformations(int& parentId)
  *
  * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryWoundRecovery(int& parentId)
+void BaseInfoDetailsState::addSubCategoriesWoundRecovery(int& parentId)
 {
 	size_t parentIndex = _details.size();
 	int idItem = parentId;
 	BeanCounter row;
 
-	// Subcategory header
-	// Can I safely assume this one is always in effect?
 	auto recoveryRates = _base ? _base->getSumRecoveryPerDay() : BaseSumDailyRecovery();
+
+	// Subcategory header (show unconditionally)
 	std::string valueOverride = toStringHp(recoveryRates.SickBayAbsoluteBonus + 1.0f)
 		 + " + " + toStringPercent(recoveryRates.SickBayRelativeBonus);
-
-	row = {parentId, parentId, true, tr("STR_BIDS_SUBTOTAL_WOUND_RECOVERY"), 0, 0, "", valueOverride};
+	std::string description = tr("STR_BIDS_SUBTOTAL_RECOVERY_FACILITIES").arg(tr("STR_WOUND"));
+	row = {parentId, parentId, true, description, 0, 0, "", valueOverride};
 	idItem = addToDetailsVector(row, false);
 
 	int facilities = 0;
@@ -840,7 +863,7 @@ void BaseInfoDetailsState::addSubCategoryWoundRecovery(int& parentId)
 		if (absBonus == 0.0f && relBonus == 0.0f) continue;
 
 		int itemValue = 0; // In case value sorting becomes desired.
-		// Allow display of negative space regeneration.
+		// Allow display of negative wound regeneration.
 		if (absBonus != 0.0f)
 		{
 			itemValue = std::round(absBonus);
@@ -866,9 +889,16 @@ void BaseInfoDetailsState::addSubCategoryWoundRecovery(int& parentId)
 
 		_details[parentIndex].amount = facilities;
 	}
+	parentId++;
 
 	// Might as well list soldiers in sickbay.
 	size_t soldierIndex = _details.size();
+	idItem = parentId;
+	// Subcategory header
+	description = tr("STR_BIDS_SUBTOTAL_RECOVERY_USAGE").arg(tr("STR_WOUND")).arg(tr("STR_SOLDIERS"));
+	row = {parentId, parentId, false, description, 0, 0, ".", ""};
+	idItem = addToDetailsVector(row, false);
+
 	for (auto soldier : *_base->getSoldiers())
 	{
 		// Integer time as returned from 'Soldier::getWoundRecoveryInt()'
@@ -882,12 +912,15 @@ void BaseInfoDetailsState::addSubCategoryWoundRecovery(int& parentId)
 	if (_details.size() > soldierIndex)
 	{
 		// Prefer alphabetical sort of names
-		std::sort(std::next(_details.begin(), soldierIndex), _details.end(),
+		int startOffset = soldierIndex + 1; // 1 <-- Subtotal only.
+		std::sort(std::next(_details.begin(), startOffset), _details.end(),
 			[](const BeanCounter a, const BeanCounter b)
 			{ return Unicode::naturalCompare(a.description, b.description); }
 		);
-	}
 
+		_details[soldierIndex].isVisible = true;
+		_details[soldierIndex].value = _details.size() - soldierIndex - 1;
+	}
 	parentId++;
 }
 

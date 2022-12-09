@@ -73,9 +73,9 @@ private:
 	void categorySoldiers();
 	void addSubCategoryPsionicTraining(int& parentId);
 	void addSubCategoryPhysicalTraining(int& parentId);
-	void addSubCategoryWoundRecovery(int& parentId);
-	void addSubCategoryHealthRecovery(int& parentId);
-	void addSubCategoryManaRecovery(int& parentId);
+	void addSubCategoriesWoundRecovery(int& parentId);
+	void addSubCategoriesHealthRecovery(int& parentId);
+	void addSubCategoriesManaRecovery(int& parentId);
 	void addSubCategoryTransformations(int& parentId);
 	void categoryQuarters();
 	void categoryStorage();
