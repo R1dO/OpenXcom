@@ -35,7 +35,6 @@ enum DetailsCategory {
 	DC_QUARTERS, DC_STORES, DC_LABORATORIES, DC_WORKSHOPS, DC_CONTAINMENT, DC_HANGARS,
 	DC_DEFENSE, DC_DETECTION};
 
-
 /**
  * Monthly Costs category breakdown subwindow
  *
@@ -64,7 +63,6 @@ private:
 	Window *_window;
 	Text *_txtTitle, *_txtSource, *_txtQuantity, *_txtResult;
 	TextList *_lstDetails, *_lstTotal;
-	//std::vector<BaseFacility*> _facilities; // missivhine toch niet, global is niet echt nodig
 	std::vector<BeanCounter> _details;
 	std::vector<int> _rows;
 	size_t _sel;
@@ -82,6 +80,9 @@ private:
 	void addSubCategoryManaRecoveryInProgress();
 	void addSubCategoryTransformations();
 	void categoryQuarters();
+	void addSubCategoryQuartersProviders();
+	void addSubCategoryQuartersUsage();
+	void addSubCategoryHiringServices();
 	void categoryStorage();
 	void categoryLabs();
 	void categoryWorkshops();
@@ -89,6 +90,7 @@ private:
 	void categoryHangars();
 	void categoryDefense();
 	void categoryDetection();
+
 	void drawList();
 	void lstDetailsMousePress(Action *action);
 

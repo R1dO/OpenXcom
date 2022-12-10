@@ -355,12 +355,12 @@ void BaseInfoDetailsState::drawBody()
 	{
 	case DC_SOLDIERS:
 		categorySoldiers();
-		return; // Temporal untill other cases uses new scheme.
+		return; // Temporal until other cases uses new scheme.
 		//break;
 	case DC_QUARTERS:
-		ssTitle << tr("personnel"); // common/language/Technical
 		categoryQuarters();
-		break;
+		return; // Temporal until other cases uses new scheme.
+		//break;
 	case DC_STORES:
 		ssTitle << tr("STR_STORES");
 		categoryStorage();
@@ -842,18 +842,141 @@ void BaseInfoDetailsState::addSubCategoryWoundRecoveryInProgress()
  * Setup living space & hiring functionality screen.
  *
  * Recognize multiple subcategories:
- *  - Facilities contributing to living space.
- *  - Overview of claimed living space
- *    + Show grand total per type of soldier/scientist/engineer.
- *    + Can also include facilities with negative living space.
- *  - Services needed to acquire soldiers/scientists/engineers
- *    + Just list them, no need to show what they provide
+ *  + Facilities contributing to living space.
+ *  + Overview of claimed living space
+ *  + Services needed to acquire soldiers/scientists/engineers
  */
 void BaseInfoDetailsState::categoryQuarters()
 {
-	// Recognize there might be dependencies on base services.
-	// We want to show facilities providing those.
-	// Based on altered version of SavedGame::getAvailableProduction()
+	_txtTitle->setText(tr("personnel")); // common/language/Technical
+	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
+
+	addSubCategoryQuartersProviders();
+	addSubCategoryQuartersUsage();
+	addSubCategoryHiringServices();
+
+	drawList();
+}
+
+
+/**
+ * Add overview of claimed living space to _details vector.
+ *
+ * A list of base facilities providing living space.
+ */
+void BaseInfoDetailsState::addSubCategoryQuartersProviders()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	row = {parentId, parentId, true, tr("STR_BIDS_SUBTOTAL_LIVING_SPACE_PROVIDERS"), 0, _base->getAvailableQuarters(), {}};
+	idItem = addToDetailsVector(row, false);
+
+	int facilities = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		int itemValue = facility->getRules()->getPersonnel();
+		if (facility->getBuildTime() > 0 || itemValue <= 0) continue;
+
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()) , 1, itemValue, {}};
+		idItem = addToDetailsVector(row, false);
+
+		facilities++;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex + 1);
+		_details[parentIndex].amount = facilities;
+	}
+}
+
+/**
+ * Add overview of claimed living space to _details vector.
+ *
+ * A list including the following elements:
+ * + Grand total per scientist/engineer/soldier type.
+ * + Facilities providing negative living space.
+ */
+void BaseInfoDetailsState::addSubCategoryQuartersUsage()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	int itemValue = 0;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_BIDS_SUBTOTAL_LIVING_SPACE_USERS");
+	row = {parentId, parentId, true, description, 0, _base->getUsedQuarters(), ".", ""};
+	idItem = addToDetailsVector(row, false);
+
+	// Facilities providing negative space.
+	int facilities = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		itemValue = facility->getRules()->getPersonnel();
+		if (facility->getBuildTime() > 0 || itemValue >= 0) continue;
+
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, std::abs(itemValue), {}};
+		idItem = addToDetailsVector(row, false);
+
+		facilities++;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex + 1);
+		_details[parentIndex].amount = facilities;
+		_details[parentIndex].amountOverride = "";
+	}
+
+	// Always show personnel claiming living space (including transfers).
+	row = {idItem, parentId, false, tr("STR_SCIENTISTS"), 0, _base->getTotalScientists(), ".", ""};
+	idItem = addToDetailsVector(row, false);
+	row = {idItem, parentId, false, tr("STR_ENGINEERS"), 0, _base->getTotalEngineers(), ".", ""};
+	idItem = addToDetailsVector(row, false);
+	// Soldier type
+	for (auto soldier : *_base->getSoldiers())
+	{
+		row = {idItem, parentId, false, tr(soldier->getRules()->getType()), 0, 1, ".", ""};
+		idItem = addToDetailsVector(row);
+	}
+	for (auto transfer : *_base->getTransfers())
+	{
+		if (transfer->getType() != TRANSFER_SOLDIER) continue;
+
+		// Soldiers and all transformers.
+		row = {idItem, parentId, false, tr(transfer->getSoldier()->getRules()->getType()), 0, 1, ".", ""};
+		idItem = addToDetailsVector(row);
+	}
+	// Any person being 'produced'.
+	for (auto conceived : _base->getProductions())
+	{
+		if (conceived->getRules()->getSpawnedPersonType() == "") continue;
+
+		// Assume it is not possible to produce multiple persons with a single project.
+		// Seems correct looking at Base::getUsedQuarters()
+		row = {idItem, parentId, false, tr(conceived->getRules()->getSpawnedPersonType()), 0, 1, ".", ""};
+		idItem = addToDetailsVector(row);
+	}
+	if (_details.size() > parentIndex + 3 + facilities) // Subtotal + engineers + scientists + facilities
+	{
+		sortChildren(parentIndex + 3 + facilities);
+	}
+}
+
+/**
+ * Add facilities related to recruiting to _details vector.
+ *
+ * A list of facilities providing required services for recruitment
+ * appended with a list of known missing services.
+ */
+void BaseInfoDetailsState::addSubCategoryHiringServices()
+{
+	// Required services for hiring/producing personnel.
+	// Based on: SavedGame::getAvailableTransformations()
 	RuleBaseFacilityFunctions requiredServices;
 	// Scientist & Engineers
 	requiredServices |= _game->getMod()->getHireScientistsRequiresBaseFunc();
@@ -864,139 +987,20 @@ void BaseInfoDetailsState::categoryQuarters()
 		RuleSoldier *rule = _game->getMod()->getSoldier(soldierType);
 		requiredServices |= rule->getRequiresBuyBaseFunc();
 	}
-	// Manufacture of personnel
+	// So ... Frankenstein's lab might exist after all
 	for (auto manufactureProject : _game->getMod()->getManufactureList())
 	{
 		RuleManufacture *ruleManufacture = _game->getMod()->getManufacture(manufactureProject);
-		if (ruleManufacture->getSpawnedPersonType() == "" || !_game->getSavedGame()->isResearched(ruleManufacture->getRequirements()))
-		{
-			continue;
-		}
+		if (ruleManufacture->getSpawnedPersonType() == "") continue;
+		if (!_game->getSavedGame()->isResearched(ruleManufacture->getRequirements())) continue;
 		requiredServices |= ruleManufacture->getRequireBaseFunc();
 	}
+	// Determine dependencies on unlocked (potential) base services.
+	// We want to include missing services (but only if player can solve that problem).
 	requiredServices &= _unlockedServicesBaseType;
+	if (requiredServices.none()) return;
 
-	int idItem = requiredServices.count() + 2; // Offset based on expected subtotal entries.
-	int idParent = 0;
-	int itemValue;
-	std::vector<BeanCounter> subCategories;
-	BeanCounter row;  // Workhorse
-
-	// Living space
-	for (auto *facility : *_base->getFacilities())
-	{
-		// Skip buildings under construction.
-		if (facility->getBuildTime() > 0 || facility->getRules()->getPersonnel() == 0) continue;
-
-		itemValue = facility->getRules()->getPersonnel();
-		idParent = itemValue >= 0 ? 0 : 1;
-		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, std::abs(itemValue), {}};
-		idItem = addToDetailsVector(row, false);
-	}
-	// Personnel claiming living space.
-	idParent = 1;
-	itemValue = _base->getTotalScientists(); // Includes transfers
-	row = {idItem, idParent, false, tr("STR_SCIENTISTS"), 0, itemValue, ".", ""};
-	idItem = addToDetailsVector(row, false);
-	itemValue = _base->getTotalEngineers(); // Includes transfers
-	row = {idItem, idParent, false, tr("STR_ENGINEERS"), 0, itemValue, ".", ""};
-	idItem = addToDetailsVector(row, false);
-	// Soldiers
-	for (auto soldier : *_base->getSoldiers())
-	{
-		row = {idItem, idParent, false, tr(soldier->getRules()->getType()), 1, 1, ".", ""};
-		idItem = addToDetailsVector(row);
-	}
-	for (auto transfer : *_base->getTransfers())
-	{
-		if (transfer->getType() != TRANSFER_SOLDIER) continue;
-		// Soldiers and all transformers.
-
-		row = {idItem, idParent, false, tr(transfer->getSoldier()->getRules()->getType()), 0, 1, ".", ""};
-		idItem = addToDetailsVector(row);
-	}
-	// Any person being 'produced'.
-	for (auto conceived : _base->getProductions())
-	{
-		if (conceived->getRules()->getSpawnedPersonType() == "")
-			continue;
-
-		// Assume it is not possible to produce multiple persons with a single project.
-		// Seems correct looking at Base::getUsedQuarters()
-		row = {idItem, idParent, false, tr(conceived->getRules()->getSpawnedPersonType()), 0, 1, ".", ""};
-		idItem = addToDetailsVector(row);
-	}
-	idParent++;
-
-	// Facilities per required service
-	// Based on 'Mod::getBaseFunctionNames()' (want to test my bit field skills).
-	for (size_t bitPosition = 0; bitPosition < requiredServices.size(); ++bitPosition)
-	{
-		if (requiredServices.test(bitPosition))
-		{
-			bool providesService = false;
-			RuleBaseFacilityFunctions currentService{};
-			currentService.set(bitPosition);
-
-			for (auto *facility : *_base->getFacilities())
-			{
-				if (facility->getBuildTime() > 0) continue;
-
-				auto facilityServices = facility->getRules()->getProvidedBaseFunc();
-				if ((facilityServices & currentService).none()) continue;
-
-				providesService = true;
-				row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, 1, ""};
-				row.valueOverride = ".";
-				idItem = addToDetailsVector(row, false);
-			}
-			//if (providesService)
-			{
-				std::string serviceName = tr(_game->getMod()->getBaseFunctionNames(currentService).front());
-				int subAmount = calculateSubtotalAmount(idParent) > 0 ? calculateSubtotalAmount(idParent) : -1;
-
-				row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_SERVICE").arg(serviceName), subAmount, 1, ""};
-				row.valueOverride = providesService ? tr("STR_YES") : tr("STR_NO");
-				subCategories.push_back(row);
-
-				idParent++;
-			}
-		}
-	}
-
-	if (isSubtotalNeeded(0)) // Providers
-	{
-		int subTotal = calculateSubtotalValue(0);
-		int subAmount = calculateSubtotalAmount(0);
-		row = {0, 0, true, tr("STR_BIDS_SUBTOTAL_LIVING_SPACE_PROVIDERS"), subAmount == 0 ? -1 : subAmount, subTotal, ""};
-		subCategories.push_back(row);
-	}
-	if (isSubtotalNeeded(1)) // Users
-	{
-		int subTotal = calculateSubtotalValue(1);
-		int subAmount = calculateSubtotalAmount(1);
-		row = {1, 1, true, tr("STR_BIDS_SUBTOTAL_LIVING_SPACE_USERS"), subAmount == 0 ? -1 : subAmount, subTotal, ""};
-		subCategories.push_back(row);
-	}
-
-	// Prefer alphabetical listing.
-	std::stable_sort(_details.begin(), _details.end(),
-		[](const BeanCounter a, const BeanCounter b)
-		{
-			return Unicode::naturalCompare(a.description, b.description);
-		}
-	);
-
-	// Add subtotals to list vector
-	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
-
-	// Ensure elements are shown below appropriate subtotal.
-	std::stable_sort(_details.begin(), _details.end(),
-		[](const BeanCounter a, const BeanCounter b)
-		{
-			return a.parentId < b.parentId;
-		}
-	);
+	addServices(requiredServices, tr("STR_BIDS_SUBTOTAL_LIVING_SPACE_SERVICES"));
 }
 
 /**

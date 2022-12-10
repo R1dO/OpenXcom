@@ -460,6 +460,7 @@ en-GB:
   STR_BIDS_SUBTOTAL_STORAGE_USERS: "Requires storage space"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_PROVIDERS: "Provides living space"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_USERS: "Requires living space"
+  STR_BIDS_SUBTOTAL_LIVING_SPACE_SERVICES: "Human Resources"
   STR_BIDS_SUBTOTAL_PSI_TRAINING: "Psionic training"
   #STR_BIDS_SUBTOTAL_GYM_TRAINING: "Gym training"
   #STR_BIDS_SUBTOTAL_WOUND_RECOVERY: "Wound recovery facilities"
