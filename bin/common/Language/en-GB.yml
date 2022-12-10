@@ -431,6 +431,7 @@ en-GB:
   STR_RESULT: "Result"
 # BaseInfoDetailsState.cpp
   STR_WOUND: "WOUND"
+  STR_SERVICES_MISSING: "Missing Services"
   STR_BIDS_FACILITIES: "Facilities"
   STR_BIDS_ASSIGNED_VS_TOTAL: "{0}/{1}"
   BIDS_TITEL_DETECTION: "Detection and Camouflage"

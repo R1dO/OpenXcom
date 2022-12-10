@@ -757,55 +757,9 @@ void BaseInfoDetailsState::addSubCategoryTransformations(int& parentId)
 	requiredServices &= _unlockedServicesBaseType;
 	if (requiredServices.none()) return;
 
-	BeanCounter row;
-	int idItem = parentId;
-	size_t parentIndex = _details.size();
-	// Subcategory header (show if we have facilities or missing services).
-	row = {parentId, parentId, false, tr("STR_BIDS_SUBTOTAL_TRANSFORMATION_SERVICES"), {}};
-	idItem = addToDetailsVector(row, false);
+	addServices(requiredServices, tr("STR_BIDS_SUBTOTAL_TRANSFORMATION_SERVICES"));
 
-	int facilities = 0;
-	auto missingServices = requiredServices;
-	for (auto *facility : *_base->getFacilities())
-	{
-		if (facility->getBuildTime() > 0) continue;
-
-		auto facilityServices = facility->getRules()->getProvidedBaseFunc();
-		facilityServices &= requiredServices; // Only transformation services
-		if (facilityServices.count() == 0) continue;
-
-		auto services = _game->getMod()->getBaseFunctionNames(facilityServices);
-		for (auto service : services)
-		{
-			row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, 0, "", service};
-			idItem = addToDetailsVector(row, false);
-		}
-		facilities++;
-		missingServices ^= facilityServices;
-	}
-	if (facilities > 0)
-	{
-		sortChildren(parentIndex + 1);
-		_details[parentIndex].amount = facilities;
-		_details[parentIndex].isVisible = true;
-	}
-	int totalServices = requiredServices.count();
-	int activeServices = totalServices;
-	if (missingServices.count() > 0)
-	{
-		auto servicesMissing = _game->getMod()->getBaseFunctionNames(missingServices);
-		for (auto service : servicesMissing)
-		{
-			row = {idItem, parentId, false, tr("STR_FILTER_FACILITY_REQUIRED"), 0, 0, ".", service}; // common/Language/OXCE
-			idItem = addToDetailsVector(row, false);
-		}
-
-		activeServices -= missingServices.count();
-		_details[parentIndex].isVisible = true;
-	}
-	_details[parentIndex].valueOverride = tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(activeServices).arg(totalServices);
-
-	parentId++;
+	parentId = _details.size();
 }
 
 /**
@@ -2075,6 +2029,66 @@ void BaseInfoDetailsState::sortChildren(size_t startIndex)
 		[](const BeanCounter a, const BeanCounter b)
 		{ return Unicode::naturalCompare(a.description, b.description); }
 	);
+}
+
+/**
+* Add known services to _details vector.
+*
+* @param services List of services to add.
+* @param subTotalDescription Description for the parent (subtotal) row.
+*/
+void BaseInfoDetailsState::addServices(RuleBaseFacilityFunctions services, std::string subTotalDescription)
+{
+	size_t parentIndex = _details.size();
+	// This list has lost it's purpose long before we reach INT_MAX
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	BeanCounter row;
+
+	// Subcategory header (only show if we have facilities or missing services).
+	row = {parentId, parentId, false, subTotalDescription, {}};
+	idItem = addToDetailsVector(row, false);
+
+	int facilities = 0;
+	auto missingServices = services;
+	for (auto *facility : *_base->getFacilities())
+	{
+		if (facility->getBuildTime() > 0) continue;
+
+		auto facilityServices = facility->getRules()->getProvidedBaseFunc();
+		facilityServices &= services; // Only Hiring services
+		if (facilityServices.count() == 0) continue;
+
+		auto servicesNames = _game->getMod()->getBaseFunctionNames(facilityServices);
+		for (auto service : servicesNames)
+		{
+			row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, 0, "", service};
+			idItem = addToDetailsVector(row, false);
+		}
+		facilities++;
+		missingServices ^= facilityServices;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex + 1);
+		_details[parentIndex].amount = facilities;
+		_details[parentIndex].isVisible = true;
+	}
+	int totalServices = services.count();
+	int activeServices = totalServices;
+	if (missingServices.count() > 0)
+	{
+		auto servicesMissing = _game->getMod()->getBaseFunctionNames(missingServices);
+		for (auto service : servicesMissing)
+		{
+			row = {idItem, parentId, false, tr("STR_SERVICES_MISSING"), 0, 0, ".", service};
+			idItem = addToDetailsVector(row, false);
+		}
+
+		activeServices -= missingServices.count();
+		_details[parentIndex].isVisible = true;
+	}
+	_details[parentIndex].valueOverride = tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(activeServices).arg(totalServices);
 }
 
 }

@@ -105,6 +105,7 @@ private:
 	std::string toStringMana(int value);
 	std::string toStringPercent(float value);
 	void sortChildren(size_t startIndex);
+	void addServices(RuleBaseFacilityFunctions services, std::string subTotalDescription);
 public:
 	/// Creates the cost details state.
 	BaseInfoDetailsState(Base *base, DetailsCategory currentCategory);
