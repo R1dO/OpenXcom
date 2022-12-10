@@ -72,15 +72,15 @@ private:
 
 	void drawBody();
 	void categorySoldiers();
-	void addSubCategoryPsionicTraining(int& parentId);
-	void addSubCategoryPhysicalTraining(int& parentId);
-	void addSubCategoryWoundRecovery(int& parentId);
-	void addSubCategoryWoundRecoveryInProgress(int& parentId);
-	void addSubCategoryHealthRecovery(int& parentId);
-	void addSubCategoryHealthRecoveryInProgress(int& parentId);
-	void addSubCategoryManaRecovery(int& parentId);
-	void addSubCategoryManaRecoveryInProgress(int& parentId);
-	void addSubCategoryTransformations(int& parentId);
+	void addSubCategoryPsionicTraining();
+	void addSubCategoryPhysicalTraining();
+	void addSubCategoryWoundRecovery();
+	void addSubCategoryWoundRecoveryInProgress();
+	void addSubCategoryHealthRecovery();
+	void addSubCategoryHealthRecoveryInProgress();
+	void addSubCategoryManaRecovery();
+	void addSubCategoryManaRecoveryInProgress();
+	void addSubCategoryTransformations();
 	void categoryQuarters();
 	void categoryStorage();
 	void categoryLabs();

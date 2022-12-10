@@ -432,16 +432,15 @@ void BaseInfoDetailsState::categorySoldiers()
 	_txtTitle->setText(tr("STR_SOLDIERS"));
 	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
 
-	int idParent = 0;
-	addSubCategoryPsionicTraining(idParent);
-	addSubCategoryPhysicalTraining(idParent);
-	addSubCategoryWoundRecovery(idParent);
-	addSubCategoryWoundRecoveryInProgress(idParent);
-	addSubCategoryHealthRecovery(idParent);
-	addSubCategoryHealthRecoveryInProgress(idParent);
-	addSubCategoryManaRecovery(idParent);
-	addSubCategoryManaRecoveryInProgress(idParent);
-	addSubCategoryTransformations(idParent);
+	addSubCategoryPsionicTraining();
+	addSubCategoryPhysicalTraining();
+	addSubCategoryWoundRecovery();
+	addSubCategoryWoundRecoveryInProgress();
+	addSubCategoryHealthRecovery();
+	addSubCategoryHealthRecoveryInProgress();
+	addSubCategoryManaRecovery();
+	addSubCategoryManaRecoveryInProgress();
+	addSubCategoryTransformations();
 
 	drawList();
 }
@@ -450,12 +449,11 @@ void BaseInfoDetailsState::categorySoldiers()
  * Add health recovery overview to _details vector.
  *
  * A list of base facilities contributing to recovery.
- *
- * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryHealthRecovery(int& parentId)
+void BaseInfoDetailsState::addSubCategoryHealthRecovery()
 {
 	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
 	int idItem = parentId;
 	BeanCounter row;
 
@@ -485,7 +483,6 @@ void BaseInfoDetailsState::addSubCategoryHealthRecovery(int& parentId)
 		sortChildren(parentIndex + 1);
 		_details[parentIndex].amount = facilities;
 	}
-	parentId++;
 }
 
 /**
@@ -499,14 +496,13 @@ void BaseInfoDetailsState::addSubCategoryHealthRecovery(int& parentId)
  *
  * @note
  * Logic based on: `Soldier::replenishStats`.
- *
- * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryHealthRecoveryInProgress(int& parentId)
+void BaseInfoDetailsState::addSubCategoryHealthRecoveryInProgress()
 {
 
 	// Might as well list soldiers harassing nurses.
 	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
 	int idItem = parentId;
 	BeanCounter row;
 
@@ -532,22 +528,20 @@ void BaseInfoDetailsState::addSubCategoryHealthRecoveryInProgress(int& parentId)
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = _details.size() - parentIndex - 1;
 	}
-	parentId++;
 }
 
 /**
  * Add mana recovery overview to _details vector.
  *
  * A list of base facilities contributing to recovery.
- *
- * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryManaRecovery(int& parentId)
+void BaseInfoDetailsState::addSubCategoryManaRecovery()
 {
 	if (!_game->getMod()->isManaFeatureEnabled()) return;
 	if (!_game->getSavedGame()->isManaUnlocked(_game->getMod())) return;
 
 	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
 	int idItem = parentId;
 	BeanCounter row;
 
@@ -577,7 +571,6 @@ void BaseInfoDetailsState::addSubCategoryManaRecovery(int& parentId)
 		sortChildren(parentIndex + 1);
 		_details[parentIndex].amount = facilities;
 	}
-	parentId++;
 }
 
 
@@ -592,15 +585,14 @@ void BaseInfoDetailsState::addSubCategoryManaRecovery(int& parentId)
  *
  * @note
  * Logic based on: `Soldier::replenishStats`.
- *
- * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryManaRecoveryInProgress(int& parentId)
+void BaseInfoDetailsState::addSubCategoryManaRecoveryInProgress()
 {
 	if (!_game->getMod()->isManaFeatureEnabled()) return;
 	if (!_game->getSavedGame()->isManaUnlocked(_game->getMod())) return;
 
 	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
 	int idItem = parentId;
 	BeanCounter row;
 
@@ -626,7 +618,6 @@ void BaseInfoDetailsState::addSubCategoryManaRecoveryInProgress(int& parentId)
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = _details.size() - parentIndex - 1;
 	}
-	parentId++;
 }
 
 /**
@@ -636,12 +627,11 @@ void BaseInfoDetailsState::addSubCategoryManaRecoveryInProgress(int& parentId)
  * - List of base facilities adding space.
  * - Grand total of used space.
  *   + See `AllocatePsiTrainingState` for per soldier overview.
- *
- * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryPhysicalTraining(int& parentId)
+void BaseInfoDetailsState::addSubCategoryPhysicalTraining()
 {
 	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
 	int idItem = parentId;
 	BeanCounter row;
 
@@ -675,8 +665,6 @@ void BaseInfoDetailsState::addSubCategoryPhysicalTraining(int& parentId)
 		_details[parentIndex].valueOverride =
 			tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(_base->getUsedTraining()).arg(_base->getAvailableTraining());
 	}
-
-	parentId++;
 }
 
 /**
@@ -686,15 +674,14 @@ void BaseInfoDetailsState::addSubCategoryPhysicalTraining(int& parentId)
  * - List of base facilities adding space.
  * - Grand total of used space.
  *   + See `AllocatePsiTrainingState` for per soldier overview.
- *
- * @param parentId  Identifier for subcategory (will be updated).
 */
-void BaseInfoDetailsState::addSubCategoryPsionicTraining(int& parentId)
+void BaseInfoDetailsState::addSubCategoryPsionicTraining()
 {
 	if (!_game->getSavedGame()->isResearched(_game->getMod()->getPsiRequirements()))
 		return;
 
 	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
 	int idItem = parentId;
 	BeanCounter row;
 
@@ -728,8 +715,6 @@ void BaseInfoDetailsState::addSubCategoryPsionicTraining(int& parentId)
 		_details[parentIndex].valueOverride =
 			tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(_base->getUsedPsiLabs()).arg(_base->getAvailablePsiLabs());
 	}
-
-	parentId++;
 }
 
 /**
@@ -737,10 +722,8 @@ void BaseInfoDetailsState::addSubCategoryPsionicTraining(int& parentId)
  *
  * A list of facilities providing required services for transformations
  * appended with a list of missing services.
- *
- * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryTransformations(int& parentId)
+void BaseInfoDetailsState::addSubCategoryTransformations()
 {
 	// Required services for known transformations.
 	// Based on: SavedGame::getAvailableTransformations()
@@ -758,20 +741,17 @@ void BaseInfoDetailsState::addSubCategoryTransformations(int& parentId)
 	if (requiredServices.none()) return;
 
 	addServices(requiredServices, tr("STR_BIDS_SUBTOTAL_TRANSFORMATION_SERVICES"));
-
-	parentId = _details.size();
 }
 
 /**
  * Add wound recovery overview to _details vector.
  *
  * A list of base facilities contributing to recovery.
- *
- * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryWoundRecovery(int& parentId)
+void BaseInfoDetailsState::addSubCategoryWoundRecovery()
 {
 	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
 	int idItem = parentId;
 	BeanCounter row;
 
@@ -814,7 +794,6 @@ void BaseInfoDetailsState::addSubCategoryWoundRecovery(int& parentId)
 		sortChildren(parentIndex + 1);
 		_details[parentIndex].amount = facilities;
 	}
-	parentId++;
 }
 
 /**
@@ -828,12 +807,11 @@ void BaseInfoDetailsState::addSubCategoryWoundRecovery(int& parentId)
  *
  * @note
  * Logic based on: `BattleUnit::postMissionProcedures`.
- *
- * @param parentId  Identifier for subcategory (will be updated).
  */
-void BaseInfoDetailsState::addSubCategoryWoundRecoveryInProgress(int& parentId)
+void BaseInfoDetailsState::addSubCategoryWoundRecoveryInProgress()
 {
 	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
 	int idItem = parentId;
 	BeanCounter row;
 
@@ -858,7 +836,6 @@ void BaseInfoDetailsState::addSubCategoryWoundRecoveryInProgress(int& parentId)
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = _details.size() - parentIndex - 1;
 	}
-	parentId++;
 }
 
 /**
