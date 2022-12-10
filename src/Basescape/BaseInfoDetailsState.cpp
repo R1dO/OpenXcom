@@ -482,13 +482,7 @@ void BaseInfoDetailsState::addSubCategoryHealthRecovery(int& parentId)
 	}
 	if (facilities > 0)
 	{
-		// Prefer alphabetical sort of facilities
-		int startOffset = parentIndex + 1; // 1 <-- Subtotal only.
-		std::sort(std::next(_details.begin(), startOffset), _details.end(),
-			[](const BeanCounter a, const BeanCounter b)
-			{ return Unicode::naturalCompare(a.description, b.description); }
-		);
-
+		sortChildren(parentIndex + 1);
 		_details[parentIndex].amount = facilities;
 	}
 	parentId++;
@@ -534,13 +528,7 @@ void BaseInfoDetailsState::addSubCategoryHealthRecoveryInProgress(int& parentId)
 	}
 	if (_details.size() > parentIndex + 1)
 	{
-		// Prefer alphabetical sort of names
-		int startOffset = parentIndex + 1; // 1 <-- Subtotal only.
-		std::sort(std::next(_details.begin(), startOffset), _details.end(),
-			[](const BeanCounter a, const BeanCounter b)
-			{ return Unicode::naturalCompare(a.description, b.description); }
-		);
-
+		sortChildren(parentIndex + 1);
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = _details.size() - parentIndex - 1;
 	}
@@ -586,13 +574,7 @@ void BaseInfoDetailsState::addSubCategoryManaRecovery(int& parentId)
 	}
 	if (facilities > 0)
 	{
-		// Prefer alphabetical sort of facilities
-		int startOffset = parentIndex + 1; // 1 <-- Subtotal only.
-		std::sort(std::next(_details.begin(), startOffset), _details.end(),
-			[](const BeanCounter a, const BeanCounter b)
-			{ return Unicode::naturalCompare(a.description, b.description); }
-		);
-
+		sortChildren(parentIndex + 1);
 		_details[parentIndex].amount = facilities;
 	}
 	parentId++;
@@ -640,13 +622,7 @@ void BaseInfoDetailsState::addSubCategoryManaRecoveryInProgress(int& parentId)
 	}
 	if (_details.size() > parentIndex + 1)
 	{
-		// Prefer alphabetical sort of names
-		int startOffset = parentIndex + 1; // 1 <-- Subtotal only.
-		std::sort(std::next(_details.begin(), startOffset), _details.end(),
-			[](const BeanCounter a, const BeanCounter b)
-			{ return Unicode::naturalCompare(a.description, b.description); }
-		);
-
+		sortChildren(parentIndex + 1);
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = _details.size() - parentIndex - 1;
 	}
@@ -693,13 +669,7 @@ void BaseInfoDetailsState::addSubCategoryPhysicalTraining(int& parentId)
 	}
 	if (facilities > 0)
 	{
-		// Prefer alphabetical sort of facilities
-		int startOffset = parentIndex + 2; // 2 <-- Subtotal and usage rows.
-		std::sort(std::next(_details.begin(), startOffset), _details.end(),
-			[](const BeanCounter a, const BeanCounter b)
-			{ return Unicode::naturalCompare(a.description, b.description); }
-		);
-
+		sortChildren(parentIndex + 2); // 2 <-- Subtotal and usage rows.
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].valueOverride =
@@ -752,13 +722,7 @@ void BaseInfoDetailsState::addSubCategoryPsionicTraining(int& parentId)
 	}
 	if (facilities > 0)
 	{
-		// Prefer alphabetical sort of facilities
-		int startOffset = parentIndex + 2; // 2 <-- Subtotal and usage rows.
-		std::sort(std::next(_details.begin(), startOffset), _details.end(),
-			[](const BeanCounter a, const BeanCounter b)
-			{ return Unicode::naturalCompare(a.description, b.description); }
-		);
-
+		sortChildren(parentIndex + 2); // 2 <-- Subtotal and usage rows.
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].valueOverride =
@@ -821,12 +785,7 @@ void BaseInfoDetailsState::addSubCategoryTransformations(int& parentId)
 	}
 	if (facilities > 0)
 	{
-		// Prefer alphabetical sort of facilities
-		int startOffset = parentIndex + 1; // 1 <-- Subtotal only.
-		std::stable_sort(std::next(_details.begin(), startOffset), _details.end(),
-			[](const BeanCounter a, const BeanCounter b)
-			{ return Unicode::naturalCompare(a.description, b.description); }
-		);
+		sortChildren(parentIndex + 1);
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].isVisible = true;
 	}
@@ -866,7 +825,7 @@ void BaseInfoDetailsState::addSubCategoryWoundRecovery(int& parentId)
 
 	// Subcategory header (show unconditionally)
 	std::string valueOverride = toStringHp(recoveryRates.SickBayAbsoluteBonus + 1.0f)
-		 + " + " + toStringPercent(recoveryRates.SickBayRelativeBonus);
+		+ " + " + toStringPercent(recoveryRates.SickBayRelativeBonus);
 	std::string description = tr("STR_BIDS_SUBTOTAL_RECOVERY_FACILITIES").arg(tr("STR_WOUND"));
 	row = {parentId, parentId, true, description, 0, 0, "", valueOverride};
 	idItem = addToDetailsVector(row, false);
@@ -898,13 +857,7 @@ void BaseInfoDetailsState::addSubCategoryWoundRecovery(int& parentId)
 	}
 	if (facilities > 0)
 	{
-		// Prefer alphabetical sort of facilities
-		int startOffset = parentIndex + 1; // 1 <-- Subtotal only.
-		std::sort(std::next(_details.begin(), startOffset), _details.end(),
-			[](const BeanCounter a, const BeanCounter b)
-			{ return Unicode::naturalCompare(a.description, b.description); }
-		);
-
+		sortChildren(parentIndex + 1);
 		_details[parentIndex].amount = facilities;
 	}
 	parentId++;
@@ -947,13 +900,7 @@ void BaseInfoDetailsState::addSubCategoryWoundRecoveryInProgress(int& parentId)
 	}
 	if (_details.size() > parentIndex + 1)
 	{
-		// Prefer alphabetical sort of names
-		int startOffset = parentIndex + 1; // 1 <-- Subtotal only.
-		std::sort(std::next(_details.begin(), startOffset), _details.end(),
-			[](const BeanCounter a, const BeanCounter b)
-			{ return Unicode::naturalCompare(a.description, b.description); }
-		);
-
+		sortChildren(parentIndex + 1);
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = _details.size() - parentIndex - 1;
 	}
@@ -2077,6 +2024,8 @@ void BaseInfoDetailsState::drawList()
 
 /**
 * Convert value to string representation (appended with "Hp").
+*
+* @param value Value to use in string representation.
 */
 std::string BaseInfoDetailsState::toStringHp(float value)
 {
@@ -2092,13 +2041,18 @@ std::string BaseInfoDetailsState::toStringHp(int value)
 
 /**
 * Convert value to string representation (appended with "Man").
+*
+* @param value Value to use in string representation.
 */
 std::string BaseInfoDetailsState::toStringMana(int value)
 {
 	return std::to_string(value) + " " + tr("STR_MANA_ABBREVIATION").c_str();
 }
+
 /**
 * Convert value to string representation (appended with "%").
+*
+* @param value Value to use in string representation.
 */
 std::string BaseInfoDetailsState::toStringPercent(float value)
 {
@@ -2106,6 +2060,21 @@ std::string BaseInfoDetailsState::toStringPercent(float value)
 	//ssValue << std::fixed << std::setprecision(2);
 	ssValue << value << "%";
 	return ssValue.str();
+}
+
+/**
+* Alphabetical sort of children
+*
+* Sorts a specific range in the _details vector.
+*
+* @param startIndex Start of the subrange (usually the first child)
+*/
+void BaseInfoDetailsState::sortChildren(size_t startIndex)
+{
+	std::sort(std::next(_details.begin(), startIndex), _details.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{ return Unicode::naturalCompare(a.description, b.description); }
+	);
 }
 
 }

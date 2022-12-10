@@ -104,6 +104,7 @@ private:
 	std::string toStringHp(int value);
 	std::string toStringMana(int value);
 	std::string toStringPercent(float value);
+	void sortChildren(size_t startIndex);
 public:
 	/// Creates the cost details state.
 	BaseInfoDetailsState(Base *base, DetailsCategory currentCategory);
