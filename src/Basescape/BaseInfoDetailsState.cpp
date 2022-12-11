@@ -202,29 +202,15 @@ void BaseInfoDetailsState::lstDetailsMousePress(Action *action)
 	if (action->getDetails()->button.button != SDL_BUTTON_RIGHT) return;
 
 	_sel = _lstDetails->getSelectedRow();
-	if (getRow().childId == getRow().parentId && !(_details[_rows[_sel] + 1].isVisible))
-	{
-		// Show all elements contributing to parent.
-		for (size_t i = 0; i < _details.size(); ++i)
-		{
-			if (_details[i].parentId == getRow().childId)
-			{
-				_details[i].isVisible = true;
-			}
-		}
-	}
-	else
-	{
-		// Collapse all elements contributing to parent.
-		for (size_t i = 0; i < _details.size(); ++i)
-		{
-			if (_details[i].parentId == getRow().parentId && (_details[i].childId != _details[i].parentId))
-			{
-				_details[i].isVisible = false;
-			}
-		}
-	}
 
+	// Flip visibility of child elements.
+	for (size_t i = 0; i < _details.size(); ++i)
+	{
+		if (_details[i].parentId == _details[i].childId) continue;
+		if (_details[i].parentId != getRow().parentId) continue;
+
+		_details[i].isVisible ^= true;
+	}
 	drawList();
 }
 
