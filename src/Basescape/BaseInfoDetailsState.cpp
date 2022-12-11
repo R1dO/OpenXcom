@@ -399,151 +399,10 @@ void BaseInfoDetailsState::drawBody()
 
 	_txtTitle->setText(ssTitle.str().c_str());
 	drawList();
-}
 
-/**
- * Add storage providers to _details vector.
- *
- * The list includes:
- *  + Base facilities providing storage space.
- *  + Grand total of items providing storage space.
- *
- * @note
- * List of space usage per item is deliberately not shown.
- * We have storeState for that functionality.
- */
-void BaseInfoDetailsState::addSubCategoryStorageProviders()
-{
-	size_t parentIndex = _details.size();
-	int parentId = (int)parentIndex;
-	int idItem = parentId;
-	double spaceProvided = 0.0;
-	BeanCounter row;
 
-	// Subcategory header (show unconditionally)
-	std::string description = tr("STR_BIDS_SUBTOTAL_STORAGE_PROVIDERS");
-	row = {parentId, parentId, true, description, 0, 0, {}};
-	idItem = addToDetailsVector(row, false);
 
-	// Start with grand total for items, to keep it at the top.
-	bool hasItems = false;
-	for (auto& item : _game->getMod()->getItemsList())
-	{
-		auto rule = _game->getMod()->getItem(item, true);
-		double size = rule->getSize();
-		if (size >= 0) continue;
 
-		int qty = _base->getStorageItems()->getItem(item)
-			+ _base->getItemClaimByCrafts(rule)   // No transfers yet.
-			+ _base->getItemCountTransfers(rule); // Includes items from craft transfers.
-
-		spaceProvided += std::abs(size) * qty;
-		hasItems |= qty > 0;
-	}
-	if (hasItems)
-	{
-		std::ostringstream ssValue;
-		ssValue << std::fixed << std::setprecision(3) << spaceProvided;
-		row = {idItem, parentId, false, tr("STR_ITEMS_UC"), 0, 0, ".", ssValue.str()};
-		idItem = addToDetailsVector(row, false);
-	}
-
-	int facilities = 0;
-	for (auto *facility : *_base->getFacilities())
-	{
-		// Skip buildings under construction.
-		if (facility->getBuildTime() > 0) continue;
-		if (facility->getRules()->getStorage() <= 0) continue;
-
-		int itemValue = facility->getRules()->getStorage();
-		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, itemValue, {}};
-		idItem = addToDetailsVector(row, false);
-
-		// Update header row (prevent tracking another variable)
-		spaceProvided += itemValue;
-		facilities++;
-	}
-	if (facilities > 0)
-	{
-		sortChildren(parentIndex + 1 + hasItems);
-		_details[parentIndex].amount = facilities;
-	}
-
-	std::ostringstream ssVal;
-	ssVal << std::fixed << std::setprecision(3) << spaceProvided;
-	_details[parentIndex].valueOverride = ssVal.str();
-}
-
-/**
- * Add storage users to _details vector.
- *
- * The list includes:
- *  + Base facilities taking up storage space.
- *  + Grand total of items taking up storage space.
- *
- * @note
- * List of space usage per item is deliberately not shown.
- * We have storeState for that functionality.
- */
-void BaseInfoDetailsState::addSubCategoryStoragesUsage()
-{
-	size_t parentIndex = _details.size();
-	int parentId = (int)parentIndex;
-	int idItem = parentId;
-	double spaceUsage = 0.0;
-	BeanCounter row;
-
-	// Subcategory header (show unconditionally)
-	std::string description = tr("STR_BIDS_SUBTOTAL_STORAGE_USERS");
-	row = {parentId, parentId, true, description, 0, 0, ".", ""};
-	idItem = addToDetailsVector(row, false);
-
-	// Start with grand total for items, to keep it at the top.
-	bool hasItems = false;
-	for (auto& item : _game->getMod()->getItemsList())
-	{
-		auto rule = _game->getMod()->getItem(item, true);
-		double size = rule->getSize();
-		if (size <= 0) continue;
-
-		int qty = _base->getStorageItems()->getItem(item)
-			+ _base->getItemClaimByCrafts(rule)   // No transfers yet.
-			+ _base->getItemCountTransfers(rule); // Includes items from craft transfers.
-
-		spaceUsage += size * qty;
-		hasItems |= qty > 0;
-	}
-	if (hasItems)
-	{
-		std::ostringstream ssValue;
-		ssValue << std::fixed << std::setprecision(3) << spaceUsage;
-		row = {idItem, parentId, false, tr("STR_ITEMS_UC"), 0, 0, ".", ssValue.str()};
-		idItem = addToDetailsVector(row, false);
-	}
-
-	int facilities = 0;
-	for (auto *facility : *_base->getFacilities())
-	{
-		// Skip buildings under construction.
-		if (facility->getBuildTime() > 0) continue;
-		if (facility->getRules()->getStorage() >= 0) continue;
-
-		int itemValue = std::abs(facility->getRules()->getStorage());
-		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, itemValue, {}};
-		idItem = addToDetailsVector(row, false);
-
-		spaceUsage += itemValue;
-		facilities++;
-	}
-	if (facilities > 0)
-	{
-		sortChildren(parentIndex + 1 + hasItems);
-		_details[parentIndex].amount = facilities;
-	}
-
-	std::ostringstream ssVal;
-	ssVal << std::fixed << std::setprecision(3) << spaceUsage;
-	_details[parentIndex].valueOverride = ssVal.str();
 }
 
 /**
@@ -707,7 +566,6 @@ void BaseInfoDetailsState::addSubCategoryManaRecovery()
 		_details[parentIndex].amount = facilities;
 	}
 }
-
 
 /**
  * Add mana recovery usage overview to _details vector.
@@ -1158,6 +1016,151 @@ void BaseInfoDetailsState::categoryStorage()
 
 	drawList();
 	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableStores()-_base->getUsedStores()));
+}
+
+/**
+ * Add storage providers to _details vector.
+ *
+ * The list includes:
+ *  + Base facilities providing storage space.
+ *  + Grand total of items providing storage space.
+ *
+ * @note
+ * List of space usage per item is deliberately not shown.
+ * We have storeState for that functionality.
+ */
+void BaseInfoDetailsState::addSubCategoryStorageProviders()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	double spaceProvided = 0.0;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_BIDS_SUBTOTAL_STORAGE_PROVIDERS");
+	row = {parentId, parentId, true, description, 0, 0, {}};
+	idItem = addToDetailsVector(row, false);
+
+	// Start with grand total for items, to keep it at the top.
+	bool hasItems = false;
+	for (auto& item : _game->getMod()->getItemsList())
+	{
+		auto rule = _game->getMod()->getItem(item, true);
+		double size = rule->getSize();
+		if (size >= 0) continue;
+
+		int qty = _base->getStorageItems()->getItem(item)
+			+ _base->getItemClaimByCrafts(rule)   // No transfers yet.
+			+ _base->getItemCountTransfers(rule); // Includes items from craft transfers.
+
+		spaceProvided += std::abs(size) * qty;
+		hasItems |= qty > 0;
+	}
+	if (hasItems)
+	{
+		std::ostringstream ssValue;
+		ssValue << std::fixed << std::setprecision(3) << spaceProvided;
+		row = {idItem, parentId, false, tr("STR_ITEMS_UC"), 0, 0, ".", ssValue.str()};
+		idItem = addToDetailsVector(row, false);
+	}
+
+	int facilities = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction.
+		if (facility->getBuildTime() > 0) continue;
+		if (facility->getRules()->getStorage() <= 0) continue;
+
+		int itemValue = facility->getRules()->getStorage();
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, itemValue, {}};
+		idItem = addToDetailsVector(row, false);
+
+		// Update header row (prevent tracking another variable)
+		spaceProvided += itemValue;
+		facilities++;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex + 1 + hasItems);
+		_details[parentIndex].amount = facilities;
+	}
+
+	std::ostringstream ssVal;
+	ssVal << std::fixed << std::setprecision(3) << spaceProvided;
+	_details[parentIndex].valueOverride = ssVal.str();
+}
+
+/**
+ * Add storage users to _details vector.
+ *
+ * The list includes:
+ *  + Base facilities taking up storage space.
+ *  + Grand total of items taking up storage space.
+ *
+ * @note
+ * List of space usage per item is deliberately not shown.
+ * We have storeState for that functionality.
+ */
+void BaseInfoDetailsState::addSubCategoryStoragesUsage()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	double spaceUsage = 0.0;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_BIDS_SUBTOTAL_STORAGE_USERS");
+	row = {parentId, parentId, true, description, 0, 0, ".", ""};
+	idItem = addToDetailsVector(row, false);
+
+	// Start with grand total for items, to keep it at the top.
+	bool hasItems = false;
+	for (auto& item : _game->getMod()->getItemsList())
+	{
+		auto rule = _game->getMod()->getItem(item, true);
+		double size = rule->getSize();
+		if (size <= 0) continue;
+
+		int qty = _base->getStorageItems()->getItem(item)
+			+ _base->getItemClaimByCrafts(rule)   // No transfers yet.
+			+ _base->getItemCountTransfers(rule); // Includes items from craft transfers.
+
+		spaceUsage += size * qty;
+		hasItems |= qty > 0;
+	}
+	if (hasItems)
+	{
+		std::ostringstream ssValue;
+		ssValue << std::fixed << std::setprecision(3) << spaceUsage;
+		row = {idItem, parentId, false, tr("STR_ITEMS_UC"), 0, 0, ".", ssValue.str()};
+		idItem = addToDetailsVector(row, false);
+	}
+
+	int facilities = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction.
+		if (facility->getBuildTime() > 0) continue;
+		if (facility->getRules()->getStorage() >= 0) continue;
+
+		int itemValue = std::abs(facility->getRules()->getStorage());
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, itemValue, {}};
+		idItem = addToDetailsVector(row, false);
+
+		spaceUsage += itemValue;
+		facilities++;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex + 1 + hasItems);
+		_details[parentIndex].amount = facilities;
+	}
+
+	std::ostringstream ssVal;
+	ssVal << std::fixed << std::setprecision(3) << spaceUsage;
+	_details[parentIndex].valueOverride = ssVal.str();
 }
 
 /**
