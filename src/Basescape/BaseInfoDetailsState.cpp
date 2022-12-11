@@ -1011,6 +1011,7 @@ void BaseInfoDetailsState::categoryStorage()
 
 	addSubCategoryStorageProviders();
 	addSubCategoryStoragesUsage();
+	addSubCategoryPurchaseServices();
 
 
 
@@ -1161,6 +1162,36 @@ void BaseInfoDetailsState::addSubCategoryStoragesUsage()
 	std::ostringstream ssVal;
 	ssVal << std::fixed << std::setprecision(3) << spaceUsage;
 	_details[parentIndex].valueOverride = ssVal.str();
+}
+
+/**
+ * Add facilities related to purchase to _details vector.
+ *
+ * A list of facilities providing required services for purchase
+ * appended with a list of known missing services.
+ */
+void BaseInfoDetailsState::addSubCategoryPurchaseServices()
+{
+	// Required services for purchase of items (**no** crafts, those are under hangars)
+	// Based on: PurchaseState()
+	RuleBaseFacilityFunctions requiredServices;
+	for (auto& item : _game->getMod()->getItemsList())
+	{
+		auto rule = _game->getMod()->getItem(item, true);
+		if (rule->getBuyCost() == 0) continue;
+		if (!_game->getSavedGame()->isResearched(rule->getBuyRequirements()))
+			continue;
+		if (!_game->getSavedGame()->isResearched(rule->getRequirements()))
+			continue;
+
+		requiredServices |= rule->getRequiresBuyBaseFunc();
+	}
+	// Dependencies on unlocked (potential) base services.
+	// We want to include missing services (but only if player can solve that problem).
+	requiredServices &= _unlockedServicesBaseType;
+	if (requiredServices.none()) return;
+
+	addServices(requiredServices, tr("STR_BIDS_SUBTOTAL_PURCHASE_SERVICES"));
 }
 
 /**

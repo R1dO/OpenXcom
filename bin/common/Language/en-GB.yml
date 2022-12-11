@@ -458,6 +458,7 @@ en-GB:
   BIDS_DETAIL_LABS_PROJECT_SPACE: "Project starting space" # Should not be visible a.t.m.
   STR_BIDS_SUBTOTAL_STORAGE_PROVIDERS: "Provides storage space"
   STR_BIDS_SUBTOTAL_STORAGE_USERS: "Requires storage space"
+  STR_BIDS_SUBTOTAL_PURCHASE_SERVICES: "Purchase Department"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_PROVIDERS: "Provides living space"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_USERS: "Requires living space"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_SERVICES: "Human Resources"
