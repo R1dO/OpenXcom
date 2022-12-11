@@ -17,6 +17,7 @@
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iomanip>
 #include "BaseInfoDetailsState.h"
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
@@ -432,7 +433,7 @@ void BaseInfoDetailsState::addSubCategoryStorageProviders()
 	size_t parentIndex = _details.size();
 	int parentId = (int)parentIndex;
 	int idItem = parentId;
-	int itemValue = 0;
+	double spaceProvided = 0.0;
 	BeanCounter row;
 
 	// Subcategory header (show unconditionally)
@@ -441,7 +442,7 @@ void BaseInfoDetailsState::addSubCategoryStorageProviders()
 	idItem = addToDetailsVector(row, false);
 
 	// Start with grand total for items, to keep it at the top.
-	double providedByItems = 0.0f;
+	bool hasItems = false;
 	for (auto& item : _game->getMod()->getItemsList())
 	{
 		auto rule = _game->getMod()->getItem(item, true);
@@ -452,15 +453,15 @@ void BaseInfoDetailsState::addSubCategoryStorageProviders()
 			+ _base->getItemClaimByCrafts(rule)   // No transfers yet.
 			+ _base->getItemCountTransfers(rule); // Includes items from craft transfers.
 
-		providedByItems += std::abs(size) * qty;
+		spaceProvided += std::abs(size) * qty;
+		hasItems |= qty > 0;
 	}
-	if (providedByItems > 0.0f)
+	if (hasItems)
 	{
-		itemValue = (int)std::round(providedByItems);
-		row = {idItem, parentId, false, tr("STR_ITEMS_UC"), 0, itemValue, ".", ""};
+		std::ostringstream ssValue;
+		ssValue << std::fixed << std::setprecision(3) << spaceProvided;
+		row = {idItem, parentId, false, tr("STR_ITEMS_UC"), 0, 0, ".", ssValue.str()};
 		idItem = addToDetailsVector(row, false);
-
-		_details[parentIndex].value = itemValue;
 	}
 
 	int facilities = 0;
@@ -470,19 +471,23 @@ void BaseInfoDetailsState::addSubCategoryStorageProviders()
 		if (facility->getBuildTime() > 0) continue;
 		if (facility->getRules()->getStorage() <= 0) continue;
 
-		itemValue = facility->getRules()->getStorage();
+		int itemValue = facility->getRules()->getStorage();
 		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, itemValue, {}};
 		idItem = addToDetailsVector(row, false);
 
 		// Update header row (prevent tracking another variable)
-		_details[parentIndex].value += itemValue;
+		spaceProvided += itemValue;
 		facilities++;
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1 + (providedByItems > 0.0f));
+		sortChildren(parentIndex + 1 + hasItems);
 		_details[parentIndex].amount = facilities;
 	}
+
+	std::ostringstream ssVal;
+	ssVal << std::fixed << std::setprecision(3) << spaceProvided;
+	_details[parentIndex].valueOverride = ssVal.str();
 }
 
 /**
@@ -501,7 +506,7 @@ void BaseInfoDetailsState::addSubCategoryStoragesUsage()
 	size_t parentIndex = _details.size();
 	int parentId = (int)parentIndex;
 	int idItem = parentId;
-	int itemValue = 0;
+	double spaceUsage = 0.0;
 	BeanCounter row;
 
 	// Subcategory header (show unconditionally)
@@ -510,7 +515,7 @@ void BaseInfoDetailsState::addSubCategoryStoragesUsage()
 	idItem = addToDetailsVector(row, false);
 
 	// Start with grand total for items, to keep it at the top.
-	double providedByItems = 0.0f;
+	bool hasItems = false;
 	for (auto& item : _game->getMod()->getItemsList())
 	{
 		auto rule = _game->getMod()->getItem(item, true);
@@ -521,15 +526,15 @@ void BaseInfoDetailsState::addSubCategoryStoragesUsage()
 			+ _base->getItemClaimByCrafts(rule)   // No transfers yet.
 			+ _base->getItemCountTransfers(rule); // Includes items from craft transfers.
 
-		providedByItems += size * qty;
+		spaceUsage += size * qty;
+		hasItems |= qty > 0;
 	}
-	if (providedByItems > 0.0f)
+	if (hasItems)
 	{
-		itemValue = (int)std::round(providedByItems);
-		row = {idItem, parentId, false, tr("STR_ITEMS_UC"), 0, itemValue, ".", ""};
+		std::ostringstream ssValue;
+		ssValue << std::fixed << std::setprecision(3) << spaceUsage;
+		row = {idItem, parentId, false, tr("STR_ITEMS_UC"), 0, 0, ".", ssValue.str()};
 		idItem = addToDetailsVector(row, false);
-
-		_details[parentIndex].value = itemValue;
 	}
 
 	int facilities = 0;
@@ -539,20 +544,22 @@ void BaseInfoDetailsState::addSubCategoryStoragesUsage()
 		if (facility->getBuildTime() > 0) continue;
 		if (facility->getRules()->getStorage() >= 0) continue;
 
-		itemValue = std::abs(facility->getRules()->getStorage());
+		int itemValue = std::abs(facility->getRules()->getStorage());
 		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, itemValue, {}};
 		idItem = addToDetailsVector(row, false);
 
-		// Update header row (prevent tracking another variable)
-		_details[parentIndex].value += itemValue;
+		spaceUsage += itemValue;
 		facilities++;
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1 + (providedByItems > 0.0f));
+		sortChildren(parentIndex + 1 + hasItems);
 		_details[parentIndex].amount = facilities;
-		_details[parentIndex].valueOverride = "";
 	}
+
+	std::ostringstream ssVal;
+	ssVal << std::fixed << std::setprecision(3) << spaceUsage;
+	_details[parentIndex].valueOverride = ssVal.str();
 }
 
 /**
