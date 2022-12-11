@@ -61,8 +61,8 @@ private:
 
 	TextButton *_btnOk, *_btnPrev, *_btnNext;
 	Window *_window;
-	Text *_txtTitle, *_txtSource, *_txtQuantity, *_txtResult;
-	TextList *_lstDetails, *_lstTotal;
+	Text *_txtTitle, *_txtSource, *_txtQuantity, *_txtResult, *_txtTotal;
+	TextList *_lstDetails;
 	std::vector<BeanCounter> _details;
 	std::vector<int> _rows;
 	size_t _sel;

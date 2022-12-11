@@ -62,7 +62,7 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, DetailsCategory currentCa
 	_txtQuantity = new Text(54, 9, 165, 35);
 	_txtResult = new Text(54, 9, 220, 35);
 	_lstDetails = new TextList(272, 104, 23, 46); // Height = 13*8 (8 due to rowheight overlap using default rules).
-	_lstTotal = new TextList(133, 9, 171, 154);
+	_txtTotal = new Text(133, 9, 171, 154);
 
 	// Set palette
 	setInterface("baseInfoDetails");
@@ -76,7 +76,7 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, DetailsCategory currentCa
 	add(_txtQuantity, "text", "baseInfoDetails");
 	add(_txtResult, "text", "baseInfoDetails");
 	add(_lstDetails, "list", "baseInfoDetails");
-	add(_lstTotal, "text", "baseInfoDetails");
+	add(_txtTotal, "text", "baseInfoDetails");
 
 	centerAllSurfaces();
 
@@ -108,10 +108,6 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, DetailsCategory currentCa
 	_lstDetails->setMargin(2);
 	_lstDetails->setDot(true);
 	_lstDetails->onMousePress((ActionHandler)&BaseInfoDetailsState::lstDetailsMousePress);
-
-	_lstTotal->setColumns(2, 57, 76); // Allow column 2 to display  $999,999,999,999 (3px overflow)
-	_lstTotal->setDot(true);
-	_lstTotal->setColor(_lstTotal->getSecondaryColor());
 
 	// Check which services are known for this base type.
 	// Based on: BuildFacilitiesState::populateBuildList()
@@ -349,7 +345,7 @@ void BaseInfoDetailsState::drawBody()
 	if (_base->getFacilities()->size() == 0) return;
 
 	_details.clear();
-	_lstTotal->clearList();
+	_txtTotal->clear();
 	std::ostringstream ssTitle;
 
 	switch (_currentCategory)
@@ -409,7 +405,9 @@ void BaseInfoDetailsState::drawBody()
 				childId++;
 			}
 		}
-		_lstTotal->addRow(2, tr("STR_TOTAL").c_str(), Unicode::formatFunding(999999999999).c_str());
+		std::ostringstream ss;
+		ss << tr("STR_TOTAL") << ">\t" <<  Unicode::formatFunding(999999999999);
+		_txtTotal->setText(ss.str());
 		break;
 	}
 
@@ -589,6 +587,11 @@ void BaseInfoDetailsState::categorySoldiers()
 	addSubCategoryTransformations();
 
 	drawList();
+	// Total does **not** include soldiers being produced (via manufacture).
+	// Could lead to 'bug-reports' from number enthusiasts.
+	std::ostringstream ss;
+	ss << tr("STR_SOLDIERS") << ">\t" << Unicode::TOK_COLOR_FLIP <<_base->getTotalSoldiers();
+	_txtTotal->setText(ss.str());
 }
 
 /**
@@ -1002,6 +1005,8 @@ void BaseInfoDetailsState::categoryQuarters()
 	addSubCategoryHiringServices();
 
 	drawList();
+	// Note: Does include soldiers being produced (via manufacture).
+	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableQuarters() - _base->getUsedQuarters()));
 }
 
 /**
@@ -1166,6 +1171,7 @@ void BaseInfoDetailsState::categoryStorage()
 
 
 	drawList();
+	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableStores()-_base->getUsedStores()));
 }
 
 /**
