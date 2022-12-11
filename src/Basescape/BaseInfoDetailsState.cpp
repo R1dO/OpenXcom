@@ -362,9 +362,9 @@ void BaseInfoDetailsState::drawBody()
 		return; // Temporal until other cases uses new scheme.
 		//break;
 	case DC_STORES:
-		ssTitle << tr("STR_STORES");
 		categoryStorage();
-		break;
+		return; // Temporal until other cases uses new scheme.
+		//break;
 	case DC_LABORATORIES:
 		ssTitle << tr("STR_LABORATORIES");
 		categoryLabs();
@@ -414,6 +414,145 @@ void BaseInfoDetailsState::drawBody()
 
 	_txtTitle->setText(ssTitle.str().c_str());
 	drawList();
+}
+
+/**
+ * Add storage providers to _details vector.
+ *
+ * The list includes:
+ *  + Base facilities providing storage space.
+ *  + Grand total of items providing storage space.
+ *
+ * @note
+ * List of space usage per item is deliberately not shown.
+ * We have storeState for that functionality.
+ */
+void BaseInfoDetailsState::addSubCategoryStorageProviders()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	int itemValue = 0;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_BIDS_SUBTOTAL_STORAGE_PROVIDERS");
+	row = {parentId, parentId, true, description, 0, 0, {}};
+	idItem = addToDetailsVector(row, false);
+
+	// Start with grand total for items, to keep it at the top.
+	double providedByItems = 0.0f;
+	for (auto& item : _game->getMod()->getItemsList())
+	{
+		auto rule = _game->getMod()->getItem(item, true);
+		double size = rule->getSize();
+		if (size >= 0) continue;
+
+		int qty = _base->getStorageItems()->getItem(item)
+			+ _base->getItemClaimByCrafts(rule)   // No transfers yet.
+			+ _base->getItemCountTransfers(rule); // Includes items from craft transfers.
+
+		providedByItems += std::abs(size) * qty;
+	}
+	if (providedByItems > 0.0f)
+	{
+		itemValue = (int)std::round(providedByItems);
+		row = {idItem, parentId, false, tr("STR_ITEMS_UC"), 0, itemValue, ".", ""};
+		idItem = addToDetailsVector(row, false);
+
+		_details[parentIndex].value = itemValue;
+	}
+
+	int facilities = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction.
+		if (facility->getBuildTime() > 0) continue;
+		if (facility->getRules()->getStorage() <= 0) continue;
+
+		itemValue = facility->getRules()->getStorage();
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, itemValue, {}};
+		idItem = addToDetailsVector(row, false);
+
+		// Update header row (prevent tracking another variable)
+		_details[parentIndex].value += itemValue;
+		facilities++;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex + 1 + (providedByItems > 0.0f));
+		_details[parentIndex].amount = facilities;
+	}
+}
+
+/**
+ * Add storage users to _details vector.
+ *
+ * The list includes:
+ *  + Base facilities taking up storage space.
+ *  + Grand total of items taking up storage space.
+ *
+ * @note
+ * List of space usage per item is deliberately not shown.
+ * We have storeState for that functionality.
+ */
+void BaseInfoDetailsState::addSubCategoryStoragesUsage()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	int itemValue = 0;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_BIDS_SUBTOTAL_STORAGE_USERS");
+	row = {parentId, parentId, true, description, 0, 0, ".", ""};
+	idItem = addToDetailsVector(row, false);
+
+	// Start with grand total for items, to keep it at the top.
+	double providedByItems = 0.0f;
+	for (auto& item : _game->getMod()->getItemsList())
+	{
+		auto rule = _game->getMod()->getItem(item, true);
+		double size = rule->getSize();
+		if (size <= 0) continue;
+
+		int qty = _base->getStorageItems()->getItem(item)
+			+ _base->getItemClaimByCrafts(rule)   // No transfers yet.
+			+ _base->getItemCountTransfers(rule); // Includes items from craft transfers.
+
+		providedByItems += size * qty;
+	}
+	if (providedByItems > 0.0f)
+	{
+		itemValue = (int)std::round(providedByItems);
+		row = {idItem, parentId, false, tr("STR_ITEMS_UC"), 0, itemValue, ".", ""};
+		idItem = addToDetailsVector(row, false);
+
+		_details[parentIndex].value = itemValue;
+	}
+
+	int facilities = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction.
+		if (facility->getBuildTime() > 0) continue;
+		if (facility->getRules()->getStorage() >= 0) continue;
+
+		itemValue = std::abs(facility->getRules()->getStorage());
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, itemValue, {}};
+		idItem = addToDetailsVector(row, false);
+
+		// Update header row (prevent tracking another variable)
+		_details[parentIndex].value += itemValue;
+		facilities++;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex + 1 + (providedByItems > 0.0f));
+		_details[parentIndex].amount = facilities;
+		_details[parentIndex].valueOverride = "";
+	}
 }
 
 /**
@@ -858,7 +997,6 @@ void BaseInfoDetailsState::categoryQuarters()
 	drawList();
 }
 
-
 /**
  * Add overview of claimed living space to _details vector.
  *
@@ -1006,117 +1144,21 @@ void BaseInfoDetailsState::addSubCategoryHiringServices()
 /**
  * Setup storage providers (and usage) screen.
  *
- * Recognize 2 subtotals may exist:
- * (0) Facilities (and items) providing storage space
- * (1) Items (and facilities) taking up storage space
- *
- * Deliberately not shown:
- * - List of space usage per item: use storestate for that.
+ * Facilities (and items) contributing to the following subcategories:
+ *  + Providers of storage space.
+ *  + Users of storage space.
  */
 void BaseInfoDetailsState::categoryStorage()
 {
-	int idItem = 2; // Offset based on expected subtotal entries.
-	int idParent = 0;
-	int itemValue;  // Always positive, unless a subtotal.
-	std::vector<BeanCounter> subCategories;
-	BeanCounter row;  // Workhorse
+	_txtTitle->setText(tr("STR_STORES"));
+	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
 
-	// Facility store space
-	for (auto *facility : *_base->getFacilities())
-	{
-		// Skip buildings under construction.
-		if (facility->getBuildTime() > 0 || facility->getRules()->getStorage() == 0) continue;
+	addSubCategoryStorageProviders();
+	addSubCategoryStoragesUsage();
 
-		itemValue = facility->getRules()->getStorage();
-		idParent = itemValue >= 0 ? 0 : 1;
-		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, std::abs(itemValue), ""};
-		idItem = addToDetailsVector(row, false);
-	}
-	// Item store space (only interested in total)
-	double itemValPos = 0, itemValNeg = 0;
-	// Based on StoreState::initList() & Base::getUsedStores().
-	for (auto& item : _game->getMod()->getItemsList())
-	{
-		auto rule = _game->getMod()->getItem(item, true);
-		int qty = _base->getStorageItems()->getItem(item);
-		// From crafts on base
-		for (auto* craft : *_base->getCrafts())
-		{
-			qty += craft->getTotalItemCount(rule);
-		}
-		// From transfers
-		for (auto* transfer : *_base->getTransfers())
-		{
-			if (transfer->getCraft())
-			{
-				qty += transfer->getCraft()->getTotalItemCount(rule);
-			}
-			else if (transfer->getItems() == item)
-			{
-				qty += transfer->getQuantity();
-			}
-		}
 
-		double size = rule->getSize();
-		if (size > 0)
-		{
-			itemValPos += qty * size;
-		}
-		else if (size < 0)
-		{
-			itemValNeg -= qty * size;
-		}
 
-	}
-	if (itemValPos > 0)
-	{
-		itemValue = (int)std::round(itemValPos);
-		idParent = 1;
-		row = {idItem, idParent, false, tr("STR_ITEMS_UC") , -1, itemValue, ""};
-		idItem = addToDetailsVector(row, false);
-	}
-	if (itemValNeg > 0)
-	{
-		itemValue = (int)std::round(itemValNeg);
-		idParent = 0;
-		row = {idItem, idParent, false, tr("STR_ITEMS_UC") , -1, itemValue, ""};
-		idItem = addToDetailsVector(row, false);
-	}
-
-	// Subtotals
-	if (isSubtotalNeeded(0)) // Available space
-	{
-		int subTotal = calculateSubtotalValue(0);
-		int subAmount = calculateSubtotalAmount(0);
-		row = {0, 0, true, tr("STR_BIDS_SUBTOTAL_STORAGE_PROVIDERS"), subAmount == 0 ? -1 : subAmount, subTotal, ""};
-		subCategories.push_back(row);
-	}
-	if (isSubtotalNeeded(1)) // Available space
-	{
-		int subTotal = calculateSubtotalValue(1);
-		int subAmount = calculateSubtotalAmount(1);
-		row = {1, 1, true, tr("STR_BIDS_SUBTOTAL_STORAGE_USERS"), subAmount == 0 ? -1 : subAmount, subTotal, ""};
-		subCategories.push_back(row);
-	}
-
-	// Prefer alphabetical listing.
-	std::stable_sort(_details.begin(), _details.end(),
-		[](const BeanCounter a, const BeanCounter b)
-		{
-			return Unicode::naturalCompare(a.description, b.description);
-		}
-	);
-
-	// Add subtotals to list vector
-	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
-
-	// Ensure elements are shown below appropriate subtotal.
-	std::stable_sort(_details.begin(), _details.end(),
-		[](const BeanCounter a, const BeanCounter b)
-		{
-			return a.parentId < b.parentId;
-		}
-	);
+	drawList();
 }
 
 /**
