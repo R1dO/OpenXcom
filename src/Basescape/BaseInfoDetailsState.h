@@ -87,6 +87,8 @@ private:
 	void addSubCategoryStorageProviders();
 	void addSubCategoryStoragesUsage();
 	void addSubCategoryPurchaseServices();
+	void addSubCategoryPurchaseLimits();
+	void addSubCategoryPurchaseCountries();
 	void categoryLabs();
 	void categoryWorkshops();
 	void categoryAlienContainment();

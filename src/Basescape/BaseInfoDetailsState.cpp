@@ -23,6 +23,7 @@
 #include "../Engine/Game.h"
 #include "../Engine/Options.h"
 #include "../Mod/Mod.h"
+#include "../Mod/RuleCountry.h"
 #include "../Mod/RuleSoldier.h"
 #include "../Mod/RuleSoldierTransformation.h"
 #include "../Interface/TextButton.h"
@@ -32,6 +33,7 @@
 #include "../Ufopaedia/Ufopaedia.h"
 #include "../Savegame/Base.h"
 #include "../Savegame/BaseFacility.h"
+#include "../Savegame/Country.h"
 #include "../Savegame/ItemContainer.h"
 #include "../Savegame/Production.h"
 #include "../Savegame/ResearchProject.h"
@@ -1003,20 +1005,23 @@ void BaseInfoDetailsState::addSubCategoryHiringServices()
  * Facilities (and items) contributing to the following subcategories:
  *  + Providers of storage space.
  *  + Users of storage space.
+ *  + Limits imposed on purchase of items (amount and countries)
  */
 void BaseInfoDetailsState::categoryStorage()
 {
 	_txtTitle->setText(tr("STR_STORES"));
 	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
+	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableStores()-_base->getUsedStores()));
 
 	addSubCategoryStorageProviders();
 	addSubCategoryStoragesUsage();
 	addSubCategoryPurchaseServices();
+	addSubCategoryPurchaseLimits();
+	addSubCategoryPurchaseCountries();
 
 
 
 	drawList();
-	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableStores()-_base->getUsedStores()));
 }
 
 /**
@@ -1177,7 +1182,7 @@ void BaseInfoDetailsState::addSubCategoryPurchaseServices()
 	RuleBaseFacilityFunctions requiredServices;
 	for (auto& item : _game->getMod()->getItemsList())
 	{
-		auto rule = _game->getMod()->getItem(item, true);
+		auto rule = _game->getMod()->getItem(item);
 		if (rule->getBuyCost() == 0) continue;
 		if (!_game->getSavedGame()->isResearched(rule->getBuyRequirements()))
 			continue;
@@ -1192,6 +1197,101 @@ void BaseInfoDetailsState::addSubCategoryPurchaseServices()
 	if (requiredServices.none()) return;
 
 	addServices(requiredServices, tr("STR_BIDS_SUBTOTAL_PURCHASE_SERVICES"));
+}
+
+/**
+ * Add a list of items that have a purchase limit.
+ *
+ * And show how many are still available.
+ */
+void BaseInfoDetailsState::addSubCategoryPurchaseLimits()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	BeanCounter row;
+
+	// Subcategory header
+	row = {parentId, parentId, false, tr("STR_BIDS_SUBTOTAL_PURCHASE_LIMITS"), 0, 0, ".", ""};
+	idItem = addToDetailsVector(row, false);
+
+	auto& purchaseLimitLog = _game->getSavedGame()->getMonthlyPurchaseLimitLog();
+
+	// List of (known) items with limits
+	int itemsWithLimits = 0;
+	for (auto& item : _game->getMod()->getItemsList())
+	{
+		auto rule = _game->getMod()->getItem(item);
+		if (rule->getBuyCost() == 0) continue;
+
+		int limit = rule->getMonthlyBuyLimit();
+		if (limit <= 0) continue; // Negative limit has no usage in codebase.
+		if (!_game->getSavedGame()->isResearched(rule->getBuyRequirements()))
+			continue;
+		if (!_game->getSavedGame()->isResearched(rule->getRequirements()))
+			continue;
+
+		std::string valueOverride = tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(purchaseLimitLog[rule->getType()]).arg(limit);
+		row = {idItem, parentId, false, tr(rule->getType()), 0, 0, ".", valueOverride};
+		idItem = addToDetailsVector(row, false);
+		itemsWithLimits++;
+	}
+	if (itemsWithLimits > 0)
+	{
+		sortChildren(parentIndex + 1);
+		_details[parentIndex].isVisible = true;
+		_details[parentIndex].value = itemsWithLimits;
+	}
+}
+
+/**
+ * Add a lists of items depending on good country relations.
+ *
+ * Only show if item can be bought. No naming of specific countries
+ * (item details screen is better suited for that kind of info).
+ */
+void BaseInfoDetailsState::addSubCategoryPurchaseCountries()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	BeanCounter row;
+
+	// Subcategory header
+	row = {parentId, parentId, false, tr("STR_BIDS_SUBTOTAL_PURCHASE_COUNTRY"), 0, 0, ".", ""};
+	idItem = addToDetailsVector(row, false);
+
+	// List of (known) items which depend on country relations.
+	int itemsDependingOnCountry = 0;
+	for (auto& item : _game->getMod()->getItemsList())
+	{
+		auto rule = _game->getMod()->getItem(item);
+		if (rule->getBuyCost() == 0) continue;
+		if (rule->getRequiresBuyCountry().empty()) continue;
+		if (!_game->getSavedGame()->isResearched(rule->getBuyRequirements()))
+			continue;
+		if (!_game->getSavedGame()->isResearched(rule->getRequirements()))
+			continue;
+
+		auto* countries = _game->getSavedGame()->getCountries();
+		for (auto* country : *countries)
+		{
+			if (country->getRules()->getType() != rule->getRequiresBuyCountry())
+				continue;
+
+			std::string valueOverride = country->getPact() ? tr("STR_NO") : tr("STR_YES");
+			row = {idItem, parentId, false, tr(rule->getType()), 0, 0, ".", valueOverride};
+			idItem = addToDetailsVector(row, false);
+			itemsDependingOnCountry++;
+			break; // Item can only depend on one country.
+		}
+	}
+	if (itemsDependingOnCountry > 0)
+	{
+		sortChildren(parentIndex + 1);
+		_details[parentIndex].isVisible = true;
+		_details[parentIndex].value = itemsDependingOnCountry;
+	}
 }
 
 /**

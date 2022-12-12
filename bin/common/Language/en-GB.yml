@@ -459,6 +459,8 @@ en-GB:
   STR_BIDS_SUBTOTAL_STORAGE_PROVIDERS: "Provides storage space"
   STR_BIDS_SUBTOTAL_STORAGE_USERS: "Requires storage space"
   STR_BIDS_SUBTOTAL_PURCHASE_SERVICES: "Purchase Department"
+  STR_BIDS_SUBTOTAL_PURCHASE_LIMITS: "Items pretending 'hard to get'"
+  STR_BIDS_SUBTOTAL_PURCHASE_COUNTRY: "Items depending on country favors"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_PROVIDERS: "Provides living space"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_USERS: "Requires living space"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_SERVICES: "Human Resources"
