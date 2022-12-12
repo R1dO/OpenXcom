@@ -422,6 +422,11 @@ void BaseInfoDetailsState::categorySoldiers()
 {
 	_txtTitle->setText(tr("STR_SOLDIERS"));
 	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
+	// Total does **not** include soldiers being produced (via manufacture).
+	// Could lead to 'bug-reports' from number enthusiasts.
+	std::ostringstream ss;
+	ss << tr("STR_SOLDIERS") << ">\t" << Unicode::TOK_COLOR_FLIP <<_base->getTotalSoldiers();
+	_txtTotal->setText(ss.str());
 
 	addSubCategoryPsionicTraining();
 	addSubCategoryPhysicalTraining();
@@ -434,11 +439,6 @@ void BaseInfoDetailsState::categorySoldiers()
 	addSubCategoryTransformations();
 
 	drawList();
-	// Total does **not** include soldiers being produced (via manufacture).
-	// Could lead to 'bug-reports' from number enthusiasts.
-	std::ostringstream ss;
-	ss << tr("STR_SOLDIERS") << ">\t" << Unicode::TOK_COLOR_FLIP <<_base->getTotalSoldiers();
-	_txtTotal->setText(ss.str());
 }
 
 /**
@@ -845,6 +845,7 @@ void BaseInfoDetailsState::categoryQuarters()
 {
 	_txtTitle->setText(tr("personnel")); // common/language/Technical
 	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
+	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableQuarters() - _base->getUsedQuarters()));
 
 	addSubCategoryQuartersProviders();
 	addSubCategoryQuartersUsage();
@@ -852,7 +853,6 @@ void BaseInfoDetailsState::categoryQuarters()
 
 	drawList();
 	// Note: Does include soldiers being produced (via manufacture).
-	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableQuarters() - _base->getUsedQuarters()));
 }
 
 /**
