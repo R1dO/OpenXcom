@@ -90,6 +90,9 @@ private:
 	void addSubCategoryPurchaseLimits();
 	void addSubCategoryPurchaseCountries();
 	void categoryLabs();
+	void addSubCategoryLabsProviders();
+	void addSubCategoryLabsUsage();
+	void addSubCategoryLabsServices();
 	void categoryWorkshops();
 	void categoryAlienContainment();
 	void categoryHangars();
