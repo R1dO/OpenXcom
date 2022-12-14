@@ -424,10 +424,9 @@ void CraftEquipmentState::initList()
 				}
 				else if (categoryClaimedBySoldiers)
 				{
-					if (_soldierClaimItems->getItem(*i) <= 0)
-					{
-						continue;
-					}
+					bool isOk = _soldierClaimItems->getItem(*i) > 0;
+					isOk ^= _game->isAltPressed();
+					if (!isOk) continue;
 				}
 				else
 				{
@@ -446,6 +445,7 @@ void CraftEquipmentState::initList()
 							}
 						}
 					}
+					isOK ^= _game->isAltPressed();
 					if (!isOK) continue;
 				}
 			}
