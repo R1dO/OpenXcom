@@ -476,7 +476,7 @@ void BaseInfoDetailsState::addSubCategoryHealthRecovery()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].amount = facilities;
 	}
 }
@@ -520,7 +520,7 @@ void BaseInfoDetailsState::addSubCategoryHealthRecoveryInProgress()
 	}
 	if (_details.size() > parentIndex + 1)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = _details.size() - parentIndex - 1;
 	}
@@ -564,7 +564,7 @@ void BaseInfoDetailsState::addSubCategoryManaRecovery()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].amount = facilities;
 	}
 }
@@ -609,7 +609,7 @@ void BaseInfoDetailsState::addSubCategoryManaRecoveryInProgress()
 	}
 	if (_details.size() > parentIndex + 1)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = _details.size() - parentIndex - 1;
 	}
@@ -654,7 +654,7 @@ void BaseInfoDetailsState::addSubCategoryPhysicalTraining()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 2); // 2 <-- Subtotal and usage rows.
+		sortChildren(parentIndex, 1);
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].valueOverride =
@@ -704,7 +704,7 @@ void BaseInfoDetailsState::addSubCategoryPsionicTraining()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 2); // 2 <-- Subtotal and usage rows.
+		sortChildren(parentIndex, 1);
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].valueOverride =
@@ -786,7 +786,7 @@ void BaseInfoDetailsState::addSubCategoryWoundRecovery()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].amount = facilities;
 	}
 }
@@ -827,7 +827,7 @@ void BaseInfoDetailsState::addSubCategoryWoundRecoveryInProgress()
 	}
 	if (_details.size() > parentIndex + 1)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = _details.size() - parentIndex - 1;
 	}
@@ -884,7 +884,7 @@ void BaseInfoDetailsState::addSubCategoryQuarterProviders()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].amount = facilities;
 	}
 }
@@ -923,7 +923,7 @@ void BaseInfoDetailsState::addSubCategoryQuarterUsage()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].amountOverride = "";
 	}
@@ -959,7 +959,7 @@ void BaseInfoDetailsState::addSubCategoryQuarterUsage()
 	}
 	if (_details.size() > parentIndex + 3 + facilities) // Subtotal + engineers + scientists + facilities
 	{
-		sortChildren(parentIndex + 3 + facilities);
+		sortChildren(parentIndex, 2 + facilities);
 	}
 }
 
@@ -1087,7 +1087,7 @@ void BaseInfoDetailsState::addSubCategoryStorageProviders()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1 + hasItems);
+		sortChildren(parentIndex, hasItems);
 		_details[parentIndex].amount = facilities;
 	}
 
@@ -1159,7 +1159,7 @@ void BaseInfoDetailsState::addSubCategoryStoragesUsage()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1 + hasItems);
+		sortChildren(parentIndex, hasItems);
 		_details[parentIndex].amount = facilities;
 	}
 
@@ -1237,7 +1237,7 @@ void BaseInfoDetailsState::addSubCategoryPurchaseLimits()
 	}
 	if (itemsWithLimits > 0)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = itemsWithLimits;
 	}
@@ -1287,7 +1287,7 @@ void BaseInfoDetailsState::addSubCategoryPurchaseCountries()
 	}
 	if (itemsDependingOnCountry > 0)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].isVisible = true;
 		_details[parentIndex].value = itemsDependingOnCountry;
 	}
@@ -1348,7 +1348,7 @@ void BaseInfoDetailsState::addSubCategoryLabProviders()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].amountOverride = "";
 		_details[parentIndex].value = providedSpace;
@@ -1415,7 +1415,7 @@ void BaseInfoDetailsState::addSubCategoryLabUsage()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1 + (scientists > 0) + (projectSpace > 0));
+		sortChildren(parentIndex, (scientists > 0) + (projectSpace > 0));
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].amountOverride = "";
 	}
@@ -1505,7 +1505,7 @@ void BaseInfoDetailsState::addSubCategoryWorkshopProviders()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].amountOverride = "";
 		_details[parentIndex].value = providedSpace;
@@ -1571,7 +1571,7 @@ void BaseInfoDetailsState::addSubCategoryWorkshopUsage()
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1 + (engineers > 0) + (projectSpace > 0));
+		sortChildren(parentIndex, (engineers > 0) + (projectSpace > 0));
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].amountOverride = "";
 	}
@@ -1664,7 +1664,7 @@ void BaseInfoDetailsState::categoryAlienContainment()
 		}
 		if (facilities > 0)
 		{
-			sortChildren(parentIndex + 2); // 2 <-- Subtotal and usage row.
+			sortChildren(parentIndex, 1);
 			_details[parentIndex].amount = facilities;
 			_details[parentIndex].amountOverride = "";
 			_details[parentIndex].valueOverride = tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(inUse).arg(allowedAliens);
@@ -2190,13 +2190,15 @@ std::string BaseInfoDetailsState::toStringPercent(float value)
 /**
 * Alphabetical sort of children
 *
-* Sorts a specific range in the _details vector.
+* Sorts the tail of the _details vector.
 *
-* @param startIndex Start of the subrange (usually the first child)
+* @param startIndex Location of the subtotal row.
+* @param skipChilds Amount of child rows to be left untouched.
 */
-void BaseInfoDetailsState::sortChildren(size_t startIndex)
+void BaseInfoDetailsState::sortChildren(size_t startIndex, int skipChilds)
 {
-	std::sort(std::next(_details.begin(), startIndex), _details.end(),
+	size_t offset = 1 + skipChilds; // 1 >>> The header row
+	std::sort(std::next(_details.begin(), startIndex + offset), _details.end(),
 		[](const BeanCounter a, const BeanCounter b)
 		{ return Unicode::naturalCompare(a.description, b.description); }
 	);
@@ -2241,7 +2243,7 @@ void BaseInfoDetailsState::addServices(RuleBaseFacilityFunctions services, std::
 	}
 	if (facilities > 0)
 	{
-		sortChildren(parentIndex + 1);
+		sortChildren(parentIndex);
 		_details[parentIndex].amount = facilities;
 		_details[parentIndex].isVisible = true;
 	}
