@@ -1533,7 +1533,7 @@ void BaseInfoDetailsState::addSubCategoryWorkshopUsage()
 
 	// Subcategory header (show unconditionally)
 	std::string description = tr("STR_BIDS_SUBTOTAL_WORKSHOP_USERS");
-	row = {parentId, parentId, true, description, 0, _base->getUsedLaboratories(), ".", ""};
+	row = {parentId, parentId, true, description, 0, _base->getUsedWorkshops(), ".", ""};
 	idItem = addToDetailsVector(row, false);
 
 	// Start with grand totals.
