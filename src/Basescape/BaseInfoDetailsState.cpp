@@ -847,8 +847,8 @@ void BaseInfoDetailsState::categoryQuarters()
 	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
 	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableQuarters() - _base->getUsedQuarters()));
 
-	addSubCategoryQuartersProviders();
-	addSubCategoryQuartersUsage();
+	addSubCategoryQuarterProviders();
+	addSubCategoryQuarterUsage();
 	addSubCategoryHiringServices();
 
 	drawList();
@@ -860,7 +860,7 @@ void BaseInfoDetailsState::categoryQuarters()
  *
  * A list of base facilities providing living space.
  */
-void BaseInfoDetailsState::addSubCategoryQuartersProviders()
+void BaseInfoDetailsState::addSubCategoryQuarterProviders()
 {
 	size_t parentIndex = _details.size();
 	int parentId = (int)parentIndex;
@@ -896,7 +896,7 @@ void BaseInfoDetailsState::addSubCategoryQuartersProviders()
  * + Grand total per scientist/engineer/soldier type.
  * + Facilities providing negative living space.
  */
-void BaseInfoDetailsState::addSubCategoryQuartersUsage()
+void BaseInfoDetailsState::addSubCategoryQuarterUsage()
 {
 	size_t parentIndex = _details.size();
 	int parentId = (int)parentIndex;
@@ -1307,9 +1307,9 @@ void BaseInfoDetailsState::categoryLabs()
 	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
 	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getFreeLaboratories()));
 
-	addSubCategoryLabsProviders();
-	addSubCategoryLabsUsage();
-	addSubCategoryLabsServices();
+	addSubCategoryLabProviders();
+	addSubCategoryLabUsage();
+	addSubCategoryLabServices();
 
 	drawList();
 }
@@ -1319,7 +1319,7 @@ void BaseInfoDetailsState::categoryLabs()
  *
  * A list of base facilities providing lab space.
  */
-void BaseInfoDetailsState::addSubCategoryLabsProviders()
+void BaseInfoDetailsState::addSubCategoryLabProviders()
 {
 	size_t parentIndex = _details.size();
 	int parentId = (int)parentIndex;
@@ -1368,7 +1368,7 @@ void BaseInfoDetailsState::addSubCategoryLabsProviders()
  * Lab usage per research project is deliberately not shown.
  * We have researchState for that functionality.
  */
-void BaseInfoDetailsState::addSubCategoryLabsUsage()
+void BaseInfoDetailsState::addSubCategoryLabUsage()
 {
 	size_t parentIndex = _details.size();
 	int parentId = (int)parentIndex;
@@ -1428,7 +1428,7 @@ void BaseInfoDetailsState::addSubCategoryLabsUsage()
  * A list of facilities providing required services for research
  * appended with a list of known missing services.
  */
-void BaseInfoDetailsState::addSubCategoryLabsServices()
+void BaseInfoDetailsState::addSubCategoryLabServices()
 {
 	// Required services for research.
 	RuleBaseFacilityFunctions requiredServices;

@@ -80,8 +80,8 @@ private:
 	void addSubCategoryManaRecoveryInProgress();
 	void addSubCategoryTransformations();
 	void categoryQuarters();
-	void addSubCategoryQuartersProviders();
-	void addSubCategoryQuartersUsage();
+	void addSubCategoryQuarterProviders();
+	void addSubCategoryQuarterUsage();
 	void addSubCategoryHiringServices();
 	void categoryStorage();
 	void addSubCategoryStorageProviders();
@@ -90,9 +90,9 @@ private:
 	void addSubCategoryPurchaseLimits();
 	void addSubCategoryPurchaseCountries();
 	void categoryLabs();
-	void addSubCategoryLabsProviders();
-	void addSubCategoryLabsUsage();
-	void addSubCategoryLabsServices();
+	void addSubCategoryLabProviders();
+	void addSubCategoryLabUsage();
+	void addSubCategoryLabServices();
 	void categoryWorkshops();
 	void categoryAlienContainment();
 	void categoryHangars();
