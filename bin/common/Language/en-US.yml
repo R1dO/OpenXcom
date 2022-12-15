@@ -449,9 +449,11 @@ en-US:
   BIDS_SUBTOTAL_HANGARS_USED: "Hangar space claimed by crafts"
   STR_UNDER_CONSTRUCTION: "(under construction)"
   BIDS_DETAIL_CONTAINMENT_USAGE: "Special guests"
-  BIDS_SUBTOTAL_WORKSHOP_USED: "Projects"
-  BIDS_DETAIL_WORKSHOP_ENGINEERS: "Project engineers"
-  BIDS_DETAIL_WORKSHOP_PROJECT_SPACE: "Project starting space"
+  #STR_BIDS_SUBTOTAL_WORKSHOP_PROVIDERS: "Provides workshop space" # Use "STR_WORKSHOP" instead
+  STR_BIDS_SUBTOTAL_WORKSHOP_USERS: "Requires workshop space"
+  STR_BIDS_SUBTOTAL_WORKSHOP_SERVICES: "Specialised tinkering"
+  STR_BIDS_DETAIL_WORKSHOP_ENGINEERS: "Assigned engineers"
+  STR_BIDS_DETAIL_WORKSHOP_PROJECT_SPACE: "Projects starting space"
   BIDS_SUBTOTAL_SERVICE: "Service - {0}"
   #STR_BIDS_SUBTOTAL_LABS_PROVIDERS: "Provides lab space" # Use "STR_LABORATORIES" instead
   STR_BIDS_SUBTOTAL_LABS_USERS: "Requires lab space"
@@ -467,7 +469,7 @@ en-US:
   STR_BIDS_SUBTOTAL_LIVING_SPACE_USERS: "Requires living space"
   STR_BIDS_SUBTOTAL_LIVING_SPACE_SERVICES: "Human Resources"
   STR_BIDS_SUBTOTAL_PSI_TRAINING: "Psionic training"
-  #STR_BIDS_SUBTOTAL_GYM_TRAINING: "Gym training"
+  #STR_BIDS_SUBTOTAL_GYM_TRAINING: "Gym training" # Use "STR_PHYSICAL_TRAINING" instead
   #STR_BIDS_SUBTOTAL_WOUND_RECOVERY: "Wound recovery facilities"
   #STR_BIDS_SUBTOTAL_WOUND_RECOVERY_USAGE: "Soldiers in wound recovery"
   #STR_BIDS_SUBTOTAL_HEALTH_RECOVERY: "Health recovery facilities"

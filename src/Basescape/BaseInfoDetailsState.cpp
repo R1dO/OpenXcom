@@ -355,9 +355,9 @@ void BaseInfoDetailsState::drawBody()
 		return; // Temporal until other cases uses new scheme.
 		//break;
 	case DC_WORKSHOPS:
-		ssTitle << tr("STR_WORKSHOP");
 		categoryWorkshops();
-		break;
+		return; // Temporal until other cases uses new scheme.
+		//break;
 	case DC_CONTAINMENT:
 		ssTitle << tr("STR_ALIEN_CONTAINMENT");
 		categoryAlienContainment();
@@ -1331,7 +1331,6 @@ void BaseInfoDetailsState::addSubCategoryLabProviders()
 	row = {parentId, parentId, true, description, 0, 0, ".", ""};
 	idItem = addToDetailsVector(row, false);
 
-	// List of facilities taking away lab space.
 	int facilities = 0;
 	int providedSpace = 0;
 	for (auto *facility : *_base->getFacilities())
@@ -1455,22 +1454,141 @@ void BaseInfoDetailsState::addSubCategoryLabServices()
  * Setup workshop functionality screen.
  *
  * Recognize multiple subcategories:
- *  - Facilities contributing to Workshop space.
+ *  - Facilities contributing to workshop space.
  *  - Overview of assigned workshop space
- *    + Project base space total
- *    + Lump sum of assigned engineers
- *  - Services needed for (known) manufacture projects.
- *
- * Deliberately not shown:
- *  - Overview of details per project.
- *    + One can use the manufacture screen for that.
+ *  - Services needed for (known) workshop projects.
  */
 void BaseInfoDetailsState::categoryWorkshops()
 {
-	// Recognize workshop projects might depend on base services.
-	// We want to show facilities providing those.
-	// Based on SavedGame::getAvailableProduction()
+	_txtTitle->setText(tr("STR_WORKSHOP"));
+	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
+	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getFreeWorkshops()));
+
+	addSubCategoryWorkshopProviders();
+	addSubCategoryWorkshopUsage();
+	addSubCategoryWorkshopServices();
+
+	drawList();
+}
+
+/**
+ * Add lab space providers to _details vector.
+ *
+ * A list of base facilities providing workshop space.
+ */
+void BaseInfoDetailsState::addSubCategoryWorkshopProviders()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_WORKSHOP"); //standard/xcom#/Language
+	row = {parentId, parentId, true, description, 0, 0, ".", ""};
+	idItem = addToDetailsVector(row, false);
+
+	int facilities = 0;
+	int providedSpace = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction.
+		if (facility->getBuildTime() > 0) continue;
+		if (facility->getRules()->getWorkshops() <= 0) continue;
+
+		int itemValue = facility->getRules()->getWorkshops();
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, itemValue, {}};
+		idItem = addToDetailsVector(row, false);
+
+		facilities++;
+		providedSpace += itemValue;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex + 1);
+		_details[parentIndex].amount = facilities;
+		_details[parentIndex].amountOverride = "";
+		_details[parentIndex].value = providedSpace;
+	}
+}
+
+/**
+ * Add lab space users to _details vector.
+ *
+ * The list includes:
+ *  + Grand total of assigned engineers.
+ *  + Grand total of queued projects base space.
+ *  + Base facilities taking up workshop space.
+ *
+ * @note
+ * Workshop usage per engineering project is deliberately not shown.
+ * We have ManufactureState for that functionality.
+ */
+void BaseInfoDetailsState::addSubCategoryWorkshopUsage()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_BIDS_SUBTOTAL_WORKSHOP_USERS");
+	row = {parentId, parentId, true, description, 0, _base->getUsedLaboratories(), ".", ""};
+	idItem = addToDetailsVector(row, false);
+
+	// Start with grand totals.
+	int engineers = 0;
+	int projectSpace = 0;
+	for (auto production : _base->getProductions())
+	{
+		engineers += production->getAssignedEngineers();
+		projectSpace += production->getRules()->getRequiredSpace();
+	}
+	if (engineers > 0)
+	{
+		row = {idItem, parentId, false, tr("STR_BIDS_DETAIL_WORKSHOP_ENGINEERS") , 0, engineers, ".", ""};
+		idItem = addToDetailsVector(row, true);
+	}
+	if (projectSpace > 0)
+	{
+		row = {idItem, parentId, false, tr("STR_BIDS_DETAIL_WORKSHOP_PROJECT_SPACE") , 0, projectSpace, ".", ""};
+		idItem = addToDetailsVector(row, true);
+	}
+
+	// List of facilities taking away lab space.
+	int facilities = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction.
+		if (facility->getBuildTime() > 0) continue;
+		if (facility->getRules()->getWorkshops() >= 0) continue;
+
+		int itemValue = std::abs(facility->getRules()->getWorkshops());
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, itemValue, {}};
+		idItem = addToDetailsVector(row, false);
+
+		facilities++;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex + 1 + (engineers > 0) + (projectSpace > 0));
+		_details[parentIndex].amount = facilities;
+		_details[parentIndex].amountOverride = "";
+	}
+}
+
+/**
+ * Add facilities related to workshop services to _details vector.
+ *
+ * List of facilities providing required services for workshop projects
+ * appended with a list of known missing services.
+ */
+void BaseInfoDetailsState::addSubCategoryWorkshopServices()
+{
+	// Required services for research.
 	RuleBaseFacilityFunctions requiredServices;
+
+	std::vector<RuleResearch *> availableResearch;
 	for (auto manufactureProject : _game->getMod()->getManufactureList())
 	{
 		RuleManufacture *ruleManufacture = _game->getMod()->getManufacture(manufactureProject);
@@ -1481,113 +1599,9 @@ void BaseInfoDetailsState::categoryWorkshops()
 		requiredServices |= ruleManufacture->getRequireBaseFunc();
 	}
 	requiredServices &= _unlockedServicesBaseType;
+	if (requiredServices.none()) return;
 
-	int idItem = requiredServices.count() + 2; // Offset based on expected subtotal entries.
-	int idParent = 0;
-	int itemValue;
-	std::vector<BeanCounter> subCategories;
-	BeanCounter row;  // Workhorse
-
-	// Workshop space
-	bool hasWorkshops = false;
-	for (auto *facility : *_base->getFacilities())
-	{
-		// Skip buildings under construction.
-		if (facility->getBuildTime() > 0 || facility->getRules()->getWorkshops() == 0) continue;
-
-		hasWorkshops = true;
-		itemValue = facility->getRules()->getWorkshops();
-		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, itemValue, ""};
-		idItem = addToDetailsVector(row, false);
-	}
-	if (hasWorkshops)
-	{
-		// Subtotal
-		int subTotal = calculateSubtotalValue(idParent);
-		int subAmount = calculateSubtotalAmount(idParent);
-		row = {idParent, idParent, true, tr("STR_WORKSHOP"), subAmount, subTotal, ""};
-		subCategories.push_back(row);
-
-		idParent++;
-
-		// Usage is a separate category (in case we want more details)
-		for (auto production : _base->getProductions())
-		{
-			itemValue = production->getRules()->getRequiredSpace();
-			if (itemValue > 0)
-			{
-				row = {idItem, idParent, false, tr("BIDS_DETAIL_WORKSHOP_PROJECT_SPACE") , 1, itemValue, ""};
-				idItem = addToDetailsVector(row, true);
-			}
-			itemValue = production->getAssignedEngineers();
-			if (itemValue > 0)
-			{
-				row = {idItem, idParent, false, tr("BIDS_DETAIL_WORKSHOP_ENGINEERS") , 1, itemValue, ""};
-				idItem = addToDetailsVector(row, true);
-			}
-		}
-		subTotal = _base->getUsedWorkshops();
-		subAmount = _base->getProductions().size();
-		row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_WORKSHOP_USED"), subAmount, subTotal, ""};
-		subCategories.push_back(row);
-
-		idParent++;
-	}
-
-	// Facilities per required services
-	// Based on 'Mod::getBaseFunctionNames()' (want to test my bit field skills).
-	for (size_t bitPosition = 0; bitPosition < requiredServices.size(); ++bitPosition)
-	{
-		if (requiredServices.test(bitPosition))
-		{
-			bool providesService = false;
-			RuleBaseFacilityFunctions currentService{};
-			currentService.set(bitPosition);
-
-			for (auto *facility : *_base->getFacilities())
-			{
-				if (facility->getBuildTime() > 0) continue;
-
-				auto facilityServices = facility->getRules()->getProvidedBaseFunc();
-				if ((facilityServices & currentService).none()) continue;
-
-				providesService = true;
-				row = {idItem, idParent, false, tr(facility->getRules()->getType()), 1, 1, ""};
-				row.valueOverride = ".";
-				idItem = addToDetailsVector(row, false);
-			}
-			//if (providesService)
-			{
-				std::string serviceName = tr(_game->getMod()->getBaseFunctionNames(currentService).front());
-				int subAmount = calculateSubtotalAmount(idParent) > 0 ? calculateSubtotalAmount(idParent) : -1;
-
-				row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_SERVICE").arg(serviceName), subAmount, 1, ""};
-				row.valueOverride = providesService ? tr("STR_YES") : tr("STR_NO");
-				subCategories.push_back(row);
-
-				idParent++;
-			}
-		}
-	}
-
-	// Prefer alphabetical listing.
-	std::stable_sort(_details.begin(), _details.end(),
-		[](const BeanCounter a, const BeanCounter b)
-		{
-			return Unicode::naturalCompare(a.description, b.description);
-		}
-	);
-
-	// Add subtotals to list vector
-	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
-
-	// Ensure elements are shown below appropriate subtotal.
-	std::stable_sort(_details.begin(), _details.end(),
-		[](const BeanCounter a, const BeanCounter b)
-		{
-			return a.parentId < b.parentId;
-		}
-	);
+	addServices(requiredServices, tr("STR_BIDS_SUBTOTAL_WORKSHOP_SERVICES"));
 }
 
 /**

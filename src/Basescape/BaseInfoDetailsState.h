@@ -94,6 +94,9 @@ private:
 	void addSubCategoryLabUsage();
 	void addSubCategoryLabServices();
 	void categoryWorkshops();
+	void addSubCategoryWorkshopProviders();
+	void addSubCategoryWorkshopUsage();
+	void addSubCategoryWorkshopServices();
 	void categoryAlienContainment();
 	void categoryHangars();
 	void categoryDefense();
