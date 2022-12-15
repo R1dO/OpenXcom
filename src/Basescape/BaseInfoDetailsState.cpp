@@ -359,9 +359,9 @@ void BaseInfoDetailsState::drawBody()
 		return; // Temporal until other cases uses new scheme.
 		//break;
 	case DC_CONTAINMENT:
-		ssTitle << tr("STR_ALIEN_CONTAINMENT");
 		categoryAlienContainment();
-		break;
+		return; // Temporal until other cases uses new scheme.
+		//break;
 	case DC_HANGARS:
 		ssTitle << tr("BIDS_TITEL_HANGARS");
 		categoryHangars();
@@ -1611,81 +1611,69 @@ void BaseInfoDetailsState::addSubCategoryWorkshopServices()
  */
 void BaseInfoDetailsState::categoryAlienContainment()
 {
-	int idItem = 100; // Ensure details use childId's > than theoretical maximum subcategories of 36.
-	int idParent = 0;
-	int itemValue;
-	std::vector<BeanCounter> subCategories;
-	BeanCounter row;  // List's workhorse.
+	_txtTitle->setText(tr("STR_ALIEN_CONTAINMENT"));
+	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
+	//_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableContainment()))
 
 	// Recognize multiple containment types might exist.
+	// But only if player has knowledge about them.
 	std::set<int> containmentTypes {0}; // Default alien containment.
-	for (auto *facility : *_base->getFacilities())
+	for (auto& facility : _game->getMod()->getBaseFacilitiesList())
 	{
-		// No guardian: We want to recognize containments under construction.
-		containmentTypes.insert(facility->getRules()->getPrisonType());
+		RuleBaseFacility *rule = _game->getMod()->getBaseFacility(facility);
+		if (!(rule->getPrisonType() > 0)) continue;
+		if (!_game->getSavedGame()->isResearched(rule->getRequirements()))
+			continue;
+		// No need to check if base allows facility.
+
+		containmentTypes.insert(rule->getPrisonType());
 	}
 
 	// Facilities per Prison type
 	for (auto prisonType : containmentTypes)
 	{
-		bool hasPrisonType = false;
+		size_t parentIndex = _details.size();
+		int parentId = (int)parentIndex;
+		int idItem = parentId;
+		BeanCounter row;
+
+		// Subcategory header (show unconditionally)
+		std::string description = tr("STR_BIDS_SUBTOTAL_CONTAINMENT_TYPE").arg(trAlt("STR_ALIEN", prisonType));
+		row = {parentId, parentId, true, description, 0, 0, ".", {}};
+		idItem = addToDetailsVector(row, false);
+
+		// We want usage to be the first details row.
+		int inUse = _base->getUsedContainment(prisonType);
+		row = {idItem, parentId, false, tr("STR_BIDS_DETAIL_CONTAINMENT_USAGE"), 0, inUse, ".", {}}; // or use "trAlt() so modder can show a specified description."
+		idItem = addToDetailsVector(row, false);
+
+		int facilities = 0;
+		int allowedAliens = 0;
 		for (auto *facility : *_base->getFacilities())
 		{
-			// Skip non prison buildings or prisons of the wrong type.
-			// Allow 'under construction'.
-			if (facility->getRules()->getPrisonType() != prisonType || facility->getRules()->getAliens() == 0)
-				continue;
+			if (facility->getBuildTime() > 0) continue;
+			if (facility->getRules()->getPrisonType() != prisonType) continue;
+			if (facility->getRules()->getAliens() == 0) continue;
 
-			hasPrisonType = true;
-			std::ostringstream facilityName;
-
-			facilityName << tr(facility->getRules()->getType());
-			if (facility->getBuildTime() > 0)
-			{
-				facilityName << " " << tr("STR_UNDER_CONSTRUCTION");
-			}
-			itemValue = facility->getRules()->getAliens();
-			row = {idItem, idParent, false, facilityName.str().c_str(), 1, itemValue, ""};
+			int cells = facility->getRules()->getAliens();
+			row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, cells, {}};
 			idItem = addToDetailsVector(row, false);
+
+			allowedAliens += cells;
+			facilities++;
 		}
-		if (hasPrisonType)
+		if (facilities > 0)
 		{
-			int inUse = _base->getUsedContainment(prisonType);
-			// Total usage detail row.
-			row = {idItem, idParent, false, tr("BIDS_DETAIL_CONTAINMENT_USAGE"), inUse, 1, ""}; // or use "trAlt() so modder can show a specified description."
-			row.valueOverride = trAlt("STR_ALIEN", prisonType);
-			idItem = addToDetailsVector(row, false);
-
-			// Subtotal
-			std::ostringstream description, usage;
-			description << tr("STR_ALIEN_CONTAINMENT") << " - " << trAlt("STR_ALIEN", prisonType);
-			int subTotal = _base->getAvailableContainment(prisonType);
-			row = {idParent, idParent, true, description.str().c_str(), -1, subTotal, ""};
-			usage << inUse << "/" << subTotal;
-			row.valueOverride = usage.str();
-			subCategories.push_back(row);
+			sortChildren(parentIndex + 2); // 2 <-- Subtotal and usage row.
+			_details[parentIndex].amount = facilities;
+			_details[parentIndex].amountOverride = "";
+			_details[parentIndex].valueOverride = tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(inUse).arg(allowedAliens);
 		}
-		idParent++;
+
+		parentId++;
 	}
 
-	// Prefer alphabetical listing.
-	std::stable_sort(_details.begin(), _details.end(),
-		[](const BeanCounter a, const BeanCounter b)
-		{
-			return Unicode::naturalCompare(a.description, b.description);
-		}
-	);
-
-	// Add subtotals to list vector
-	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
-
-	// Ensure elements are shown below appropriate subtotal.
-	std::stable_sort(_details.begin(), _details.end(),
-		[](const BeanCounter a, const BeanCounter b)
-		{
-			return a.parentId < b.parentId;
-		}
-	);
+	drawList();
 }
 
 /**

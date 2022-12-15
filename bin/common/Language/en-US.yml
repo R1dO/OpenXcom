@@ -448,7 +448,8 @@ en-US:
   BIDS_TITEL_HANGARS: "Hangar space"
   BIDS_SUBTOTAL_HANGARS_USED: "Hangar space claimed by crafts"
   STR_UNDER_CONSTRUCTION: "(under construction)"
-  BIDS_DETAIL_CONTAINMENT_USAGE: "Special guests"
+  STR_BIDS_SUBTOTAL_CONTAINMENT_TYPE: "Prison - {0}" # >>>. "Prison - Alien"
+  STR_BIDS_DETAIL_CONTAINMENT_USAGE: "Special guests"
   #STR_BIDS_SUBTOTAL_WORKSHOP_PROVIDERS: "Provides workshop space" # Use "STR_WORKSHOP" instead
   STR_BIDS_SUBTOTAL_WORKSHOP_USERS: "Requires workshop space"
   STR_BIDS_SUBTOTAL_WORKSHOP_SERVICES: "Specialised tinkering"
