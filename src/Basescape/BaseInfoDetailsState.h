@@ -98,6 +98,7 @@ private:
 	void addSubCategoryWorkshopUsage();
 	void addSubCategoryWorkshopServices();
 	void categoryAlienContainment();
+	void addSubCategoryContainmentType(int type = 0);
 	void categoryHangars();
 	void categoryDefense();
 	void categoryDetection();

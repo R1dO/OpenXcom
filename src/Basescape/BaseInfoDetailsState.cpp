@@ -1632,48 +1632,62 @@ void BaseInfoDetailsState::categoryAlienContainment()
 	// Facilities per Prison type
 	for (auto prisonType : containmentTypes)
 	{
-		size_t parentIndex = _details.size();
-		int parentId = (int)parentIndex;
-		int idItem = parentId;
-		BeanCounter row;
-
-		// Subcategory header (show unconditionally)
-		std::string description = tr("STR_BIDS_SUBTOTAL_CONTAINMENT_TYPE").arg(trAlt("STR_ALIEN", prisonType));
-		row = {parentId, parentId, true, description, 0, 0, ".", {}};
-		idItem = addToDetailsVector(row, false);
-
-		// We want usage to be the first details row.
-		int inUse = _base->getUsedContainment(prisonType);
-		row = {idItem, parentId, false, tr("STR_BIDS_DETAIL_CONTAINMENT_USAGE"), 0, inUse, ".", {}}; // or use "trAlt() so modder can show a specified description."
-		idItem = addToDetailsVector(row, false);
-
-		int facilities = 0;
-		int allowedAliens = 0;
-		for (auto *facility : *_base->getFacilities())
-		{
-			if (facility->getBuildTime() > 0) continue;
-			if (facility->getRules()->getPrisonType() != prisonType) continue;
-			if (facility->getRules()->getAliens() == 0) continue;
-
-			int cells = facility->getRules()->getAliens();
-			row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, cells, {}};
-			idItem = addToDetailsVector(row, false);
-
-			allowedAliens += cells;
-			facilities++;
-		}
-		if (facilities > 0)
-		{
-			sortChildren(parentIndex, 1);
-			_details[parentIndex].amount = facilities;
-			_details[parentIndex].amountOverride = "";
-			_details[parentIndex].valueOverride = tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(inUse).arg(allowedAliens);
-		}
-
-		parentId++;
+		addSubCategoryContainmentType(prisonType);
 	}
 
 	drawList();
+}
+
+/**
+ * Add containment type to _details vector.
+ *
+ * The list includes:
+ *  + Defined type usage (e.g. amount of captives).
+ *  + Facilities providing containment space for specified type
+ *
+ * @param type Integer denoting the containment type.
+ */
+void BaseInfoDetailsState::addSubCategoryContainmentType(int type)
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_BIDS_SUBTOTAL_CONTAINMENT_TYPE").arg(trAlt("STR_ALIEN", type));
+	row = {parentId, parentId, true, description, 0, 0, ".", {}};
+	idItem = addToDetailsVector(row, false);
+
+	// We want usage to be the first details row.
+	int inUse = _base->getUsedContainment(type);
+	row = {idItem, parentId, false, tr("STR_BIDS_DETAIL_CONTAINMENT_USAGE"), 0, inUse, ".", {}}; // or use "trAlt() so modder can show a specified description."
+	idItem = addToDetailsVector(row, false);
+
+	int facilities = 0;
+	int allowedAliens = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		if (facility->getBuildTime() > 0) continue;
+		if (facility->getRules()->getPrisonType() != type) continue;
+		if (facility->getRules()->getAliens() == 0) continue; // Allow display of negative space.
+
+		int cells = facility->getRules()->getAliens();
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, cells, {}};
+		idItem = addToDetailsVector(row, false);
+
+		allowedAliens += cells;
+		facilities++;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex, 1);
+		_details[parentIndex].amount = facilities;
+		_details[parentIndex].amountOverride = "";
+		_details[parentIndex].valueOverride = tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(inUse).arg(allowedAliens);
+	}
+
+	parentId++;
 }
 
 /**
