@@ -2206,13 +2206,13 @@ std::string BaseInfoDetailsState::toStringPercent(float value)
 *
 * Sorts the tail of the _details vector.
 *
-* @param startIndex Location of the subtotal row.
-* @param skipChilds Amount of child rows to be left untouched.
+* @param parentIndex Index of subtotal row.
+* @param skipChildren Amount of child rows to be left untouched.
 */
-void BaseInfoDetailsState::sortChildren(size_t startIndex, int skipChilds)
+void BaseInfoDetailsState::sortChildren(size_t parentIndex, int skipChildren)
 {
-	size_t offset = 1 + skipChilds; // 1 >>> The header row
-	std::sort(std::next(_details.begin(), startIndex + offset), _details.end(),
+	size_t offset = 1 + skipChildren; // 1 >>> The header row
+	std::sort(std::next(_details.begin(), parentIndex + offset), _details.end(),
 		[](const BeanCounter a, const BeanCounter b)
 		{ return Unicode::naturalCompare(a.description, b.description); }
 	);
