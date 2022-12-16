@@ -363,9 +363,9 @@ void BaseInfoDetailsState::drawBody()
 		return; // Temporal until other cases uses new scheme.
 		//break;
 	case DC_HANGARS:
-		ssTitle << tr("BIDS_TITEL_HANGARS");
 		categoryHangars();
-		break;
+		return; // Temporal until other cases uses new scheme.
+		//break;
 	case DC_DEFENSE:
 		ssTitle << tr("BIDS_TITEL_DEFENSE");
 		categoryDefense();
@@ -1693,94 +1693,126 @@ void BaseInfoDetailsState::addSubCategoryContainmentType(int type)
 /**
  * Setup hangar providers (and usage) screen.
  *
- * Recognize 2 subtotals may exist:
- * (0) Facilities proving hangar space
- * (1) Crafts demanding hangar space
+ * Recognize 2 subtotals:
+ * + Providers of hangar space
+ * + Users of hangar space.
 */
 void BaseInfoDetailsState::categoryHangars()
 {
-	int idItem = 2; // Offset based on expected subtotal entries.
-	int idParent = 0;   // Let parentId represent the numbers as described in method description.
-	int itemValue;  // Always positive, unless a subtotal.
-	std::vector<BeanCounter> subCategories;
+	_txtTitle->setText(tr("STR_HANGARS")); // common/language/Technical
+	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
+	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableHangars() - _base->getUsedHangars()));
+
+	addSubCategoryHangarProviders();
+	addSubCategoryHangarUsage();
+
+	drawList();
+}
+
+/**
+ * Add hangar space providers to _details vector.
+ *
+ * A list of base facilities providing hangar space.
+ */
+void BaseInfoDetailsState::addSubCategoryHangarProviders()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
 	BeanCounter row;
 
-	// Hangar space provided
+	// Subcategory header (show unconditionally)
+	row = {parentId, parentId, true, tr("STR_BIDS_SUBTOTAL_HANGARS_PROVIDERS"), 0, _base->getAvailableHangars(), {}};
+	idItem = addToDetailsVector(row, false);
+
+	int facilities = 0;
 	for (auto *facility : *_base->getFacilities())
 	{
-		// Skip buildings under construction and non-hangars.
-		if (facility->getBuildTime() > 0 || facility->getRules()->getCrafts() == 0) continue;
+		int itemValue = facility->getRules()->getCrafts();
+		if (facility->getBuildTime() > 0 || itemValue <= 0) continue;
 
-		// Hangar space per facility type
-		itemValue = facility->getRules()->getCrafts();
-		row = {idItem, idParent, false, tr(facility->getRules()->getType()) , 1, itemValue, ""};
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()) , 1, itemValue, {}};
 		idItem = addToDetailsVector(row, false);
+
+		facilities++;
 	}
-	// Unconditionally show subCategory.
+	if (facilities > 0)
 	{
-		int subTotal = calculateSubtotalValue(idParent);
-		int subAmount = calculateSubtotalAmount(idParent);
-
-		row = {idParent, idParent, true, tr("STR_HANGARS"), subAmount, subTotal, ""};
-		subCategories.push_back(row);
-
-		idParent++;
+		sortChildren(parentIndex);
+		_details[parentIndex].amount = facilities;
 	}
+}
 
-	// Hangar space claimed
-	// Not sure:
-	//  Does not add info that is not visible in the same way elsewhere
-	//  Unless the option of craft requiring specific hangars (or craft
-	//  requiring more hangar space) comes into play.
-	bool hasCrafts = false;
+/**
+ * Add overview of claimed hangar space to _details vector.
+ *
+ * A list including the following elements:
+ * + Crafts demanding hangar space.
+ * + Facilities providing negative hangar space.
+ */
+void BaseInfoDetailsState::addSubCategoryHangarUsage()
+{
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	int itemValue = 0;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_BIDS_SUBTOTAL_HANGARS_USERS");
+	row = {parentId, parentId, true, description, 0, 0, ".", ""};
+	idItem = addToDetailsVector(row, false);
+
+	// Start with crafts.
+	// Does not add that much info that isn't visible elsewhere already.
+	// Included anyway since category view would be kinda empty otherwise.
+	// This is the place to adapt if crafts start to require specific hangars
+	// or more than 1 space.
+	int spaceUsage = 0;
 	for (auto craft : *_base->getCrafts())
 	{
-		hasCrafts = true;
-		// itemValue = 1; // Unless that becomes a mod variable.
-		row = {idItem, idParent, false, craft->getName(_game->getLanguage()), 1, 1, ""};
+		itemValue = 1; // in case it becomes a mod variable.
+		row = {idItem, parentId, false, craft->getName(_game->getLanguage()), 0, itemValue, ".", {}};
 		idItem = addToDetailsVector(row, false);
+		spaceUsage++;
 	}
 	for (auto transfer : *_base->getTransfers())
 	{
 		if (transfer->getType() == TRANSFER_CRAFT)
 		{
-			hasCrafts = true;
-			std::ostringstream craftName;
-			craftName << transfer->getName(_game->getLanguage());
-			craftName << " (" << tr("STR_TRANSFER") << ")";
-			row = {idItem, idParent, false, craftName.str().c_str(), 1, 1, ""};
+			itemValue = 1; // in case it becomes a mod variable.
+			description = tr("STR_BIDS_DETAIL_HANGARS_CRAFT_TRANSFER").arg(transfer->getName(_game->getLanguage()));
+			row = {idItem, parentId, false, description, 0, itemValue, ".", {}};
 			idItem = addToDetailsVector(row, false);
+			spaceUsage += itemValue;
 		}
 	}
-	if (hasCrafts)
+
+	// Facilities providing negative space.
+	// For display consistency, not sure what those facilities would break in other parts of the code.
+	int facilities = 0;
+	for (auto *facility : *_base->getFacilities())
 	{
-		int subTotal = calculateSubtotalValue(idParent);
-		int subAmount = calculateSubtotalAmount(idParent);
+		itemValue = facility->getRules()->getCrafts();
+		if (facility->getBuildTime() > 0 || itemValue >= 0) continue;
 
-		row = {idParent, idParent, true, tr("BIDS_SUBTOTAL_HANGARS_USED"), subAmount, subTotal, ""};
-		subCategories.push_back(row);
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, std::abs(itemValue), {}};
+		idItem = addToDetailsVector(row, false);
 
-		idParent++;
+		facilities++;
+		spaceUsage += itemValue;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex);
+		_details[parentIndex].amount = facilities;
+		_details[parentIndex].amountOverride = "";
+	}
+	if (spaceUsage > 0)
+	{
+		_details[parentIndex].value = spaceUsage;
 	}
 
-	// Prefer alphabetical listing of detailed rows.
-	std::stable_sort(_details.begin(), _details.end(),
-		[](const BeanCounter a, const BeanCounter b)
-		{
-			return Unicode::naturalCompare(a.description, b.description);
-		}
-	);
-
-	// Add subtotals to list vector
-	_details.insert(_details.begin(), subCategories.begin(), subCategories.end());
-
-	// Ensure elements are shown below appropriate subtotal.
-	std::stable_sort(_details.begin(), _details.end(),
-		[](const BeanCounter a, const BeanCounter b)
-		{
-			return a.parentId < b.parentId;
-		}
-	);
 }
 
 /**

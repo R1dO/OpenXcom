@@ -445,9 +445,10 @@ en-US:
   BIDS_SUBTOTAL_ALIEN_BASE_DETECTION: "Alien Base detection {0} NM" # Uses ICAO symbol
   BIDS_TITEL_DEFENSE: "Base defense"
   BIDS_SUBTOTAL_GRAV_SHIELD: "Gravity shield defense passes" # TFTD: Bombardmend shield; Generic: Intel ?
-  BIDS_TITEL_HANGARS: "Hangar space"
-  BIDS_SUBTOTAL_HANGARS_USED: "Hangar space claimed by crafts"
   STR_UNDER_CONSTRUCTION: "(under construction)"
+  STR_BIDS_SUBTOTAL_HANGARS_PROVIDERS: "Provided hangar space"
+  STR_BIDS_SUBTOTAL_HANGARS_USERS: "Requires hangar space"
+  STR_BIDS_DETAIL_HANGARS_CRAFT_TRANSFER: "{0} (in transfer)"
   STR_BIDS_SUBTOTAL_CONTAINMENT_TYPE: "Prison - {0}" # >>>. "Prison - Alien"
   STR_BIDS_DETAIL_CONTAINMENT_USAGE: "Special guests"
   #STR_BIDS_SUBTOTAL_WORKSHOP_PROVIDERS: "Provides workshop space" # Use "STR_WORKSHOP" instead

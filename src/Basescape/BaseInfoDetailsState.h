@@ -100,6 +100,8 @@ private:
 	void categoryAlienContainment();
 	void addSubCategoryContainmentType(int type = 0);
 	void categoryHangars();
+	void addSubCategoryHangarProviders();
+	void addSubCategoryHangarUsage();
 	void categoryDefense();
 	void categoryDetection();
 
