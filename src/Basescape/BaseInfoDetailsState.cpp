@@ -1840,7 +1840,7 @@ void BaseInfoDetailsState::categoryDefense()
 
 	addSubCategoryDefenseStrength();
 	addSubCategoryDefenseChance();
-	addSubCategoryMindShield();
+	addSubCategoryGravShield();
 
 	drawList();
 }
@@ -1931,11 +1931,11 @@ void BaseInfoDetailsState::addSubCategoryDefenseChance()
 }
 
 /**
- * Add defense hit ratio overview to _details vector.
+ * Add grav shields to _details vector.
  *
- * A list of base facilities contributing to defense hit ratio.
+ * A list of base facilities contributing to extra defense rounds.
  */
-void BaseInfoDetailsState::addSubCategoryMindShield()
+void BaseInfoDetailsState::addSubCategoryGravShield()
 {
 	size_t parentIndex = _details.size();
 	int parentId = (int)parentIndex;

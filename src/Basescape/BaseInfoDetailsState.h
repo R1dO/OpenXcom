@@ -105,7 +105,7 @@ private:
 	void categoryDefense();
 	void addSubCategoryDefenseStrength();
 	void addSubCategoryDefenseChance();
-	void addSubCategoryMindShield();
+	void addSubCategoryGravShield();
 	void categoryDetection();
 
 	void drawList();
