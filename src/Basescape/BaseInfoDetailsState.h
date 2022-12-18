@@ -29,6 +29,7 @@ class TextButton;
 class Window;
 class Text;
 class TextList;
+class RuleItem;
 
 enum DetailsCategory {
 	DC_SOLDIERS, DC_ENGINEERS, DC_SCIENTISTS,
@@ -106,6 +107,7 @@ private:
 	void addSubCategoryDefenseStrength();
 	void addSubCategoryDefenseChance();
 	void addSubCategoryGravShield();
+	void addSubCategoryDefenseAmmo(const RuleItem* ammo);
 	void categoryDetection();
 
 	void drawList();

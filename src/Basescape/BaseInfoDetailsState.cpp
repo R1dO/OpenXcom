@@ -1822,6 +1822,7 @@ void BaseInfoDetailsState::addSubCategoryHangarUsage()
  *  - Defense strength
  *  - Defense hitchances.
  *  - Gravitational shields (in oxc they stack).
+ *  - Ammunition usage.
  *
  * Will not show the following:
  * + Missile attraction of a facility.
@@ -1838,9 +1839,27 @@ void BaseInfoDetailsState::categoryDefense()
 	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
 	_txtTotal->setText("");
 
+	// Recognise defense facilities might require ammo.
+	// But only if player has knowledge about them.
+	std::set<const RuleItem*> ammoItems; // Default alien containment.
+	for (auto& facility : _game->getMod()->getBaseFacilitiesList())
+	{
+		RuleBaseFacility *rule = _game->getMod()->getBaseFacility(facility);
+		if (!rule->getAmmoItem()) continue;
+		if (!_game->getSavedGame()->isResearched(rule->getRequirements()))
+			continue;
+		// No need to check if base allows facility.
+
+		ammoItems.insert(rule->getAmmoItem());
+	}
+
 	addSubCategoryDefenseStrength();
 	addSubCategoryDefenseChance();
 	addSubCategoryGravShield();
+	for (auto ammoItem : ammoItems)
+	{
+		addSubCategoryDefenseAmmo(ammoItem);
+	}
 
 	drawList();
 }
@@ -1966,6 +1985,56 @@ void BaseInfoDetailsState::addSubCategoryGravShield()
 	}
 }
 
+/**
+ * Add specific ammo usage to  _details vector.
+ *
+ * The amount required for a single defense cycle. Using the listed
+ * gravitational shields a player can deduce an upper limit themselves.
+ *
+ * @param ammo Pointer to ruleset of required ammo.
+ */
+void BaseInfoDetailsState::addSubCategoryDefenseAmmo(const RuleItem* ammo)
+{
+	if (!ammo) return;
+
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_BIDS_SUBTOTAL_AMMO_REQUIRED").arg(tr(ammo->getName()));
+	row = {parentId, parentId, true, description, 0, 0, ".", {}};
+	idItem = addToDetailsVector(row, false);
+
+	// Let first row show amount available on base.
+	int ammoAvailable = _base->getStorageItems()->getItem(ammo);
+	row = {idItem, parentId, false, tr("STR_AMMUNITION_AVAILABLE"), 0, ammoAvailable, ".", {}};  // From: standard/xcom#/Language
+	idItem = addToDetailsVector(row, false);
+
+	int facilities = 0;
+	int roundsPerCycle = 0;
+	for (auto *facility : *_base->getFacilities())
+	{
+		if (facility->getBuildTime() > 0) continue;
+		if (facility->getRules()->getAmmoItem() != ammo) continue;
+
+		int rounds = facility->getRules()->getAmmoNeeded();
+		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, rounds, {}};
+		idItem = addToDetailsVector(row, false);
+
+		roundsPerCycle += rounds;
+		facilities++;
+	}
+	if (facilities > 0)
+	{
+		sortChildren(parentIndex, 1);
+		_details[parentIndex].amount = facilities;
+		_details[parentIndex].amountOverride = "";
+		_details[parentIndex].value = roundsPerCycle;
+		_details[parentIndex].valueOverride = tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(ammoAvailable).arg(roundsPerCycle);
+	}
+}
 
 /**
  * Setup base detection abilities and camouflage screen.

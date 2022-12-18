@@ -446,6 +446,7 @@ en-GB:
   STR_UNDER_CONSTRUCTION: "(under construction)"
   #BIDS_TITEL_DEFENSE: "Base defense" # Use "STR_DEFENSE_STRENGTH"
   STR_BIDS_SUBTOTAL_GRAV_SHIELD: "Gravity shields" # TFTD: Bombardmend shield
+  STR_BIDS_SUBTOTAL_AMMO_REQUIRED: "Ammo - {0}" # >>> Ammo - Avalanche
   STR_BIDS_SUBTOTAL_HANGARS_PROVIDERS: "Provided hangar space"
   STR_BIDS_SUBTOTAL_HANGARS_USERS: "Requires hangar space"
   STR_BIDS_DETAIL_HANGARS_CRAFT_TRANSFER: "{0} (in transfer)"
