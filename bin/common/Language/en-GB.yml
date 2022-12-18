@@ -443,9 +443,9 @@ en-GB:
   #STR_NAUTICAL_MILES_SHORT: "{0} NM" # Uses ICAO symbol
   #STR_DYNAMIC: "Distance based"
   BIDS_SUBTOTAL_ALIEN_BASE_DETECTION: "Alien Base detection {0} NM" # Uses ICAO symbol
-  BIDS_TITEL_DEFENSE: "Base defense"
-  BIDS_SUBTOTAL_GRAV_SHIELD: "Gravity shield defense passes" # TFTD: Bombardmend shield; Generic: Intel ?
   STR_UNDER_CONSTRUCTION: "(under construction)"
+  #BIDS_TITEL_DEFENSE: "Base defense" # Use "STR_DEFENSE_STRENGTH"
+  STR_BIDS_SUBTOTAL_GRAV_SHIELD: "Gravity shields" # TFTD: Bombardmend shield
   STR_BIDS_SUBTOTAL_HANGARS_PROVIDERS: "Provided hangar space"
   STR_BIDS_SUBTOTAL_HANGARS_USERS: "Requires hangar space"
   STR_BIDS_DETAIL_HANGARS_CRAFT_TRANSFER: "{0} (in transfer)"

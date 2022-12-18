@@ -103,6 +103,9 @@ private:
 	void addSubCategoryHangarProviders();
 	void addSubCategoryHangarUsage();
 	void categoryDefense();
+	void addSubCategoryDefenseStrength();
+	void addSubCategoryDefenseChance();
+	void addSubCategoryMindShield();
 	void categoryDetection();
 
 	void drawList();
