@@ -33,6 +33,8 @@ class TextList;
 class ComboBox;
 class Timer;
 class Base;
+class ArrowButton;
+class ItemContainer;
 
 /**
  * Equipment screen that lets the player
@@ -44,13 +46,13 @@ private:
 	TextButton *_btnOk, *_btnClear, *_btnInventory;
 	TextEdit *_btnQuickSearch;
 	Window *_window;
-	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew;
+	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew, *_txtItemLimitAmount, *_txtItemLimitSize;
 	std::vector<std::string> _categoryStrings;
 	std::map<std::string, bool> _usedCategoryStrings;
 	ComboBox *_cbxFilterBy;
 	TextList *_lstEquipment;
 	size_t _lstScroll;
-	Timer *_timerLeft, *_timerRight;
+	Timer *_timerLeft, *_timerRight, *_timerAllItemsLeft, *_timerAllItemsRight;
 	size_t _sel, _craft;
 	Base *_base;
 	std::vector<std::string> _items;
@@ -62,6 +64,16 @@ private:
 	void updateQuantity();
 	/// initializes the displayed list
 	void initList();
+
+	/// Do we use the alternate base screen option?
+	bool _showClaimedItems;
+	/// Items soldiers have laid a claim on.
+	const ItemContainer* _soldierClaimItems;
+
+	void updateSubtitleArea();
+	std::string createAssignedToSoldiersString(const int craftQty, const int claimQty) const;
+	/// Buttons to act on the whole list
+	ArrowButton *_arrowAllItemsLeft, *_arrowAllItemsRight;
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);
@@ -92,6 +104,20 @@ public:
 	void lstEquipmentRightArrowClick(Action *action);
 	/// Handler for pressing-down a mouse-button in the list.
 	void lstEquipmentMousePress(Action *action);
+
+	/// Handler for pressing the Move Left all items arrow button.
+	void allItemsLeftArrowPress(Action *action);
+	/// Handler for releasing the Move Left all items arrow button.
+	void allItemsLeftArrowRelease(Action *action);
+	/// Handler for clicking the Move Left all items arrow button.
+	void allItemsLeftArrowClick(Action *action);
+	/// Handler for pressing the Move Right all items arrow button.
+	void allItemsRightArrowPress(Action *action);
+	/// Handler for releasing the Move Right all items arrow button.
+	void allItemsRightArrowRelease(Action *action);
+	/// Handler for clicking the Move Right all items arrow button.
+	void allItemsRightArrowClick(Action *action);
+
 	/// Moves an item to the base.
 	void moveLeft();
 	/// Moves the given number of items to the base.
@@ -100,6 +126,16 @@ public:
 	void moveRight();
 	/// Moves the given number of items to the craft.
 	void moveRightByValue(int change, bool suppressErrors = false);
+
+	/// Moves all item types to the craft.
+	void moveAllVisibleItemsRight();
+	/// Moves the given number of all items to the craft.
+	void moveAllVisibleItemsRightByValue(int change);
+	/// Moves all item types to the base.
+	void moveAllVisibleItemsLeft();
+	/// Moves the given number of all items to the base.
+	void moveAllVisibleItemsLeftByValue(int change);
+
 	/// Empties the contents of the craft, moving all of the items back to the base.
 	void btnClearClick(Action *action);
 	/// Handler for clicking the Inventory button.

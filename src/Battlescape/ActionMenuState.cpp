@@ -225,7 +225,46 @@ void ActionMenuState::addItem(BattleActionType ba, const std::string &name, int 
 	int tu = _action->actor->getActionTUs(ba, _action->weapon).Time;
 
 	if (ba == BA_THROW || ba == BA_AIMEDSHOT || ba == BA_SNAPSHOT || ba == BA_AUTOSHOT || ba == BA_LAUNCH || ba == BA_HIT)
+	{
 		s1 = tr("STR_ACCURACY_SHORT").arg(Unicode::formatPercentage(acc));
+
+		// Research check (recognizes throw accuracy should not depend on advanced item stats).
+		if (Options::alternateBaseScreens && ba != BA_THROW)
+		{
+			// Lambda based on "InventoryState::isItemStatsKnown()"
+			auto isItemStatsKnown = [&](BattleItem *item) -> bool
+			{
+				if (!item || !item->getRules() || !_action->actor)
+					return false;
+
+				// Skirmish mode
+				if (_game->getSavedGame()->getMonthsPassed() == -1)
+					return true;
+
+				// If we reach this part PSI and Mana are known or not required.
+				// Handled by 'ActionMenuState()'.
+
+				// Research check, ends up using a BattleItem's cached value.
+				if (!item->isItemStatsKnown(_game->getSavedGame(), _game->getMod()))
+					return false;
+
+				return true;
+			};
+
+			// Recursive lambda's are outside my comfort zone, lets fall back to known coding.
+			BattleItem *currentAmmo = (_action->weapon->isWeaponWithAmmo()  ? _action->weapon->getAmmoForAction(ba) : nullptr);
+
+			// Replace acc with ? under following conditions:
+			// "Weapon is not researched" OR
+			// "Weapon is researched but it has ammo that is not researched"
+			// No problem if a weapon needs ammo but slot is currently empty, assume accuracy shown is for weapon only.
+			if (!isItemStatsKnown(_action->weapon) || (currentAmmo && !isItemStatsKnown(currentAmmo)))
+			{
+				s1 = tr("STR_ACCURACY_SHORT").arg("?");
+			}
+		}
+	}
+
 	s2 = tr("STR_TIME_UNITS_SHORT").arg(tu);
 	_actionMenu[*id]->setAction(ba, tr(name), s1, s2, tu);
 	_actionMenu[*id]->setVisible(true);

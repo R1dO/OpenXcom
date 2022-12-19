@@ -1329,8 +1329,45 @@ void Map::drawTerrain(Surface *surface)
 										accuracy = 0;
 										_txtAccuracy->setColor(Palette::blockOffset(Pathfinding::red - 1) - 1);
 									}
-									ss << accuracy;
-									ss << "%";
+
+									// Check if accuracy is known, based on "ActionMenuState::addItem()".
+									if (Options::alternateBaseScreens)
+									{
+										auto isItemStatsKnown = [&](BattleItem *item) -> bool
+										{
+											if (!item || !item->getRules() || !action->actor)
+												return false;
+
+											// Skirmish mode
+											if (_game->getSavedGame()->getMonthsPassed() == -1)
+												return true;
+
+											// If we are allowed to shoot PSI and Mana are known or not required.
+
+											// Research check, ends up using a BattleItem's cached value.
+											if (!item->isItemStatsKnown(_game->getSavedGame(), _game->getMod()))
+												return false;
+
+											return true;
+										};
+
+										// Recursive lambda's are outside my comfort zone, lets fall back to known coding.
+										BattleItem *currentAmmo = (action->weapon->isWeaponWithAmmo()  ? action->weapon->getAmmoForAction(action->type) : nullptr);
+
+										// Replace accuracy with ? under following conditions:
+										// "Weapon is not researched" OR
+										// "Weapon is researched but it has ammo that is not researched"
+										// No problem if a weapon needs ammo but slot is currently empty, assume accuracy shown is for weapon only.
+										if (!isItemStatsKnown(action->weapon) || (currentAmmo && !isItemStatsKnown(currentAmmo)))
+										{
+											ss << "?";
+										}
+									}
+									if (ss.str().empty())
+									{
+										ss << accuracy;
+										ss << "%";
+									}
 								}
 
 								//TODO: merge this code with `InventoryState::calculateCurrentDamageTooltip` as 90% is same or should be same

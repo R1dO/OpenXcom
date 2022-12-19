@@ -1424,6 +1424,22 @@ interfaces:
         color: 218   # blue
       - id: button
         color: 241   # pink
+  - type: costInfoDetails
+    backgroundImage: BACK13.SCR
+    palette: PAL_BASESCAPE
+    elements:
+      - id: palette
+        color: 6     # oxide
+      - id: window
+        color: 246   # purple
+      - id: button
+        color: 246   # purple
+      - id: text
+        color: 246   # purple
+        color2: 208   # white
+      - id: list
+        color: 218   # blue
+        color2: 208   # white
   - type: soldierList
     backgroundImage: BACK02.SCR
     palette: PAL_BASESCAPE
@@ -1963,19 +1979,19 @@ interfaces:
         color: 64
         color2: 16
       - id: textStatLine1
-        custom: 1
+        custom: 11
         color: 64
         color2: 16
       - id: textStatLine2
-        custom: 2
+        custom: 12
         color: 64
         color2: 16
       - id: textStatLine3
-        custom: 3
+        custom: 13
         color: 64
         color2: 16
       - id: textStatLine4
-        custom: 4
+        custom: 14
         color: 64
         color2: 16
       - id: textItem

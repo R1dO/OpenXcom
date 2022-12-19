@@ -28,6 +28,7 @@ class Window;
 class TextButton;
 class Text;
 class TextList;
+class RuleItem;
 
 /**
  * Screen which displays needed elements to start productions (items/required workshop state/cost to build a unit, ...).
@@ -41,6 +42,7 @@ private:
 	TextButton *_btnCancel, *_btnStart;
 	Text *_txtTitle, *_txtManHour, *_txtCost, *_txtWorkSpace, *_txtRequiredItemsTitle, *_txtItemNameColumn, *_txtUnitRequiredColumn, *_txtUnitAvailableColumn;
 	TextList *_lstRequiredItems;
+	std::vector<std::pair<int, const RuleItem*> > _requiredItemMap;
 public:
 	/// Creates the State.
 	ManufactureStartState(Base *base, RuleManufacture *item);
@@ -48,6 +50,8 @@ public:
 	void btnCancelClick(Action *action);
 	/// Handler for the start button.
 	void btnStartClick(Action *action);
+	// Handler for RMB on required Items
+	void lstRequiredClickRight(Action *action);
 };
 
 }

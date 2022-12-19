@@ -26,6 +26,7 @@ class Window;
 class Text;
 class TextButton;
 class TextList;
+class TextEdit;
 
 /**
  * Window which displays manufacture dependencies tree.
@@ -33,13 +34,34 @@ class TextList;
 class ManufactureDependenciesTreeState : public State
 {
 private:
+	struct TopicsBackend
+	{
+		int childId = 0; // Duplicate numbers are allowed (it only needs to be >= parentId)
+		int parentId = 0;
+		bool isVisible = false;
+		std::string description;
+	};
+
 	Window *_window;
 	Text *_txtTitle;
 	TextList *_lstTopics;
-	TextButton *_btnOk, *_btnShowAll;
+	TextEdit *_btnQuickSearch;
+	TextButton *_btnOk, *_btnShowAll, *_btnToggle;
 	std::string _selectedItem;
 	bool _showAll;
-	void initList();
+	void drawList();
+
+	std::vector<TopicsBackend> _topics;
+	std::vector<size_t> _indices;
+	size_t _sel;
+	TopicsBackend &getTopic() { return _topics[_indices[_sel]]; }
+
+	void addResearchSection(int& startParentId);
+	void addHowToAcquireItemSections(int& startParentId);
+	void addNeededForSpecialsSections(int& startParentId);
+	void addNeededForManufactureSections(int& startParentId);
+	void fillTopicsList();
+
 public:
 	/// Creates the ManufactureDependenciesTree state.
 	ManufactureDependenciesTreeState(const std::string &selectedItem);
@@ -51,5 +73,10 @@ public:
 	void btnOkClick(Action *action);
 	/// Handler for clicking the [Show All] button.
 	void btnShowAllClick(Action *action);
+	/// Handler for RMB click on list.
+	void lstTopicsClickRight(Action *Action);
+	/// Handlers for Quick Search.
+	void btnQuickSearchToggle(Action *action);
+	void btnQuickSearchApply(Action *action);
 };
 }

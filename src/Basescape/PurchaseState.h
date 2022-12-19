@@ -44,6 +44,35 @@ class RuleItem;
 class PurchaseState : public State
 {
 private:
+	/**
+	 * 'Tailored' struct for the spreadsheet.
+	 */
+	struct PurchaseRow
+	{
+		TransferType type;              ///< Item category.
+		const void *rule;               ///< Pointer to ruleset of item.
+		std::string name;               ///< Translated name of item.
+		int cost;                       ///< Purchase cost of item.
+		/** Starting amounts
+		 *
+		 * + Src: On base, anything that is allowed to be sold.
+		 * + Dst: On market, infinite is represented by '-1'.
+		 */
+		int qtySrc, qtyDst;
+		/** Requested change.
+		 *
+		 * + Positive values moves an item from Dst to Src (e.g BUY).
+		 * + Negative values moves an item from Src to Dst (e.g. undo).
+		 */
+		int amount;
+		int listOrder;                  ///< Controls position in the items list.
+		double size, totalSize;         ///< For sorting by (combined) item sizes?
+		int64_t totalCost;              ///< For Sorting by combined item cost?
+		int transferSrc, transferDst;   ///< Amount currently on route **to** Src/Dst.
+		int allocatedSrc, allocatedDst; ///< Display only: Currently allocated items.
+		int protectedSrc, protectedDst; ///< Display only: Add this amount to display of ``qtySrc/Dst``.
+	};
+
 	Base *_base;
 	CannotReequipState *_parent;
 	bool _autoBuyDone;
@@ -55,7 +84,7 @@ private:
 	Text *_txtTitle, *_txtFunds, *_txtPurchases, *_txtCost, *_txtQuantity, *_txtSpaceUsed;
 	ComboBox *_cbxCategory;
 	TextList *_lstItems;
-	std::vector<TransferRow> _items;
+	std::vector<PurchaseRow> _items;
 	std::vector<int> _rows;
 	std::vector<std::string> _cats;
 	size_t _vanillaCategories;
@@ -74,7 +103,11 @@ private:
 	/// Checks for missing items
 	int getMissingQty(int sel) const;
 	/// Gets the row of the current selection.
-	TransferRow &getRow() { return _items[_rows[_sel]]; }
+	PurchaseRow &getRow() { return _items[_rows[_sel]]; }
+
+	/// Controls spreadsheet reserved display values (0 = vanilla style)
+	int _reservedAmountBehavior;
+	void updateSubtitleLine();
 public:
 	/// Creates the Purchase state.
 	PurchaseState(Base *base, CannotReequipState *parent = nullptr);

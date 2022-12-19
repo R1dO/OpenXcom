@@ -19,6 +19,7 @@
 #include "CraftEquipmentState.h"
 #include "CraftEquipmentLoadState.h"
 #include "CraftEquipmentSaveState.h"
+#include "ManufactureDependenciesTreeState.h"
 #include <climits>
 #include <sstream>
 #include <algorithm>
@@ -55,6 +56,7 @@
 #include "../Savegame/SavedBattleGame.h"
 #include "../Mod/RuleInterface.h"
 #include "../Ufopaedia/Ufopaedia.h"
+#include "../Interface/ArrowButton.h"
 
 namespace OpenXcom
 {
@@ -65,11 +67,12 @@ namespace OpenXcom
  * @param base Pointer to the base to get info from.
  * @param craft ID of the selected craft.
  */
-CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(0), _sel(0), _craft(craft), _base(base), _totalItems(0), _totalItemStorageSize(0.0), _ammoColor(0), _reload(true)
+CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(0), _sel(0), _craft(craft), _base(base), _totalItems(0), _totalItemStorageSize(0.0), _ammoColor(0), _reload(true), _showClaimedItems(false), _soldierClaimItems()
 {
 	Craft *c = _base->getCrafts()->at(_craft);
 	bool craftHasACrew = c->getNumTotalSoldiers() > 0;
 	bool isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
+	_showClaimedItems = Options::reservedAmountBehavior > 0;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -85,6 +88,13 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	_txtCrew = new Text(71, 9, 244, 24);
 	_lstEquipment = new TextList(288, 128, 8, 40);
 	_cbxFilterBy = new ComboBox(this, 140, 16, 16, 176, true);
+	if (_showClaimedItems)
+	{
+		_txtItemLimitAmount = new Text(76, 9, 160, 24);
+		_txtItemLimitSize = new Text(76, 9, 236, 24);
+		_arrowAllItemsLeft = new ArrowButton(ARROW_SMALL_LEFT, 11, 9, 210, 33);
+		_arrowAllItemsRight = new ArrowButton(ARROW_SMALL_RIGHT, 11, 9, 224, 33);
+	}
 
 	// Set palette
 	setInterface("craftEquipment");
@@ -104,6 +114,28 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	add(_txtCrew, "text", "craftEquipment");
 	add(_lstEquipment, "list", "craftEquipment");
 	add(_cbxFilterBy, "button", "craftEquipment");
+	if (_showClaimedItems)
+	{
+		add(_arrowAllItemsLeft, "text", "craftEquipment");
+		add(_arrowAllItemsRight, "text", "craftEquipment");
+
+		// Increase visual spacing between 'subtitle' area and spreadsheet header.
+		_txtItem->setY(_txtItem->getY() + 2);
+		_txtStores->setY(_txtStores->getY() + 2);
+		_lstEquipment->setY(_lstEquipment->getY() + 2);
+
+		// Redefine subtitle area
+		// * Move Soldiers to left side (static part of screen).
+		// * Merge 2 space texts into one, keep at middle of screen.
+		// * Add 2 texts for running numbers of item size and item amount.
+		_txtCrew->setX(_txtAvailable->getX() - 8);
+		_txtCrew->setWidth(76);
+		_txtUsed->setX(84);
+		_txtUsed->setWidth(76);
+		_txtAvailable->setVisible(false);
+		add(_txtItemLimitSize, "text", "craftEquipment");
+		add(_txtItemLimitAmount, "text", "craftEquipment");
+	}
 
 	centerAllSurfaces();
 
@@ -133,10 +165,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 
 	_txtStores->setText(tr("STR_STORES"));
 
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
-
 	std::ostringstream ss3;
 	ss3 << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << c->getNumTotalSoldiers();
 	_txtCrew->setText(ss3.str());
@@ -144,6 +172,8 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	// populate sort options
 	_categoryStrings.push_back("STR_ALL");
 	_categoryStrings.push_back("STR_EQUIPPED");
+	if (_showClaimedItems)
+		_categoryStrings.push_back("STR_CLAIMED_BY_SOLDIERS");
 	bool hasUnassigned = false;
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
 	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
@@ -191,7 +221,20 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	_cbxFilterBy->onChange((ActionHandler)&CraftEquipmentState::cbxFilterByChange);
 
 	_lstEquipment->setArrowColumn(203, ARROW_HORIZONTAL);
-	_lstEquipment->setColumns(3, 156, 83, 41);
+	if (_showClaimedItems)
+	{
+		_lstEquipment->setColumns(4, 156, 25+48, 25, 26); // 48 is reservation for arrowButtons
+		_arrowAllItemsLeft->onMousePress((ActionHandler)&CraftEquipmentState::allItemsLeftArrowPress);
+		_arrowAllItemsLeft->onMouseRelease((ActionHandler)&CraftEquipmentState::allItemsLeftArrowRelease);
+		_arrowAllItemsLeft->onMouseClick((ActionHandler)&CraftEquipmentState::allItemsLeftArrowClick, 0);
+		_arrowAllItemsRight->onMousePress((ActionHandler)&CraftEquipmentState::allItemsRightArrowPress);
+		_arrowAllItemsRight->onMouseRelease((ActionHandler)&CraftEquipmentState::allItemsRightArrowRelease);
+		_arrowAllItemsRight->onMouseClick((ActionHandler)&CraftEquipmentState::allItemsRightArrowClick, 0);
+	}
+	else
+	{
+		_lstEquipment->setColumns(3, 156, 83, 41);
+	}
 	_lstEquipment->setSelectable(true);
 	_lstEquipment->setBackground(_window);
 	_lstEquipment->setMargin(8);
@@ -209,6 +252,14 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 
 	_btnOk->onKeyboardRelease((ActionHandler)&CraftEquipmentState::btnQuickSearchToggle, Options::keyToggleQuickSearch);
 
+	if (_showClaimedItems)
+	{
+		_timerAllItemsLeft = new Timer(250);
+		_timerAllItemsLeft->onTimer((StateHandler)&CraftEquipmentState::moveAllVisibleItemsLeft);
+		_timerAllItemsRight = new Timer(250);
+		_timerAllItemsRight->onTimer((StateHandler)&CraftEquipmentState::moveAllVisibleItemsRight);
+	}
+
 	_timerLeft = new Timer(250);
 	_timerLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeft);
 	_timerRight = new Timer(250);
@@ -222,6 +273,12 @@ CraftEquipmentState::~CraftEquipmentState()
 {
 	delete _timerLeft;
 	delete _timerRight;
+
+	if (_showClaimedItems)
+	{
+		delete _timerAllItemsLeft;
+		delete _timerAllItemsRight;
+	}
 }
 
 /**
@@ -248,6 +305,9 @@ void CraftEquipmentState::init()
 	// don't reload after closing error popups
 	if (_reload)
 	{
+		// Inventory visit might have changed item claims.
+		_soldierClaimItems = c->getItemsClaimedBySoldiers();
+
 		initList();
 	}
 	_reload = true;
@@ -296,6 +356,7 @@ void CraftEquipmentState::initList()
 	}
 	const std::string selectedCategory = _categoryStrings[selIdx];
 	bool categoryFilterEnabled = (selectedCategory != "STR_ALL");
+	bool categoryClaimedBySoldiers = (selectedCategory == "STR_CLAIMED_BY_SOLDIERS");
 	bool categoryUnassigned = (selectedCategory == "STR_UNASSIGNED");
 	bool categoryEquipped = (selectedCategory == "STR_EQUIPPED");
 	bool categoryNotEquipped = (selectedCategory == "STR_NOT_EQUIPPED");
@@ -361,6 +422,12 @@ void CraftEquipmentState::initList()
 						continue;
 					}
 				}
+				else if (categoryClaimedBySoldiers)
+				{
+					bool isOk = _soldierClaimItems->getItem(*i) > 0;
+					isOk ^= _game->isAltPressed();
+					if (!isOk) continue;
+				}
 				else
 				{
 					bool isOK = rule->belongsToCategory(selectedCategory);
@@ -378,6 +445,7 @@ void CraftEquipmentState::initList()
 							}
 						}
 					}
+					isOK ^= _game->isAltPressed();
 					if (!isOK) continue;
 				}
 			}
@@ -410,7 +478,21 @@ void CraftEquipmentState::initList()
 			{
 				s.insert(0, "  ");
 			}
-			_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
+
+			if (_showClaimedItems)
+			{
+				std::string ssClaimed;
+				int rQty = _soldierClaimItems->getItem(*i);
+				if (rQty > 0)
+				{
+					ssClaimed = createAssignedToSoldiersString(cQty, rQty);
+				}
+				_lstEquipment->addRow(4, s.c_str(), ss.str().c_str(), ss2.str().c_str(), ssClaimed.c_str());
+			}
+			else
+			{
+				_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
+			}
 
 			Uint8 color;
 			if (cQty == 0)
@@ -433,6 +515,7 @@ void CraftEquipmentState::initList()
 			++row;
 		}
 	}
+	updateSubtitleArea();
 
 	_lstEquipment->draw();
 	if (_lstScroll > 0)
@@ -451,6 +534,12 @@ void CraftEquipmentState::think()
 
 	_timerLeft->think(this, 0);
 	_timerRight->think(this, 0);
+
+	if (_showClaimedItems)
+	{
+		_timerAllItemsLeft->think(this, 0);
+		_timerAllItemsRight->think(this, 0);
+	}
 }
 
 
@@ -571,6 +660,128 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
 		std::string articleId = rule->getType();
 		Ufopaedia::openArticle(_game, articleId);
 	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		_lstScroll = _lstEquipment->getScroll();
+		if (action->getAbsoluteXMouse() >= _lstEquipment->getArrowsLeftEdge() &&
+			action->getAbsoluteXMouse() <= _lstEquipment->getArrowsRightEdge())
+		{
+			// Prevent potential clash with RMB functionality of arrows.
+			return;
+		}
+		RuleItem *rule = _game->getMod()->getItem(_items[_sel]);
+		if (rule != 0)
+		{
+			_game->pushState(new ManufactureDependenciesTreeState(rule->getType()));
+		}
+	}
+}
+
+/**
+ * Starts moving all items to the base.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsLeftArrowPress(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT && !_timerAllItemsLeft->isRunning())
+		_timerAllItemsLeft->start();
+
+	if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
+	{
+		_timerAllItemsRight->stop();
+		_timerAllItemsLeft->stop();
+		moveAllVisibleItemsRightByValue(Options::changeValueByMouseWheel);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
+	{
+		_timerAllItemsRight->stop();
+		_timerAllItemsLeft->stop();
+		moveAllVisibleItemsLeftByValue(Options::changeValueByMouseWheel);
+	}
+}
+
+/**
+ * Stops moving all items to the base.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsLeftArrowRelease(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		_timerAllItemsLeft->stop();
+	}
+}
+
+/**
+ * Moves all items to the base on right-click.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsLeftArrowClick(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		moveAllVisibleItemsLeftByValue(INT_MAX);
+	}
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		moveAllVisibleItemsLeftByValue(1);
+		_timerAllItemsRight->setInterval(250);
+		_timerAllItemsLeft->setInterval(250);
+	}
+}
+
+/**
+ * Starts moving all items to the craft.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsRightArrowPress(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT && !_timerAllItemsRight->isRunning())
+		_timerAllItemsRight->start();
+
+	if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
+	{
+		_timerAllItemsRight->stop();
+		_timerAllItemsLeft->stop();
+		moveAllVisibleItemsRightByValue(Options::changeValueByMouseWheel);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
+	{
+		_timerAllItemsRight->stop();
+		_timerAllItemsLeft->stop();
+		moveAllVisibleItemsLeftByValue(Options::changeValueByMouseWheel);
+	}
+}
+
+/**
+ * Stops moving all items to the craft.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsRightArrowRelease(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		_timerAllItemsRight->stop();
+	}
+}
+
+/**
+ * Moves all items to the craft on right-click.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::allItemsRightArrowClick(Action *action)
+{
+
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		moveAllVisibleItemsRightByValue(INT_MAX);
+	}
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		moveAllVisibleItemsRightByValue(1);
+		_timerAllItemsRight->setInterval(250);
+		_timerAllItemsLeft->setInterval(250);
+	}
 }
 
 /**
@@ -622,8 +833,18 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setCellText(_sel, 1, ss.str());
 	_lstEquipment->setCellText(_sel, 2, ss2.str());
 
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+	if (_showClaimedItems)
+	{
+		std::string ssClaimed;
+		int rQty = _soldierClaimItems->getItem(_items[_sel]);
+		if (rQty > 0)
+		{
+			ssClaimed = createAssignedToSoldiersString(cQty, rQty);
+		}
+		_lstEquipment->setCellText(_sel, 3, ssClaimed);
+	}
+
+	updateSubtitleArea();
 }
 
 /**
@@ -634,6 +855,65 @@ void CraftEquipmentState::moveLeft()
 	_timerLeft->setInterval(50);
 	_timerRight->setInterval(50);
 	moveLeftByValue(1);
+}
+
+/**
+ * Moves all item types to the base.
+ */
+void CraftEquipmentState::moveAllVisibleItemsLeft()
+{
+	_timerAllItemsLeft->setInterval(50);
+	_timerAllItemsRight->setInterval(50);
+	moveAllVisibleItemsLeftByValue(1);
+}
+
+/**
+ * Moves the given number of all item types to the base.
+ */
+void CraftEquipmentState::moveAllVisibleItemsLeftByValue(int change)
+{
+	Craft *c = _base->getCrafts()->at(_craft);
+	// Are we in balancing mode (e.g. only remove excess items).
+	bool balancing = false;
+	for (std::vector<std::string>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	{
+		// Skip vehicles
+		if (_game->getMod()->getItem(*i, true)->getVehicleUnit()) continue;
+
+		int craftQty = c->getItems()->getItem(*i);
+		int claimedQty = _soldierClaimItems->getItem(*i);
+
+		if (claimedQty > 0 && craftQty > claimedQty)
+		{
+			balancing = true;
+			break;
+		}
+	}
+
+	// Update list.
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	{
+		// Skip vehicles
+		if (_game->getMod()->getItem(_items[_sel], true)->getVehicleUnit()) continue;
+
+		int craftQty = c->getItems()->getItem(_items[_sel]);
+		int claimedQty = _soldierClaimItems->getItem(_items[_sel]);
+
+		if (balancing && (craftQty <= claimedQty || claimedQty == 0))
+		{
+			// In "balancing" mode, skip this item.
+			continue;
+		}
+		if (balancing)
+		{
+			// Still in balancing mode, move non claimed items only
+			moveLeftByValue(std::min(craftQty-claimedQty, change));
+		}
+		else
+		{
+			moveLeftByValue(change);
+		}
+	}
 }
 
 /**
@@ -695,6 +975,20 @@ void CraftEquipmentState::moveLeftByValue(int change)
 		{
 			_base->getStorageItems()->addItem(_items[_sel], change);
 		}
+
+		if(_showClaimedItems && !_btnOk->getVisible())
+		{
+			// Only activate button if below both limits.
+			if ((c->getRules() && c->getRules()->getMaxItems() > 0 && _totalItems > c->getRules()->getMaxItems()) ||
+				(c->getRules() && c->getRules()->getMaxStorageSpace() > 0.0 && _totalItemStorageSize > c->getRules()->getMaxStorageSpace()))
+			{
+				_btnOk->setVisible(false);
+			}
+			else
+			{
+				_btnOk->setVisible(true);
+			}
+		}
 	}
 	updateQuantity();
 }
@@ -707,6 +1001,69 @@ void CraftEquipmentState::moveRight()
 	_timerLeft->setInterval(50);
 	_timerRight->setInterval(50);
 	moveRightByValue(1);
+}
+
+/**
+ * Moves all item types to the craft.
+ */
+void CraftEquipmentState::moveAllVisibleItemsRight()
+{
+	_timerAllItemsLeft->setInterval(50);
+	_timerAllItemsRight->setInterval(50);
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	moveAllVisibleItemsRightByValue(1);
+}
+
+/**
+ * Moves the given number of all item types to the craft.
+ */
+void CraftEquipmentState::moveAllVisibleItemsRightByValue(int change)
+{
+	Craft *c = _base->getCrafts()->at(_craft);
+
+	// Are we in balancing mode (e.g. only add missing items).
+	bool balancing = false;
+	for (std::vector<std::string>::const_iterator i = _items.begin(); i != _items.end(); ++i)
+	{
+		// Skip vehicles
+		if (_game->getMod()->getItem(*i, true)->getVehicleUnit()) continue;
+
+		int baseQty = _base->getStorageItems()->getItem(*i);
+		int craftQty = c->getItems()->getItem(*i);
+		int claimedQty = _soldierClaimItems->getItem(*i);
+
+		// Do not get stuck in balancing mode due to having to little of an item.
+		if (claimedQty > 0 && craftQty < claimedQty && baseQty + craftQty >= claimedQty)
+		{
+			balancing = true;
+			break;
+		}
+	}
+
+	// Update list.
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	{
+		// Skip vehicles
+		if (_game->getMod()->getItem(_items[_sel], true)->getVehicleUnit()) continue;
+
+		int craftQty = c->getItems()->getItem(_items[_sel]);
+		int claimedQty = _soldierClaimItems->getItem(_items[_sel]);
+
+		if (balancing && (craftQty >= claimedQty || claimedQty == 0))
+		{
+			// In "balancing" mode, skip this item.
+			continue;
+		}
+		if (balancing)
+		{
+			// Satisfy soldier demand, but not more than that
+			moveRightByValue(std::min(claimedQty-craftQty, change));
+		}
+		else
+		{
+			moveRightByValue(change, true);
+		}
+	}
 }
 
 /**
@@ -796,11 +1153,25 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 				_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
 				_reload = false;
 			}
-			change = c->getRules()->getMaxItems() - _totalItems;
+
+			if (_showClaimedItems)
+			{
+				_btnOk->setVisible(false);
+			}
+			else
+			{
+				change = c->getRules()->getMaxItems() - _totalItems;
+			}
+
+
 		}
 		if (c->getRules()->getMaxStorageSpace() > 0.0 && _totalItemStorageSize + (change * item->getSize()) > c->getRules()->getMaxStorageSpace() + 0.05)
 		{
-			if (item->getSize() > 0.0)
+			if (_showClaimedItems)
+			{
+				_btnOk->setVisible(false);
+			}
+			else if (item->getSize() > 0.0)
 			{
 				change = (int)floor((c->getRules()->getMaxStorageSpace() + 0.05 - _totalItemStorageSize) / item->getSize());
 			}
@@ -826,6 +1197,74 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 		}
 	}
 	updateQuantity();
+}
+
+/**
+ * Updates variable texts between screen title and spreadsheet.
+ */
+void CraftEquipmentState::updateSubtitleArea()
+{
+	Craft *c = _base->getCrafts()->at(_craft);
+
+	if (_showClaimedItems)
+	{
+		std::ostringstream ssSpaceUsage, ssItemAmount, ssItemSize;
+		ssSpaceUsage << tr("STR_SPACE_UC") << ">" << Unicode::TOK_COLOR_FLIP;
+		ssSpaceUsage << c->getSpaceUsed() << ":" << c->getRules()->getMaxUnits();
+
+		// Dealing with floating point
+		// - precision(1) : Save space, 1 digit is enough to inform player.
+		// - std::fixed : Prevent scientific notation (1.4524e-16, 2e+2).
+		// - std::max() : Round-off error creating negative numbers.
+		ssItemSize.precision(1);
+		ssItemSize << std::fixed;
+		ssItemSize << tr("STR_SIZE_UC") << ">" << Unicode::TOK_COLOR_FLIP << std::max(_totalItemStorageSize, 0.0);
+		ssItemAmount << tr("STR_ITEMS_UC") << ">" << Unicode::TOK_COLOR_FLIP << _totalItems;
+		if (c->getRules()->getMaxStorageSpace() > 0.0)
+		{
+			ssItemSize << ":" << c->getRules()->getMaxStorageSpace();
+		}
+		if (c->getRules()->getMaxItems() > 0)
+		{
+			ssItemAmount << ":" << c->getRules()->getMaxItems();
+		}
+		_txtUsed->setText(ssSpaceUsage.str().c_str());
+		_txtItemLimitSize->setText(ssItemSize.str().c_str());
+		_txtItemLimitAmount->setText(ssItemAmount.str().c_str());
+	}
+	else
+	{
+		_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
+		_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+	}
+}
+
+/**
+ * Create the "claimed items" string.
+ *
+ * Represents the total amount of this item claimed soldiers on the craft.
+ * @param craftQty Amount of the item assigned to the craft.
+ * @param claimQty Amount of the item claimed by soldiers on the craft.
+ * @return Text to insert in the cell.
+ */
+std::string CraftEquipmentState::createAssignedToSoldiersString(const int craftQty, const int claimQty) const
+{
+	std::ostringstream  itemsClaimedBySoldiers;
+
+	if (craftQty > claimQty)
+	{
+		itemsClaimedBySoldiers << "> " << claimQty; // or STR_LARGER
+	}
+	else if (craftQty < claimQty)
+	{
+		itemsClaimedBySoldiers << "< " << claimQty; // or STR_SMALLER
+	}
+	else
+	{
+		itemsClaimedBySoldiers << "= " << claimQty; // or STR_EQUAL
+	}
+
+	return itemsClaimedBySoldiers.str();
 }
 
 /**

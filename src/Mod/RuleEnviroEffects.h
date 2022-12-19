@@ -79,6 +79,8 @@ public:
 	const std::string& getInventoryShockIndicator() const { return _inventoryShockIndicator; }
 	/// Gets the map shock indicator sprite name.
 	const std::string& getMapShockIndicator() const { return _mapShockIndicator; }
+	/// Returns whether armor transformations are defined.
+	bool hasArmorTransformation() const { return !_armorTransformations.empty(); }
 };
 
 }

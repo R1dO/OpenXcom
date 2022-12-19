@@ -423,6 +423,10 @@ en-US:
   STR_ALTERNATE_BASE_SCREENS_DESC: "Diverse alterations to base screens, potentially even to battlescape."
   STR_RESERVED_BEHAVIOR: "DEMO: Behavior of reserved items column (buy/sell/transfer)"
   STR_RESERVED_BEHAVIOR_DESC: "0: Do not use, 1: Claimed by soldiers, 2: Claimed by crafts/engineering/research, 3: Greedy (max of 1 and 2). All options >0 change buy/sell/transfer/craftEquipment screens."
+# BaseInfo/MonthlyCost DetailsState.cpp
+  STR_SOURCE: "Source"
+  STR_AMOUNT: "Amount"
+  STR_RESULT: "Result"
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"
@@ -431,11 +435,14 @@ en-US:
   STR_POWER_SHORT: "Pwr>{ALT}{0}"
   STR_ROUNDS_SHORT: "Ammo>{ALT}{0}"
 # ManufactureDependenciesTreeState.cpp
-  STR_NO_PROVIDERS: "Cannot Buy/Manufacture"
-  STR_CAN_BUY: "Buyable> {ALT}{0}"
-  STR_CAN_RESEARCH: "Has research potential> {ALT}{0}"
-  STR_DIRECT_PROVIDERS: "Get from direct Manufacturing"
-  STR_RANDOM_PROVIDERS: "Get from random Manufacturing"
+  #STR_NO_PROVIDERS: "Cannot Buy/Manufacture"
+  STR_CAN_BUY: "{ALT}Can Buy: {ALT}{0}" # Inverse list color
+  STR_CAN_RESEARCH: "{ALT}Can Research: {ALT}{0}" # Inverse list color
+  STR_DIRECT_PROVIDERS: "{ALT}Get from manufacture: {ALT}{0}" # Inverse list color
+  STR_RANDOM_PROVIDERS: "{ALT}Get from manufacture (random): {ALT}{0}" # Inverse list color
+  STR_INPUT_TRANSFORMATIONS: "{ALT}Needed for transformation: {ALT}{0}" # Inverse list color
+  STR_INPUT_FACILITIES: "{ALT}Needed for facility: {ALT}{0}" # Inverse list color
+  STR_INPUT_DEFENSE: "{ALT}Ammo for facility: {ALT}{0}" # Inverse list color
 # MonthlyCostsDetailsState (is there some guideline to name screen specific strings?)
   MCDS_DOTTED_INDENTATION: ".." # Screen specific, abuses '..' ~= ' ' and '..' ~= '+' for the default font
   MCDS_TITLE_CRAFT_MAINTENANCE: "Crafts"
@@ -460,7 +467,10 @@ en-US:
   MCDS_DETAIL_PERFORMANCE_INCOME: "Performance Funding"
   MCDS_DETAIL_PERFORMANCE_PAYBACK: "Financial death spiral (or chastise player for doing well)"
 # SellState.cpp
+# SoldierArmorState.cpp
+  STR_COMPARE: "Compare"
+  STR_DEFAULT: "Default"
 # TransferItemsState.cpp
   STR_COST_OF_TRANSFERS: "Cost of Transfers>{ALT}{0}"
-  STR_ITEMS_AT_ORIGIN: "Items at origin"
+  STR_ITEMS_AT_ORIGIN: "Items at Origin"
   STR_ALL_ITEMS_NO_NAMED: "No Soldiers or Crafts"
