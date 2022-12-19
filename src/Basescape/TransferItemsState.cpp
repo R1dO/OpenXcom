@@ -180,9 +180,12 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 	_distance = getDistance();
 
 	_cats.push_back("STR_ALL_ITEMS");
-	_cats.push_back("STR_ALL_ITEMS_NO_NAMED");
-	_cats.push_back("STR_ITEMS_AT_ORIGIN");
-	_cats.push_back("STR_ITEMS_AT_DESTINATION");
+	if (_debriefingState != 0)
+	{
+		_cats.push_back("STR_ITEMS_AT_ORIGIN");
+		_cats.push_back("STR_ITEMS_AT_DESTINATION");
+		_cats.push_back("STR_ALL_ITEMS_NO_NAMED");
+	}
 
 	TransferItemRow row;
 	// Original behavior makes sense: No display of named soldiers assigned to craft or in-transfer.
@@ -493,9 +496,12 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 		{
 			_cats.clear();
 			_cats.push_back("STR_ALL_ITEMS");
-			_cats.push_back("STR_ALL_ITEMS_NO_NAMED");
-			_cats.push_back("STR_ITEMS_AT_ORIGIN");
-			_cats.push_back("STR_ITEMS_AT_DESTINATION");
+			if (_debriefingState != 0)
+			{
+				_cats.push_back("STR_ITEMS_AT_ORIGIN");
+				_cats.push_back("STR_ALL_ITEMS_NO_NAMED");
+				_cats.push_back("STR_ITEMS_AT_DESTINATION");
+			}
 			_vanillaCategories = _cats.size();
 		}
 		const std::vector<std::string> &categories = _game->getMod()->getItemCategoriesList();
