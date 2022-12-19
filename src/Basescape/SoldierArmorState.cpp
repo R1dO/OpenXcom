@@ -415,6 +415,20 @@ void SoldierArmorState::updateList()
 		// Besides that, those are only needed in case '*filter...'
 		// variables are still 'nullptrs' at this stage.
 
+		// Soldier is not allowed on mission.
+		//'Unkown' should suffice to indicate something is going on.
+		// Hopefully that means: player choses to check mission description.
+		Soldier *soldier = _base->getSoldiers()->at(_soldier);
+		if (filterStartCondition && !filterStartCondition->isSoldierTypePermitted(soldier->getRules()->getType()))
+		{
+			for (auto& armorItem : _armors)
+			{
+				armorItem.isVisible = armorItem.type == "";
+			}
+			drawList();
+			return;
+		}
+
 		// Get resulting armor as if it was an actual deployment.
 		// Based on: `BattlescapeGenerator::deployXCOM()`, `::run()` and `::nextStage()`
 		auto getResultingArmor = [&](const Armor* original) -> const Armor*
@@ -740,42 +754,25 @@ void SoldierArmorState::lstArmorClickMiddle(Action *action)
 void SoldierArmorState::lstArmorClickRight(Action *action)
 {
 	_sel = _lstArmor->getSelectedRow();
+	size_t scrollPos = _lstArmor->getScroll();
+	int listSizeOld = _lstArmor->getLastRowIndex();
 
 	// Blank state (all parents) does not have collapse functionality
 	if (getRow().parentId == 0) return;
 
-	// Safety
-	if (getRow().id == getRow().parentId && _indices[_sel] + 1 >= _armors.size())
-		return;
-
-	// Prevent collapsed list from jumping around when there is a scrollbar.
-	if (getRow().id == getRow().parentId && _armors[_indices[_sel] + 1].parentId != getRow().parentId)
-		return;
-
-	if (getRow().id == getRow().parentId && !(_armors[_indices[_sel] + 1].isVisible))
+	// (Un)fold appropriate childs.
+	for (size_t i = 0; i < _armors.size(); ++i)
 	{
-		// Show all elements contributing to parent.
-		for (size_t i = 0; i < _armors.size(); ++i)
+		if (_armors[i].parentId == getRow().parentId && _armors[i].id != _armors[i].parentId)
 		{
-			if (_armors[i].parentId == getRow().id)
-			{
-				_armors[i].isVisible = true;
-			}
+			_armors[i].isVisible ^= true;
 		}
 	}
-	else
-	{
-		// Collapse all elements contributing to parent.
-		for (size_t i = 0; i < _armors.size(); ++i)
-		{
-			if (_armors[i].parentId == getRow().parentId && (_armors[i].id != _armors[i].parentId))
-			{
-				_armors[i].isVisible = false;
-			}
-		}
-	}
-
 	drawList();
+
+	// Approximate scroll position (size of list might have changed).
+	scrollPos = listSizeOld > 0 ? scrollPos * _lstArmor->getLastRowIndex() / listSizeOld : scrollPos;
+	_lstArmor->scrollTo(scrollPos);
 }
 
 /**
