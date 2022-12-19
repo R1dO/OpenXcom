@@ -180,9 +180,12 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 	_distance = getDistance();
 
 	_cats.push_back("STR_ALL_ITEMS");
-	_cats.push_back("STR_ALL_ITEMS_NO_NAMED");
-	_cats.push_back("STR_ITEMS_AT_ORIGIN");
-	_cats.push_back("STR_ITEMS_AT_DESTINATION");
+	if (_debriefingState != 0)
+	{
+		_cats.push_back("STR_ITEMS_AT_ORIGIN");
+		_cats.push_back("STR_ITEMS_AT_DESTINATION");
+		_cats.push_back("STR_ALL_ITEMS_NO_NAMED");
+	}
 
 	TransferItemRow row;
 	// Original behavior makes sense: No display of named soldiers assigned to craft or in-transfer.
@@ -493,9 +496,12 @@ TransferItemsState::TransferItemsState(Base *baseFrom, Base *baseTo, DebriefingS
 		{
 			_cats.clear();
 			_cats.push_back("STR_ALL_ITEMS");
-			_cats.push_back("STR_ALL_ITEMS_NO_NAMED");
-			_cats.push_back("STR_ITEMS_AT_ORIGIN");
-			_cats.push_back("STR_ITEMS_AT_DESTINATION");
+			if (_debriefingState != 0)
+			{
+				_cats.push_back("STR_ITEMS_AT_ORIGIN");
+				_cats.push_back("STR_ALL_ITEMS_NO_NAMED");
+				_cats.push_back("STR_ITEMS_AT_DESTINATION");
+			}
 			_vanillaCategories = _cats.size();
 		}
 		const std::vector<std::string> &categories = _game->getMod()->getItemCategoriesList();
@@ -737,13 +743,20 @@ void TransferItemsState::updateList()
 		if (_reservedAmountBehavior > 0)
 		{
 			std::ostringstream ssReservedSrc, ssReservedDst;
+			std::string bracketLeft = "", bracketRight = "";
+			if (_debriefingState == 0)
+			{
+				bracketLeft = "(";
+				bracketRight = ")";
+			}
+
 			if (_items[i].allocatedSrc != 0)
 			{
-				ssReservedSrc << "(" << _items[i].allocatedSrc << ")";
+				ssReservedSrc << bracketLeft << _items[i].allocatedSrc << bracketRight;
 			}
 			if (_items[i].allocatedDst != 0)
 			{
-				ssReservedDst << "(" << _items[i].allocatedDst << ")";
+				ssReservedDst << bracketLeft << _items[i].allocatedDst << bracketRight;
 			}
 
 			if (_items[i].amount > 0)
@@ -1469,6 +1482,7 @@ void TransferItemsState::changeByValue(int change, int dir)
 	case TRANSFER_SOLDIER:
 	case TRANSFER_SCIENTIST:
 	case TRANSFER_ENGINEER:
+		if (dir == -1 && _debriefingState != 0) break;
 		if (dir * (_pQty + dir) > dest->getAvailableQuarters() - dest->getUsedQuarters())
 		{
 			errorMessage = tr("STR_NO_FREE_ACCOMODATION");
@@ -1476,6 +1490,7 @@ void TransferItemsState::changeByValue(int change, int dir)
 		break;
 	case TRANSFER_CRAFT:
 		craft = (Craft*)getRow().rule;
+		if (dir == -1 && _debriefingState != 0) break;
 		if (dir * (_cQty + dir) > dest->getAvailableHangars() - dest->getUsedHangars())
 		{
 			errorMessage = tr("STR_NO_FREE_HANGARS_FOR_TRANSFER");
@@ -1496,6 +1511,7 @@ void TransferItemsState::changeByValue(int change, int dir)
 		break;
 	case TRANSFER_ITEM:
 		selItem = (RuleItem*)getRow().rule;
+		if (dir == -1 && _debriefingState != 0) break;
 		if (selItem->getSize() > 0.0 && dest->storesOverfull(dir * (dir * selItem->getSize() + _iQty)))
 		{
 			errorMessage = tr("STR_NOT_ENOUGH_STORE_SPACE");
@@ -1520,7 +1536,10 @@ void TransferItemsState::changeByValue(int change, int dir)
 		case TRANSFER_SOLDIER:
 		case TRANSFER_SCIENTIST:
 		case TRANSFER_ENGINEER:
-			change = std::min(freeQuarters, change); // change already limited to 'getRow().qtySrc - getRow().amount and 'getRow().qtyDst <= -1 * getRow().amount'
+			if (!(dir == -1 && _debriefingState != 0))
+			{
+				change = std::min(freeQuarters, change); // change already limited to 'getRow().qtySrc - getRow().amount and 'getRow().qtyDst <= -1 * getRow().amount'
+			}
 			_pQty += dir * change;
 
 			// Bookkeeping
@@ -1538,7 +1557,7 @@ void TransferItemsState::changeByValue(int change, int dir)
 			getRow().amount += dir;
 			break;
 		case TRANSFER_ITEM:
-			if (selItem->isAlien())
+			if (selItem->isAlien() && !(dir == -1 && _debriefingState != 0))
 			{
 				int freeContainment = Options::storageLimitsEnforced ? dest->getAvailableContainment(selItem->getPrisonType()) - dest->getUsedContainment(selItem->getPrisonType()) - dir * _aQty : INT_MAX;
 				change = std::min(freeContainment, change); // change already limited to 'getRow().qtySrc - getRow().amount and 'getRow().qtyDst <= -1 * getRow().amount'
@@ -1552,7 +1571,10 @@ void TransferItemsState::changeByValue(int change, int dir)
 				{
 					freeStoresForItem = (freeStores + 0.05) / storesNeededPerItem;
 				}
-				change = std::min((int)freeStoresForItem, change);
+				if (!(dir == -1 && _debriefingState != 0))
+				{
+					change = std::min((int)freeStoresForItem, change);
+				}
 				_iQty += dir * change * storesNeededPerItem;
 			}
 			if (selItem->isAlien())
@@ -1589,14 +1611,14 @@ void TransferItemsState::updateItemStrings()
 		if (getRow().amount > 0)
 		{
 			ss1 << getRow().qtySrc - getRow().amount + getRow().protectedSrc;
-			ssQtyDst << getRow().qtyDst + getRow().protectedDst;
-			ss2 << getRow().amount << " >";
+			ssQtyDst << getRow().qtyDst + getRow().protectedDst + getRow().amount;
+			ss2 << ">";
 		}
 		else if (getRow().amount < 0)
 		{
-			ss1 << getRow().qtySrc + getRow().protectedSrc;
+			ss1 << getRow().qtySrc + getRow().protectedSrc - getRow().amount;
 			ssQtyDst << getRow().qtyDst + getRow().amount + getRow().protectedDst;
-			ss2 << "< " << std::abs(getRow().amount);
+			ss2 << "<";
 		}
 		else
 		{
