@@ -1482,6 +1482,7 @@ void TransferItemsState::changeByValue(int change, int dir)
 	case TRANSFER_SOLDIER:
 	case TRANSFER_SCIENTIST:
 	case TRANSFER_ENGINEER:
+		if (dir == -1 && _debriefingState != 0) break;
 		if (dir * (_pQty + dir) > dest->getAvailableQuarters() - dest->getUsedQuarters())
 		{
 			errorMessage = tr("STR_NO_FREE_ACCOMODATION");
@@ -1489,6 +1490,7 @@ void TransferItemsState::changeByValue(int change, int dir)
 		break;
 	case TRANSFER_CRAFT:
 		craft = (Craft*)getRow().rule;
+		if (dir == -1 && _debriefingState != 0) break;
 		if (dir * (_cQty + dir) > dest->getAvailableHangars() - dest->getUsedHangars())
 		{
 			errorMessage = tr("STR_NO_FREE_HANGARS_FOR_TRANSFER");
@@ -1509,6 +1511,7 @@ void TransferItemsState::changeByValue(int change, int dir)
 		break;
 	case TRANSFER_ITEM:
 		selItem = (RuleItem*)getRow().rule;
+		if (dir == -1 && _debriefingState != 0) break;
 		if (selItem->getSize() > 0.0 && dest->storesOverfull(dir * (dir * selItem->getSize() + _iQty)))
 		{
 			errorMessage = tr("STR_NOT_ENOUGH_STORE_SPACE");
@@ -1533,7 +1536,10 @@ void TransferItemsState::changeByValue(int change, int dir)
 		case TRANSFER_SOLDIER:
 		case TRANSFER_SCIENTIST:
 		case TRANSFER_ENGINEER:
-			change = std::min(freeQuarters, change); // change already limited to 'getRow().qtySrc - getRow().amount and 'getRow().qtyDst <= -1 * getRow().amount'
+			if (!(dir == -1 && _debriefingState != 0))
+			{
+				change = std::min(freeQuarters, change); // change already limited to 'getRow().qtySrc - getRow().amount and 'getRow().qtyDst <= -1 * getRow().amount'
+			}
 			_pQty += dir * change;
 
 			// Bookkeeping
@@ -1551,7 +1557,7 @@ void TransferItemsState::changeByValue(int change, int dir)
 			getRow().amount += dir;
 			break;
 		case TRANSFER_ITEM:
-			if (selItem->isAlien())
+			if (selItem->isAlien() && !(dir == -1 && _debriefingState != 0))
 			{
 				int freeContainment = Options::storageLimitsEnforced ? dest->getAvailableContainment(selItem->getPrisonType()) - dest->getUsedContainment(selItem->getPrisonType()) - dir * _aQty : INT_MAX;
 				change = std::min(freeContainment, change); // change already limited to 'getRow().qtySrc - getRow().amount and 'getRow().qtyDst <= -1 * getRow().amount'
@@ -1565,7 +1571,10 @@ void TransferItemsState::changeByValue(int change, int dir)
 				{
 					freeStoresForItem = (freeStores + 0.05) / storesNeededPerItem;
 				}
-				change = std::min((int)freeStoresForItem, change);
+				if (!(dir == -1 && _debriefingState != 0))
+				{
+					change = std::min((int)freeStoresForItem, change);
+				}
 				_iQty += dir * change * storesNeededPerItem;
 			}
 			if (selItem->isAlien())
