@@ -51,10 +51,11 @@ private:
 	Timer * _timerMoreEngineer, * _timerMoreUnit, * _timerLessEngineer, * _timerLessUnit;
 	InteractiveSurface *_surfaceEngineers, *_surfaceUnits;
 	int _producedItemsValue;
+	bool _showGrossProfit;
 	/// Caches static data for monthly profit calculations
 	void initProfitInfo ();
 	/// Calculates the monthly change in funds due to the job
-	int getMonthlyNetFunds () const;
+	int getMonthlyNetFunds (bool wantGrossProfit = false) const;
 	/// Handler for the Sell button.
 	void btnSellClick (Action * action);
 	/// Handler for the Stop button.
@@ -113,6 +114,8 @@ private:
 	void buildUi();
 	/// Helper to exit the State.
 	void exitState();
+	/// Toggle between original and gross profit display
+	void toggleProfitType(Action *action);
 public:
 	/// Creates the State (new production).
 	ManufactureInfoState(Base * base, RuleManufacture * _item);

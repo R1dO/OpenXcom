@@ -72,6 +72,7 @@ ManufactureInfoState::ManufactureInfoState (Base *base, Production *production) 
 void ManufactureInfoState::buildUi()
 {
 	_screen = false;
+	_showGrossProfit = false;
 
 	_window = new Window(this, 320, 160, 0, 20, POPUP_BOTH);
 	_txtTitle = new Text(320, 17, 0, 30);
@@ -177,6 +178,8 @@ void ManufactureInfoState::buildUi()
 	_btnSell->setText(tr("STR_SELL_PRODUCTION"));
 	_btnSell->onMouseClick((ActionHandler)&ManufactureInfoState::btnSellClick, 0);
 
+	_txtMonthlyProfit->onMouseClick((ActionHandler)&ManufactureInfoState::toggleProfitType, SDL_BUTTON_RIGHT);
+
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&ManufactureInfoState::btnOkClick);
 	_btnOk->onKeyboardPress((ActionHandler)&ManufactureInfoState::btnOkClick, Options::keyOk);
@@ -245,13 +248,29 @@ void ManufactureInfoState::initProfitInfo ()
 // in net worth.  after discussion in the forums, it was decided that focusing
 // only on visible changes in funds was clearer and more valuable to the player
 // than trying to take used materials and maintenance costs into account.
-int ManufactureInfoState::getMonthlyNetFunds () const
+int ManufactureInfoState::getMonthlyNetFunds (bool wantGrossProfit) const
 {
 	// does not take into account leap years, but a game is unlikely to take long enough for that to matter
 	static const int AVG_HOURS_PER_MONTH = (365 * 24) / 12;
 
 	const RuleManufacture *item = _production->getRules();
 	int saleValue = _btnSell->getPressed() ? _producedItemsValue : 0;
+
+	int directCost = item->getManufactureCost();
+	if (wantGrossProfit && !item->getRequiredCrafts().empty())
+	{
+		for (auto& i : item->getRequiredCrafts())
+		{
+			directCost += i.first->getSellCost() * i.second;
+		}
+	}
+	if (wantGrossProfit && !item->getRequiredItems().empty())
+	{
+		for (auto& i : item->getRequiredItems())
+		{
+			directCost += i.first->getSellCost() * i.second;
+		}
+	}
 
 	int numEngineers = _production->getAssignedEngineers();
 	int manHoursPerMonth = AVG_HOURS_PER_MONTH * numEngineers;
@@ -263,8 +282,9 @@ int ManufactureInfoState::getMonthlyNetFunds () const
 		manHoursPerMonth = std::min(manHoursPerMonth, manHoursRemaining);
 	}
 	float itemsPerMonth = (float)manHoursPerMonth / (float)item->getManufactureTime();
+	int salary = wantGrossProfit * _game->getMod()->getEngineerCost() * manHoursPerMonth / AVG_HOURS_PER_MONTH;
 
-	return (saleValue - item->getManufactureCost()) * itemsPerMonth;
+	return (saleValue - directCost) * itemsPerMonth - salary;
 }
 
 /**
@@ -342,7 +362,7 @@ void ManufactureInfoState::setAssignedEngineer()
 	if (_production->getInfiniteAmount()) s4 << "∞";
 	else s4 << _production->getAmountTotal();
 	_txtTodo->setText(s4.str());
-	_txtMonthlyProfit->setText(tr("STR_MONTHLY_PROFIT").arg(Unicode::formatFunding(getMonthlyNetFunds()).c_str()));
+	_txtMonthlyProfit->setText(tr("STR_MONTHLY_PROFIT").arg(Unicode::formatFunding(getMonthlyNetFunds(_showGrossProfit)).c_str()));
 }
 
 /**
@@ -669,4 +689,16 @@ void ManufactureInfoState::think()
 	_timerLessUnit->think(this, 0);
 }
 
+/**
+ * Toggles profit display.
+ *
+ * Between original implementation and gross profit.
+ */
+void ManufactureInfoState::toggleProfitType(Action *action)
+{
+	_showGrossProfit ^= true;
+
+	// Redraw
+	setAssignedEngineer();
+}
 }
