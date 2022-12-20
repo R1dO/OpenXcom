@@ -56,6 +56,7 @@ private:
 	Uint8 _colorNormal, _colorNew;
 	Uint8 _colorHidden, _colorFacilityRequired;
 
+	void sortProductionByProfit();
 public:
 	/// Creates the state.
 	NewManufactureListState(Base *base);

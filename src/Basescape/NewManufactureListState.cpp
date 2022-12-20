@@ -363,6 +363,9 @@ void NewManufactureListState::fillProductionList(bool refreshCategories)
 	_game->getSavedGame()->getAvailableProductions(_possibleProductions, _game->getMod(), _base, basicFilter);
 	_displayedStrings.clear();
 
+	// Sort on user request.
+	if (_game->isAltPressed()) sortProductionByProfit();
+
 	ItemContainer * itemContainer (_base->getStorageItems());
 	int row = 0;
 	bool hasUnseen = false;
@@ -494,6 +497,100 @@ void NewManufactureListState::fillProductionList(bool refreshCategories)
 		_cbxCategory->setOptions(_catStrings, true);
 		_cbxCategory->onChange((ActionHandler)&NewManufactureListState::cbxCategoryChange);
 	}
+}
+
+/**
+ * Sorts the _possibleProductions vector by gross profit.
+ */
+void NewManufactureListState::sortProductionByProfit()
+{
+	// Calculate gross profit, taking only into account sale value of input.
+	// Inspired by: ManufactureInfoState::getMonthlyNetFunds() and related methods
+	auto calculateGrossProfit = [&](const RuleManufacture* rule) -> int64_t
+	{
+		if (!rule) return 0;
+
+		// Income per single project completion.
+		// No need to take priceCoefficient into account. It applies to
+		// all items, hence no influence on relative order.
+		int64_t projectRevenue = 0;
+		if (rule->getProducedCraft())
+		{
+			projectRevenue += rule->getProducedCraft()->getSellCost();
+		}
+		if (!rule->getProducedItems().empty())
+		{
+			for (auto& i : rule->getProducedItems())
+			{
+				projectRevenue += i.first->getSellCost();
+			}
+		}
+		// Debatable if this should be included.
+		// Since sort result will slightly lift the curtain.
+		if (!rule->getRandomProducedItems().empty())
+		{
+			// For ordering purposes average value should suffice.
+			// Inspired by TechTreeViewerState::initList()
+			int totalOfWeights = 0;
+			int64_t totalOfRevenues = 0;
+			for (auto& randomOutput : rule->getRandomProducedItems())
+			{
+				int currentWeight = randomOutput.first;
+				totalOfWeights += currentWeight;
+
+				if (randomOutput.second.empty()) continue;
+				for (auto& i : randomOutput.second)
+				{
+					totalOfRevenues += i.first->getSellCost() * i.second * currentWeight;
+				}
+			}
+			projectRevenue += totalOfRevenues / std::max(1, totalOfWeights);
+
+		}
+		if(rule->getSpawnedPersonType() != "")
+		{
+			// Sell price of spawned persons = 0.
+		}
+
+		// Cost associated with a single production.
+		// Using sale value (purchase and/or manufacture cost are outside the scope)
+		int64_t itemCosts = rule->getManufactureCost();
+		if (!rule->getRequiredCrafts().empty())
+		{
+			for (auto& i : rule->getRequiredCrafts())
+			{
+				itemCosts += i.first->getSellCost() * i.second;
+			}
+		}
+		if (!rule->getRequiredItems().empty())
+		{
+			for (auto& i : rule->getRequiredItems())
+			{
+				itemCosts += i.first->getSellCost() * i.second;
+			}
+		}
+
+		// Interested in theoretical max profitability.
+		int workshopSpace = _base->getAvailableWorkshops();
+		int engineers = workshopSpace - rule->getRequiredSpace();
+		// Sorting only, no need to use exact hours per month (upper limit suffices).
+		int manHoursPerMonth = 31 * 12 * engineers;
+		float itemsPerMonth = (float)manHoursPerMonth / (float)rule->getManufactureTime();
+
+		// Gross profit per item (revenue - variable costs)
+		return itemsPerMonth * (projectRevenue - itemCosts) - engineers * _game->getMod()->getEngineerCost();
+
+		// Nett profit would have to take into account (monthly?) cost of
+		// facilities contributing. Possibly with a factor if facility is multipurpose.
+		// Since it will be the same for each production it is not necessary.
+	};
+
+	std::sort(_possibleProductions.begin(), _possibleProductions.end(),
+		[&](const RuleManufacture* a, const RuleManufacture* b)
+		{
+			return calculateGrossProfit(a) > calculateGrossProfit(b);
+		}
+	);
 }
 
 }
