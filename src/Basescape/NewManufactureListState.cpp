@@ -364,7 +364,7 @@ void NewManufactureListState::fillProductionList(bool refreshCategories)
 	_displayedStrings.clear();
 
 	// Sort on user request.
-	if (_game->isAltPressed()) sortProductionByProfit();
+	if (_game->isCtrlPressed()) sortProductionByProfit();
 
 	ItemContainer * itemContainer (_base->getStorageItems());
 	int row = 0;
