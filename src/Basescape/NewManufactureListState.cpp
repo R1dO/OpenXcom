@@ -522,7 +522,7 @@ void NewManufactureListState::sortProductionByProfit()
 		{
 			for (auto& i : rule->getProducedItems())
 			{
-				projectRevenue += i.first->getSellCost();
+				projectRevenue += i.first->getSellCost() * i.second;
 			}
 		}
 		// Debatable if this should be included.
