@@ -1961,8 +1961,8 @@ void BaseInfoDetailsState::addSubCategoryGravShield()
 	int idItem = parentId;
 	BeanCounter row;
 
-	// Subcategory header (show unconditionally)
-	row = {parentId, parentId, true, tr("STR_BIDS_SUBTOTAL_GRAV_SHIELD"), 0, 0, ".", ""};
+	// Subcategory header
+	row = {parentId, parentId, false, tr("STR_BIDS_SUBTOTAL_GRAV_SHIELD"), 0, 0, {}};
 	idItem = addToDetailsVector(row, false);
 
 	int facilities = 0;
@@ -1980,8 +1980,8 @@ void BaseInfoDetailsState::addSubCategoryGravShield()
 	{
 		sortChildren(parentIndex);
 		_details[parentIndex].amount = facilities;
-		_details[parentIndex].amountOverride = "";
 		_details[parentIndex].value = facilities;
+		_details[parentIndex].isVisible = true;
 	}
 }
 
