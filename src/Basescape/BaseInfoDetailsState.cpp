@@ -1928,14 +1928,14 @@ void BaseInfoDetailsState::addSubCategoryDefenseChance()
 		if (facility->getBuildTime() > 0) continue;
 
 		int hitRatio = facility->getRules()->getHitRatio();
-		// Allow negative hit ratio (although that should end up as ) strength (facility adding HP to ufo).
+		// Allow display negative hit ratio.
 		if (hitRatio == 0) continue;
 
 		row = {idItem, parentId, false, tr(facility->getRules()->getType()), 1, hitRatio, {}};
 		idItem = addToDetailsVector(row, false);
 
 		facilities++;
-		if (hitRatio <= 0) continue;
+		if (hitRatio <= 0) continue; // Negative percentage are effectively 0.
 
 		detectionFail *= (100 - hitRatio)/100.0;
 	}
