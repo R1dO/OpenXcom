@@ -103,6 +103,7 @@ private:
 	void categoryHangars();
 	void addSubCategoryHangarProviders();
 	void addSubCategoryHangarUsage();
+	void addSubCategoryCraftArmamentAmmo(const RuleItem* ammo);
 	void categoryDefense();
 	void addSubCategoryDefenseStrength();
 	void addSubCategoryDefenseChance();

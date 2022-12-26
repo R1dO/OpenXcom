@@ -18,12 +18,14 @@
  */
 
 #include <iomanip>
+#include <climits>
 #include "BaseInfoDetailsState.h"
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Engine/Options.h"
 #include "../Mod/Mod.h"
 #include "../Mod/RuleCountry.h"
+#include "../Mod/RuleCraftWeapon.h"
 #include "../Mod/RuleSoldier.h"
 #include "../Mod/RuleSoldierTransformation.h"
 #include "../Interface/TextButton.h"
@@ -34,6 +36,8 @@
 #include "../Savegame/Base.h"
 #include "../Savegame/BaseFacility.h"
 #include "../Savegame/Country.h"
+#include "../Savegame/Craft.h"
+#include "../Savegame/CraftWeapon.h"
 #include "../Savegame/ItemContainer.h"
 #include "../Savegame/Production.h"
 #include "../Savegame/ResearchProject.h"
@@ -1696,15 +1700,34 @@ void BaseInfoDetailsState::addSubCategoryContainmentType(int type)
  * Recognize 2 subtotals:
  * + Providers of hangar space
  * + Users of hangar space.
+ * + Ammo needed for armament.
 */
 void BaseInfoDetailsState::categoryHangars()
 {
 	_txtTitle->setText(tr("STR_HANGARS")); // common/language/Technical
 	_txtQuantity->setText(tr("STR_BIDS_FACILITIES"));
-	_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableHangars() - _base->getUsedHangars()));
+	//_txtTotal->setText(tr("STR_SPACE_AVAILABLE").arg(_base->getAvailableHangars() - _base->getUsedHangars()));
+
+	// Recognise crafts might carry armament requiring ammo.
+	std::set<const RuleItem*> ammoItems;
+	for (auto craft : *_base->getCrafts())
+	{
+		for (auto weapon : *craft->getWeapons())
+		{
+			if (weapon == nullptr) continue;
+			if (weapon->getRules() == nullptr) continue;
+			if (weapon->getRules()->getClipItem() == nullptr) continue;
+
+			ammoItems.insert(weapon->getRules()->getClipItem());
+		}
+	}
 
 	addSubCategoryHangarProviders();
 	addSubCategoryHangarUsage();
+	for (auto ammoItem : ammoItems)
+	{
+		addSubCategoryCraftArmamentAmmo(ammoItem);
+	}
 
 	drawList();
 }
@@ -1813,6 +1836,65 @@ void BaseInfoDetailsState::addSubCategoryHangarUsage()
 		_details[parentIndex].value = spaceUsage;
 	}
 
+}
+
+/**
+ * Add craft ammo usage to  _details vector.
+ *
+ * The amount required for armament of all crafts.
+ * Irrespectively if launcher is active or on hold.
+ *
+ * @param ammo Pointer to ruleset of required ammo.
+ */
+void BaseInfoDetailsState::addSubCategoryCraftArmamentAmmo(const RuleItem* ammo)
+{
+	if (!ammo) return;
+
+	size_t parentIndex = _details.size();
+	int parentId = (int)parentIndex;
+	int idItem = parentId;
+	BeanCounter row;
+
+	// Subcategory header (show unconditionally)
+	std::string description = tr("STR_BIDS_SUBTOTAL_AMMO_REQUIRED").arg(tr(ammo->getName()));
+	row = {parentId, parentId, true, description, 0, 0, ".", {}};
+	idItem = addToDetailsVector(row, false);
+
+	// Let first row show amount available on base.
+	int ammoAvailable = _base->getStorageItems()->getItem(ammo);
+	row = {idItem, parentId, false, tr("STR_AMMUNITION_AVAILABLE"), 0, 0, ".", {}};  // From: standard/xcom#/Language
+	idItem = addToDetailsVector(row, false);
+
+	int amountNeeded = 0;
+	for (auto craft : *_base->getCrafts())
+	{
+		if (craft->getWeapons()->empty()) continue;
+		int craftUsage = 0;
+		for (auto weapon : *craft->getWeapons())
+		{
+			if (weapon == nullptr) continue;
+			if (weapon->getRules() == nullptr) continue;
+			if (weapon->getRules()->getClipItem() != ammo) continue;
+
+			auto clipSize = ammo->getClipSize();
+			if (clipSize == 0) continue;
+			craftUsage += weapon->getRules()->getAmmoMax() / clipSize;
+			// Correction for missing ammo.
+			ammoAvailable += weapon->getClipsLoaded() - weapon->getRules()->getAmmoMax() / clipSize;
+		}
+		if (craftUsage > 0)
+		{
+			row = {idItem, parentId, false, craft->getName(_game->getLanguage()), 0, craftUsage, ".", {}};
+			idItem = addToDetailsVector(row, false);
+			amountNeeded += craftUsage;
+		}
+	}
+
+	sortChildren(parentIndex, 1);
+	_details[parentIndex].value = amountNeeded;
+	_details[parentIndex].valueOverride = tr("STR_BIDS_ASSIGNED_VS_TOTAL").arg(ammoAvailable + amountNeeded).arg(amountNeeded);
+	// 1st child is always the ammo available one.
+	_details[parentIndex + 1].value = ammoAvailable;
 }
 
 /**
