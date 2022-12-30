@@ -73,6 +73,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	bool craftHasACrew = c->getNumTotalSoldiers() > 0;
 	bool isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
 	_showClaimedItems = Options::reservedAmountBehavior > 0;
+	_inverseFilter = false;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -287,6 +288,8 @@ CraftEquipmentState::~CraftEquipmentState()
  */
 void CraftEquipmentState::cbxFilterByChange(Action *action)
 {
+	_inverseFilter = action->getDetails()->button.button == SDL_BUTTON_RIGHT;
+
 	initList();
 }
 
@@ -425,7 +428,7 @@ void CraftEquipmentState::initList()
 				else if (categoryClaimedBySoldiers)
 				{
 					bool isOk = _soldierClaimItems->getItem(*i) > 0;
-					isOk ^= _game->isAltPressed();
+					isOk ^= _inverseFilter;
 					if (!isOk) continue;
 				}
 				else
@@ -445,7 +448,7 @@ void CraftEquipmentState::initList()
 							}
 						}
 					}
-					isOK ^= _game->isAltPressed();
+					isOK ^= _inverseFilter;
 					if (!isOK) continue;
 				}
 			}
