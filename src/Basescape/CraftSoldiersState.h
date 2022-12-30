@@ -46,6 +46,7 @@ private:
 	Text *_txtTitle, *_txtName, *_txtRank, *_txtCraft, *_txtAvailable, *_txtUsed;
 	ComboBox *_cbxSortBy;
 	TextList *_lstSoldiers;
+	size_t _lstScroll;
 
 	Base *_base;
 	size_t _craft;
