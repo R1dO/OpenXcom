@@ -404,37 +404,27 @@ void CraftEquipmentState::initList()
 			// filter by category
 			if (categoryFilterEnabled)
 			{
+				bool isOk = false;
 				if (categoryUnassigned)
 				{
-					if (!rule->getCategories().empty())
-					{
-						continue;
-					}
+					isOk = rule->getCategories().empty();
 				}
 				else if (categoryEquipped)
 				{
-					if (!(cQty > 0))
-					{
-						continue;
-					}
+					isOk = cQty > 0;
 				}
 				else if (categoryNotEquipped)
 				{
-					if (cQty > 0)
-					{
-						continue;
-					}
+					isOk = cQty <= 0;
 				}
 				else if (categoryClaimedBySoldiers)
 				{
-					bool isOk = _soldierClaimItems->getItem(*i) > 0;
-					isOk ^= _inverseFilter;
-					if (!isOk) continue;
+					isOk = _soldierClaimItems->getItem(*i) > 0;
 				}
 				else
 				{
-					bool isOK = rule->belongsToCategory(selectedCategory);
-					if (shareAmmoCategories && !isOK && rule->getBattleType() == BT_FIREARM)
+					isOk = rule->belongsToCategory(selectedCategory);
+					if (shareAmmoCategories && !isOk && rule->getBattleType() == BT_FIREARM)
 					{
 						for (auto* ammoRule : *rule->getPrimaryCompatibleAmmo())
 						{
@@ -442,15 +432,16 @@ void CraftEquipmentState::initList()
 							{
 								if (ammoRule->isInventoryItem() && ammoRule->canBeEquippedToCraftInventory() && _game->getSavedGame()->isResearched(ammoRule->getRequirements()))
 								{
-									isOK = ammoRule->belongsToCategory(selectedCategory);
-									if (isOK) break;
+									isOk = ammoRule->belongsToCategory(selectedCategory);
+									if (isOk) break;
 								}
 							}
 						}
 					}
-					isOK ^= _inverseFilter;
-					if (!isOK) continue;
 				}
+
+				isOk ^= _inverseFilter;
+				if (!isOk) continue;
 			}
 
 			// quick search
