@@ -1203,7 +1203,7 @@ void TextList::mouseClick(Action *action, State *state)
 		if (_selRow < _rows.size())
 		{
 			InteractiveSurface::mouseClick(action, state);
-			if (_comboBox && action->getDetails()->button.button == SDL_BUTTON_LEFT)
+			if (_comboBox && (action->getDetails()->button.button == SDL_BUTTON_LEFT || action->getDetails()->button.button == SDL_BUTTON_RIGHT))
 			{
 				_comboBox->setSelected(_selRow);
 				_comboBox->toggle(false, true);
