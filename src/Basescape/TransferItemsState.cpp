@@ -1612,13 +1612,13 @@ void TransferItemsState::updateItemStrings()
 		{
 			ss1 << getRow().qtySrc - getRow().amount + getRow().protectedSrc;
 			ssQtyDst << getRow().qtyDst + getRow().protectedDst + getRow().amount;
-			ss2 << ">";
+			ss2 << getRow().amount << ">";
 		}
 		else if (getRow().amount < 0)
 		{
 			ss1 << getRow().qtySrc + getRow().protectedSrc - getRow().amount;
 			ssQtyDst << getRow().qtyDst + getRow().amount + getRow().protectedDst;
-			ss2 << "<";
+			ss2 << getRow().amount << "<";
 		}
 		else
 		{
