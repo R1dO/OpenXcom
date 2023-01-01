@@ -268,7 +268,7 @@ int ManufactureInfoState::getMonthlyNetFunds (bool wantGrossProfit) const
 	{
 		for (auto& i : item->getRequiredItems())
 		{
-			directCost += i.first->getSellCost() * i.second;
+			directCost += i.first->getSellCost() * i.second * _game->getSavedGame()->getSellPriceCoefficient() / 100;
 		}
 	}
 
