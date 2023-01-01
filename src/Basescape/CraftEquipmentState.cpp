@@ -517,6 +517,12 @@ void CraftEquipmentState::initList()
 		_lstEquipment->scrollTo(_lstScroll);
 		_lstScroll = 0;
 	}
+
+	// Tell player inverse filter is in effect.
+	if (categoryFilterEnabled && _inverseFilter)
+	{
+		_cbxFilterBy->setText(tr("STR_INVERSE_FILTER_INDICATOR").arg(tr(selectedCategory)));
+	}
 }
 
 /**
