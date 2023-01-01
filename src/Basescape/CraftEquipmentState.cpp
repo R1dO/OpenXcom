@@ -73,6 +73,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) : _lstScroll(
 	bool craftHasACrew = c->getNumTotalSoldiers() > 0;
 	bool isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
 	_showClaimedItems = Options::reservedAmountBehavior > 0;
+	_inverseFilter = false;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -287,6 +288,8 @@ CraftEquipmentState::~CraftEquipmentState()
  */
 void CraftEquipmentState::cbxFilterByChange(Action *action)
 {
+	_inverseFilter = action->getDetails()->button.button == SDL_BUTTON_RIGHT;
+
 	initList();
 }
 
@@ -401,37 +404,27 @@ void CraftEquipmentState::initList()
 			// filter by category
 			if (categoryFilterEnabled)
 			{
+				bool isOk = false;
 				if (categoryUnassigned)
 				{
-					if (!rule->getCategories().empty())
-					{
-						continue;
-					}
+					isOk = rule->getCategories().empty();
 				}
 				else if (categoryEquipped)
 				{
-					if (!(cQty > 0))
-					{
-						continue;
-					}
+					isOk = cQty > 0;
 				}
 				else if (categoryNotEquipped)
 				{
-					if (cQty > 0)
-					{
-						continue;
-					}
+					isOk = cQty <= 0;
 				}
 				else if (categoryClaimedBySoldiers)
 				{
-					bool isOk = _soldierClaimItems->getItem(*i) > 0;
-					isOk ^= _game->isAltPressed();
-					if (!isOk) continue;
+					isOk = _soldierClaimItems->getItem(*i) > 0;
 				}
 				else
 				{
-					bool isOK = rule->belongsToCategory(selectedCategory);
-					if (shareAmmoCategories && !isOK && rule->getBattleType() == BT_FIREARM)
+					isOk = rule->belongsToCategory(selectedCategory);
+					if (shareAmmoCategories && !isOk && rule->getBattleType() == BT_FIREARM)
 					{
 						for (auto* ammoRule : *rule->getPrimaryCompatibleAmmo())
 						{
@@ -439,15 +432,16 @@ void CraftEquipmentState::initList()
 							{
 								if (ammoRule->isInventoryItem() && ammoRule->canBeEquippedToCraftInventory() && _game->getSavedGame()->isResearched(ammoRule->getRequirements()))
 								{
-									isOK = ammoRule->belongsToCategory(selectedCategory);
-									if (isOK) break;
+									isOk = ammoRule->belongsToCategory(selectedCategory);
+									if (isOk) break;
 								}
 							}
 						}
 					}
-					isOK ^= _game->isAltPressed();
-					if (!isOK) continue;
 				}
+
+				isOk ^= _inverseFilter;
+				if (!isOk) continue;
 			}
 
 			// quick search
@@ -522,6 +516,12 @@ void CraftEquipmentState::initList()
 	{
 		_lstEquipment->scrollTo(_lstScroll);
 		_lstScroll = 0;
+	}
+
+	// Tell player inverse filter is in effect.
+	if (categoryFilterEnabled && _inverseFilter)
+	{
+		_cbxFilterBy->setText(tr("STR_INVERSE_FILTER_INDICATOR").arg(tr(selectedCategory)));
 	}
 }
 

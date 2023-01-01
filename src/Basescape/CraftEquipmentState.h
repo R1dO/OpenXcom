@@ -69,6 +69,8 @@ private:
 	bool _showClaimedItems;
 	/// Items soldiers have laid a claim on.
 	const ItemContainer* _soldierClaimItems;
+	/// Should list display the inverse of selected filter category.
+	bool _inverseFilter;
 
 	void updateSubtitleArea();
 	std::string createAssignedToSoldiersString(const int craftQty, const int claimQty) const;
