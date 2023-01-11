@@ -459,6 +459,12 @@ if ( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES 
     set_property ( SOURCE ${cxx_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override\ )
     set_property ( SOURCE ${cxx_src} ${c_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wclobbered\ )
     set_property ( SOURCE ${cxx_src} ${c_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wlogical-op\ )
+    # Just assume Yankes knows he's c++, disable any overzealous warnings.
+    # I am not qualified enough to determine if there are actual problems with Y-code.
+    # Might be a good idea to periodically enable them again for my own code though.
+    set_property ( SOURCE ${cxx_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wno-dangling-reference\ )
+    set_property ( SOURCE ${cxx_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wno-unused-function\ )
+    set_property ( SOURCE ${cxx_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wno-maybe-uninitialized\ )
   elseif ( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
     # add warning flags recognized by clang but not by g++
   endif ()
