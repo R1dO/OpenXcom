@@ -1,0 +1,13 @@
+#!/usr/bin/env dash
+
+# Housekeeping
+##############
+SCRIPT_DIR_ABSOLUTE=$(dirname "$(realpath "$0")")
+REPOSITORY_ROOT_ABSOLUTE=$(dirname "${SCRIPT_DIR_ABSOLUTE}")
+BUILD_DIR_ABSOLUTE="${REPOSITORY_ROOT_ABSOLUTE}"/_build.release
+
+# Compile and install
+#####################
+cmake -B "${BUILD_DIR_ABSOLUTE}" -DCMAKE_INSTALL_PREFIX=~/.local -DCMAKE_BUILD_TYPE=Release
+cmake --build "${BUILD_DIR_ABSOLUTE}" -j$(nproc)
+cmake --build "${BUILD_DIR_ABSOLUTE}" --target install > "${BUILD_DIR_ABSOLUTE}"/oxce_install.$(date +%y%m%d_%H%M).log 2>&1
