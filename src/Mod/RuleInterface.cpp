@@ -82,6 +82,9 @@ void RuleInterface::load(const YAML::Node& node, Mod *mod)
 		element.border = (*i)["border"].as<int>(INT_MAX);
 		element.custom = (*i)["custom"].as<int>(0);
 		element.TFTDMode = (*i)["TFTDMode"].as<bool>(false);
+		element.customBool = (*i)["customBool"].as<bool>(false);
+		if ((*i)["customList"])
+			element.customList = (*i)["customList"].as<std::vector<std::string> >();
 
 		std::string id = (*i)["id"].as<std::string>("");
 		_elements[id] = element;

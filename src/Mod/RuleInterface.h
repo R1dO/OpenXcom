@@ -19,6 +19,7 @@
  */
 #include <string>
 #include <map>
+#include <vector>
 #include <yaml-cpp/yaml.h>
 
 namespace OpenXcom
@@ -31,7 +32,8 @@ struct Element
 	/// basic rect info, and 3 colors.
 	int x, y, w, h, color, color2, border, custom;
 	/// defines inversion behaviour
-	bool TFTDMode;
+	bool TFTDMode, customBool;
+	std::vector<std::string> customList;
 };
 
 class RuleInterface
