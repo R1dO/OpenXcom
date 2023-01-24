@@ -1724,6 +1724,39 @@ interfaces:
         color: 2     # orange
       - id: errorMessage
         color: 241   # pink
+      # Change info line if craft has limits.
+      - id: optionShowCraftLimits
+        custom: 2    # 0 = never, 1 = always, 2 = if such a limit exist
+      # Control how list deals with claimed items
+      - id: optionShowClaimedAmounts
+        custom: 2    # 0 = off, 1 = Meridian style, 2 = r1do style.
+      # Activate global arrow functionality (and safety on OK button)
+      - id: optionUseGlobalListArrows
+        customBool: true
+        #TFTDMode: true # Alternative way of activating, not chosen since name is kinda misleading here.
+      # Since i've added a filter, might as well control the 'complete' combobox.
+      - id: filterButton
+        color: 241
+        # Filter ordering, any (mod) item category not included will be added after the last entry.
+        # When empty fall back to default behavior (the one listed here).
+        customList:
+          - STR_ALL                              # Code defined
+          - STR_EQUIPPED                         # Code defined
+          - STR_CLAIMED_BY_SOLDIERS              # Code defined
+#          - STR_SOME_DEFINED_ITEM_CATEGORY_NO9   # Example
+#          - STR_SOME_DEFINED_ITEM_CATEGORY_NO3   # Example
+          # Unless defined here the next entry will always be included as last one if conditions are satisfied.
+          # Condition: mod uses item categories but not all items are assigned to one.
+#          - STR_UNASSIGNED                       # Code defined
+        # Does RMB cause selection to be inverted?
+        customBool: true
+      # Control warning message if inventory visit would lead to soldiers losing items.
+      - id: inventoryWarningMessage
+        color: 241   # pink
+        # Should we show a warning message and protect player when entering inventory.
+        # Message will be shown if less items are on craft than claimed by soldiers.
+        # Does not affect message as shown on the button (use translation for that)
+        customBool: true
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
     parent: craftEquipment
