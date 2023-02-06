@@ -89,6 +89,26 @@ void RuleInterface::load(const YAML::Node& node, Mod *mod)
 		std::string id = (*i)["id"].as<std::string>("");
 		_elements[id] = element;
 	}
+	for (YAML::const_iterator i = node["options"].begin(); i != node["options"].end(); ++i)
+	{
+		if ((*i)["delete"])
+		{
+			std::string deleteOption = (*i)["delete"].as<std::string>("");
+			_options.erase(deleteOption);
+			continue;
+		}
+
+		InterfaceOption option;
+		option.variant = (*i)["variant"].as<int>(0);
+		option.isActive = (*i)["active"].as<bool>(false);
+
+		// if ((*i)["customList"])
+		// 	element.customList = (*i)["customList"].as<std::vector<std::string> >();
+
+
+		std::string id = (*i)["id"].as<std::string>("");
+		_options[id] = option;
+	}
 }
 
 /**
@@ -99,6 +119,16 @@ Element *RuleInterface::getElement(const std::string &id)
 {
 	auto i = _elements.find(id);
 	if (_elements.end() != i) return &i->second; else return 0;
+}
+
+/**
+ * Retrieves screen specific options
+ * @param id String defining the option.
+ */
+InterfaceOption *RuleInterface::getOption(const std::string &id)
+{
+	std::map<std::string, InterfaceOption>::iterator i = _options.find(id);
+	if (_options.end() != i) return &i->second; else return 0;
 }
 
 const std::string &RuleInterface::getPalette() const

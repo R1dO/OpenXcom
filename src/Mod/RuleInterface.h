@@ -36,6 +36,14 @@ struct Element
 	std::vector<std::string> customList;
 };
 
+// Definition in progress ... expect changes.
+struct InterfaceOption
+{
+	// Control activation of options
+	bool isActive;
+	int variant; // If defined "isActive" is not needed.
+};
+
 class RuleInterface
 {
 private:
@@ -48,6 +56,7 @@ private:
 	int _sound;
 
 	std::map <std::string, Element> _elements;
+	std::map <std::string, InterfaceOption> _options;
 public:
 	/// Constructor.
 	RuleInterface(const std::string & type);
@@ -57,6 +66,8 @@ public:
 	void load(const YAML::Node& node, Mod *mod);
 	/// Get an element.
 	Element *getElement(const std::string &id);
+	/// Get a screen specific option.
+	InterfaceOption *getOption(const std::string &id);
 	/// Get palette.
 	const std::string &getPalette() const;
 	/// Get parent interface rule.
