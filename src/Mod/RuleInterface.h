@@ -41,7 +41,7 @@ struct InterfaceOption
 {
 	// Control activation of options
 	bool isActive;
-	int variant; // If defined "isActive" is not needed.
+	int variant; // Takes precedence over "isActive".
 };
 
 class RuleInterface

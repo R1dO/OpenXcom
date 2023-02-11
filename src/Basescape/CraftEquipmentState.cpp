@@ -83,7 +83,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
 	_btnQuickSearch = new TextEdit(this, 48, 9, 264, 12);
-	_btnOk = new TextButton((craftHasACrew || _isNewBattle)?30:140, 16, (craftHasACrew || _isNewBattle)?274:164, 176);
+	_btnOk = new TextButton(30, 16, 274, 176); // Use the most likely setup (campaign and all buttons active).
 	_btnClear = new TextButton(102, 16, 164, 176);
 	_btnInventory = new TextButton(102, 16, 164, 176);
 	_txtTitle = new Text(300, 17, 16, 7);
@@ -142,6 +142,9 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	add(_arrowEachItemLeft, "button", "craftEquipment");
 	add(_arrowEachItemRight, "button", "craftEquipment");
 
+	// Screen behavior options can cause resizing of elements.
+	// To prevent crashes it has to occur *after* the 'add' section.
+	//
 	// Info line has interface options.
 	if (!_screenBehavior.showSoldiersAssignedToCraft)
 	{
@@ -151,6 +154,28 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	{
 		_txtAvailable->setVisible(false);
 		_txtUsed->setVisible(false);
+	}
+	else
+	{
+		_txtCraftSpaceUSage->setVisible(false);
+		_txtItemLimitAmount->setVisible(false);
+		_txtItemLimitSize->setVisible(false);
+	}
+	// Inventory button.
+	if (_screenBehavior.allowDressUpMinigame)
+	{
+		_btnClear->setVisible(false);
+	}
+	else
+	{
+		_btnInventory->setVisible(false);
+		// Give space back to ok button.
+		if (!_isNewBattle)
+		{
+			_btnClear->setVisible(false);
+			_btnOk->setWidth(_btnOk->getWidth() + 102 + 8); // 138
+			_btnOk->setX(164); // Starting position of inventory button.
+		}
 	}
 
 	if (_useGlobalListArrows)
@@ -202,13 +227,23 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	if (!activateFilterBox)
 	{
 		_cbxFilterBy->setVisible(false);
-		// Reset to vanilla button placement
-		_btnClear->setWidth(148);
-		_btnClear->setX(8);
-		_btnInventory->setWidth(148);
-		_btnInventory->setX(8);
-		_btnOk->setWidth((craftHasACrew || _isNewBattle) ? 148 : 288);
-		_btnOk->setX((craftHasACrew || _isNewBattle) ? 164: 16);
+
+		if (!_screenBehavior.allowDressUpMinigame && !_isNewBattle)
+		{
+			// Use oxc values for single button placement.
+			_btnOk->setWidth(288);
+			_btnOk->setX(16);
+		}
+		else
+		{
+			// Use oxc values for 2 button placement.
+			_btnOk->setWidth(148);
+			_btnOk->setX(164);
+			_btnClear->setWidth(148);
+			_btnClear->setX(8);
+			_btnInventory->setWidth(148);
+			_btnInventory->setX(8);
+		}
 	}
 
 	if (_itemClaimDisplayStyle == 2)
@@ -1805,6 +1840,22 @@ void CraftEquipmentState::setScreenBehavior()
 		_screenBehavior.showSoldiersAssignedToCraft = rules->getOption("showSoldiersAssigned")->isActive;
 	}
 
+	bool craftHasACrew = c->getNumTotalSoldiers() > 0;
+	// Button can only exist in campaigns not in skirmish setup.
+	_screenBehavior.allowDressUpMinigame = (craftHasACrew && !_isNewBattle);
+	_screenBehavior.allowInventoryWarningMessage = true;
+	if (rules->getOption("showInventoryButton"))
+	{
+		if (rules->getOption("showInventoryButton")->variant == 0)
+		{
+			_screenBehavior.allowDressUpMinigame = false;
+			_screenBehavior.allowInventoryWarningMessage = false;
+		}
+		else if (rules->getOption("showInventoryButton")->variant == 1)
+		{
+			_screenBehavior.allowInventoryWarningMessage = false;
+		}
+	}
 
 	///
 	// std::string textElement = "text";

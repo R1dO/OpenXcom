@@ -79,9 +79,10 @@ private:
 
 	struct CraftEquipmentStateOptions
 	{
-		bool allowDressUpMinigame;        // A.k.a. Inventory button.
+		bool allowDressUpMinigame;         // A.k.a. Show inventory button.
+		bool allowInventoryWarningMessage; // When an inventory visit would cause soldiers to lose some items.
 		bool showCraftLimits;
-		bool showSoldiersAssignedToCraft; // OXC(E) QoL.
+		bool showSoldiersAssignedToCraft;  // OXC(E) QoL.
 	} _screenBehavior;
 	void setScreenBehavior();
 

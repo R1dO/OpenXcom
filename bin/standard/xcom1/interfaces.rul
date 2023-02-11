@@ -1732,9 +1732,6 @@ interfaces:
       - id: optionUseGlobalListArrows
         customBool: true
         #TFTDMode: true # Alternative way of activating, not chosen since name is kinda misleading here.
-      # Control display of warning message if inventory visit leads to soldiers losing items.
-      - id: ignoreInventoryWarningMessage
-        customBool: false
       # Control filter functionality.
       - id: optionUseFilterButton
         customBool: true # Activate this functionality?
@@ -1757,6 +1754,8 @@ interfaces:
         variant: 2          # 0 = never, 1 = always, 2 = if such a limit exist
       - id: showSoldiersAssigned # Vanilla info line did not include assigned soldiers.
         active: true
+      - id: showInventoryButton # Vanilla did not allow inventory visits from this screen.
+        variant: 2              # 0 = not visible, 1 = visible, 2 = visible and support warning message if soldiers are about to lose items.
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
     parent: craftEquipment

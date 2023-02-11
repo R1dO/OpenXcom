@@ -1748,8 +1748,6 @@ interfaces: #done
         custom: 2
       - id: optionUseGlobalListArrows
         customBool: true
-      - id: ignoreInventoryWarningMessage
-        customBool: false
       - id: optionUseFilterButton
         customBool: true
     options:
@@ -1757,6 +1755,8 @@ interfaces: #done
         custom: 2
       - id: showSoldiersAssigned
         active: true
+      - id: showInventoryButton
+        variant: 2
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
     parent: craftEquipment
