@@ -1731,7 +1731,6 @@ interfaces: #done
       - id: text
         color: 1
         color2: 244
-        border: 8  # Error color: Red. Or use 146 for gold
       - id: button
         color: 1
       - id: list
@@ -1744,6 +1743,8 @@ interfaces: #done
         color: 2
       - id: errorMessage
         color: 1
+      - id: textWarningColor
+        color: 8  # Red, use 146 for gold
       - id: optionUseGlobalListArrows
         customBool: true
       - id: optionUseFilterButton

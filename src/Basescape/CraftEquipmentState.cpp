@@ -1377,19 +1377,25 @@ void CraftEquipmentState::updateSubtitleArea()
 {
 	Craft *c = _base->getCrafts()->at(_craft);
 
+	// If a craft has no maximum defined it will return 0.
+	// Language plurality functionality is (ab)used for binary states (0 or bigger than 0).
 	if (_screenBehavior.showCraftLimits)
 	{
-		// If a craft has no maximum defined it will return 0.
-		// Language plurality functionality is (ab)used for binary states (0 or bigger than 0).
 		Uint8 secondaryColor = _screenInterface->getElement("text")->color2;
-		Uint8 errorColor = _screenInterface->getElement("text")->border;
+		Uint8 warningColor = secondaryColor;
+		// Don't crash on older rulesets.
+		if (_screenInterface->getElement("textWarningColor"))
+		{
+			warningColor = _screenInterface->getElement("textWarningColor")->color;
+		}
+
 
 		// Unit space
 		int maxUnits = c->getMaxUnitsClamped();
 		int usedSpace = c->getSpaceUsed();
 		if (maxUnits > 0 && usedSpace > maxUnits)
 		{
-			_txtCraftSpaceUSage->setSecondaryColor(errorColor);
+			_txtCraftSpaceUSage->setSecondaryColor(warningColor);
 		}
 		else
 		{
@@ -1401,7 +1407,7 @@ void CraftEquipmentState::updateSubtitleArea()
 		int maxItems = c->getMaxItemsClamped();
 		if (maxItems > 0 && _totalItems > maxItems)
 		{
-			_txtItemLimitAmount->setSecondaryColor(errorColor);
+			_txtItemLimitAmount->setSecondaryColor(warningColor);
 		}
 		else
 		{
@@ -1414,7 +1420,7 @@ void CraftEquipmentState::updateSubtitleArea()
 		double usedSize = std::max(_totalItemStorageSize, 0.0);
 		if (maxSize > 0.0 && usedSize > maxSize)
 		{
-			_txtItemLimitSize->setSecondaryColor(errorColor);
+			_txtItemLimitSize->setSecondaryColor(warningColor);
 		}
 		else
 		{

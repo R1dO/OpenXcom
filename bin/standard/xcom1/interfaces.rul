@@ -1712,7 +1712,6 @@ interfaces:
       - id: text
         color: 241   # pink
         color2: 208  # white
-        border: 213  # Error color: Gold
       - id: button
         color: 241   # pink
       - id: list
@@ -1725,6 +1724,8 @@ interfaces:
         color: 2     # orange
       - id: errorMessage
         color: 241   # pink
+      - id: textWarningColor
+        color: 213  # Gold
       # Activate global arrow functionality (and safety on OK button)
       - id: optionUseGlobalListArrows
         customBool: true
@@ -1733,9 +1734,9 @@ interfaces:
       - id: optionUseFilterButton
         customBool: true # Activate this functionality?
         # Custom filter order.
-        # If empty or non-existent code falls back to default behavior (the one shown below).
-        # If not empty filter will only show included categories (default and item ones).
-        # Category is only visible if there exist an item that belongs to said category.
+        # Filter will only use defined categories (default and item ones), visibility
+        # is controlled by the existence of at least one item belonging to said category.
+        # If empty code falls back to default behavior (see commented out definition).
         customList: []
 #       customList:
 #          - STR_ALL                      # Default
