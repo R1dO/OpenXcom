@@ -42,6 +42,16 @@ struct InterfaceOption
 	// Control activation of options
 	bool isActive;
 	int variant; // Takes precedence over "isActive".
+
+	// Option specific overrides.
+
+	//std::vector<std::string> customList;
+
+	// Future adaptions?
+	// std::string elementId; // Link to element?
+	// Expose to options screen?
+	// std::string description; // In case we want to expose per screen options to user.
+	// bool isProtected; // Let mod author decide if option can be changed.
 };
 
 class RuleInterface
