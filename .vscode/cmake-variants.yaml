@@ -1,0 +1,35 @@
+buildType:
+  default: debug
+  choices:
+    debug:
+      short: Debug
+      long: Debugging build
+      buildType: Debug
+#      settings:
+#        buildDirectory: ${workspaceFolder}/build.debug
+    release:
+      short: Release
+      long: Optimised build for playing.
+      buildType: Release
+    master:
+      short: Master
+      long: |
+        Before buggering SupSuper check if bug uncovered during fiddling exists in 'master'.
+        !!!Need to manually checkout master before compiling!!!
+      buildType: Debug
+
+
+installType:
+  default: user
+  choices:
+    user:
+      short: UserSpace
+      long: Install under '$HOME/.local'.
+      settings:
+        "CMAKE_INSTALL_PREFIX": ${userHome}/.local
+# Does *not* work, apparently vscode-cmake (snap version) cannot prompt for credentials
+#    system:
+#      short: System
+#      long: Install under '/usr/local'. For those that like their 'sudo' power.
+#      settings:
+#        "CMAKE_INSTALL_PREFIX:PATH": /usr/local
