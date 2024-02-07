@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=@OXC_PROJECT_NAME@
+Comment=Open-source clone of UFO: Enemy Unknown
+Exec=@OXC_BASENAME@
+Terminal=false
+Icon=@OXC_BASENAME@
+Categories=Game;StrategyGame;

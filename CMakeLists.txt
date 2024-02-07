@@ -2,11 +2,24 @@ cmake_minimum_required ( VERSION 3.1 )
 
 project ( OpenXcom )
 
+# Allow for multiple forks to co-exist on the same system
+#########################################################
+# 'project()' and first 'set()' below are only needed if fork wants isolation.
+# Otherwise those lines can be commented out.
+project ( "OpenXcom Extended" )
+set ( OXC_BASENAME "openxcom.extended" CACHE STRING "Basename for the executable and (installation) folders" )
+#########################################################
+# Allow project name override from commandline.
+# No need for manual adaption here since default is derived from 'project()'.
+# Necessary since any 'project()' call from this file overrides command line defined 'CMAKE_PROJECT_NAME'.
+set ( OXC_PROJECT_NAME "${CMAKE_PROJECT_NAME}" CACHE STRING "Override the project name (e.g. what is shown in start menus)" )
+#########################################################
+
 set ( CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules" )
 include(BuildType)
 include(GNUInstallDirs)
 
-# For yaml-cpp
+# For yaml-cpp (and fork isolation)
 set (CMAKE_CXX_STANDARD 17)
 # use std=c++11 rather than std=gnu++11
 #set (CMAKE_CXX_EXTENSIONS OFF)
@@ -157,10 +170,30 @@ set ( OPENXCOM_VERSION_GIT "${GIT_STATE}" CACHE STRING "Git version string (afte
 configure_file("${CMAKE_SOURCE_DIR}/src/git_version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/git_version.h" )
 include_directories ( "${CMAKE_CURRENT_BINARY_DIR}" )
 
+# Decouple fork folders and executable
+######################################
+if (NOT DEFINED OXC_BASENAME OR OXC_BASENAME STREQUAL "")
+  set (OXC_BASENAME "openxcom")
+endif ()
+# Safety: 'add_executable()' does not like spaces in 'OXC_BASENAME'.
+string(REPLACE " " "_" OXC_BASENAME ${OXC_BASENAME})
+configure_file("${CMAKE_SOURCE_DIR}/src/oxc_basename.h.in" "${CMAKE_CURRENT_BINARY_DIR}/oxc_basename.h" @ONLY)
+configure_file("${CMAKE_SOURCE_DIR}/res/linux/oxc_basename.desktop.in" "${CMAKE_CURRENT_BINARY_DIR}/res/linux/${OXC_BASENAME}.desktop" @ONLY)
+# TODO:
+# For windows build the 'configure_file()' procedure might be necessary for "src/OpenXcom.rc".
+# Combined with related adaptations to "src/CMakeLists.txt"
+# But that requires a windows test dev/user.
+#
+# Likewise for diverse Linux distro stuff under "install/".
+# Do not forget MAN pages (they still show openxcom)
+# And to make life even more complicated:
+# There are also some thingies called Apple and Android ... apparently.
+################
+
 if ( BUILD_PACKAGE )
   set ( CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}-${GIT_STATE}" )
-  set ( CPACK_SOURCE_PACKAGE_FILE_NAME "Extended-${CPACK_PACKAGE_VERSION}-src" )
-  set ( CPACK_PACKAGE_FILE_NAME "Extended-${CPACK_PACKAGE_VERSION}-unknown" ) # TODO: determine package suffix (osrelease+arch)
+  set ( CPACK_SOURCE_PACKAGE_FILE_NAME "${OXC_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}-src" )
+  set ( CPACK_PACKAGE_FILE_NAME "${OXC_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}-unknown" ) # TODO: determine package suffix (osrelease+arch)
 
   if ( NOT CPACK_GENERATOR )
     set ( CPACK_GENERATOR "TXZ" )
@@ -169,18 +202,18 @@ if ( BUILD_PACKAGE )
     set ( CPACK_SOURCE_GENERATOR "TXZ" )
   endif ()
 
-  set ( CPACK_PACKAGE_VENDOR "The OpenXcom project" )
+  set ( CPACK_PACKAGE_VENDOR "The ${OXC_PROJECT_NAME} project" )
   set ( CPACK_PACKAGE_DESCRIPTION_SUMMARY "Open-source clone of UFO: Enemy Unknown" )
   set ( CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/cmake/modules/Description.txt" )
   set ( CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md" )
-  set ( CPACK_PACKAGE_CONTACT "The OpenXcom project (http://www.openxcom.org)" )
+  set ( CPACK_PACKAGE_CONTACT "The ${OXC_PROJECT_NAME} project (http://www.openxcom.org)" )
   # DMG-specific -- sets CPACK_GENERATOR to DragNDrop itself
   if (APPLE)
     set ( TARGET_PLATFORM "macos" )
-    set ( CPACK_BUNDLE_NAME "OpenXcom Extended" )
+    set ( CPACK_BUNDLE_NAME "${OXC_PROJECT_NAME}" )
     set ( CPACK_BUNDLE_ICON "${CMAKE_SOURCE_DIR}/res/mac/AppIcon.icns" )
-    set ( CPACK_BUNDLE_PLIST "${CMAKE_BINARY_DIR}/openxcom.app/Contents/Info.plist" )
-    set ( CPACK_DMG_VOLUME_NAME "OpenXcom Extended" )
+    set ( CPACK_BUNDLE_PLIST "${CMAKE_BINARY_DIR}/${OXC_BASENAME}.app/Contents/Info.plist" )
+    set ( CPACK_DMG_VOLUME_NAME "${OXC_PROJECT_NAME}" )
     set ( CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/res/openxcom_block.png" )
     set ( CPACK_GENERATOR "DragNDrop")
   else()
@@ -189,15 +222,15 @@ if ( BUILD_PACKAGE )
 
   string ( LENGTH "${TARGET_PLATFORM}" has_target )
   if ( ${has_target} GREATER 0 )
-    set ( CPACK_PACKAGE_FILE_NAME "Extended-${CPACK_PACKAGE_VERSION}-${TARGET_PLATFORM}" )
+    set ( CPACK_PACKAGE_FILE_NAME "${OXC_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}-${TARGET_PLATFORM}" )
   else ()
-    set ( CPACK_PACKAGE_FILE_NAME "Extended-${CPACK_PACKAGE_VERSION}-unknown" )
+    set ( CPACK_PACKAGE_FILE_NAME "${OXC_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}-unknown" )
     message ( WARNING "Missing OPENXCOM_TARGET for package naming. Please set it." )
   endif()
 
   # DEB-specific -- set -DCPACK_GENERATOR=DEB
   if ( "${CPACK_GENERATOR}" MATCHES "^(.*;)?DEB(;.*)?$" )
-    set ( CPACK_DEBIAN_PACKAGE_MAINTAINER "The OpenXcom project" )
+    set ( CPACK_DEBIAN_PACKAGE_MAINTAINER "The ${OXC_PROJECT_NAME} project" )
     set ( CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://openxcom.org/" )
     set ( CPACK_DEBIAN_PACKAGE_SECTION "games" )
     set ( CPACK_DEBIAN_PACKAGE_PRIORITY "optional" )
@@ -223,20 +256,20 @@ if ( BUILD_PACKAGE )
   endif ()
   # NSIS-specific -- set -DCPACK_GENERATOR=NSIS
   set ( CPACK_NSIS_MODIFY_PATH OFF )
-  set ( CPACK_NSIS_DISPLAY_NAME "OpenXcom Extended" )
+  set ( CPACK_NSIS_DISPLAY_NAME "${OXC_PROJECT_NAME}" )
   include ( CPack )
-  message ( STATUS "OpenXcom version: ${CPACK_PACKAGE_VERSION}")
+  message ( STATUS "${OXC_PROJECT_NAME} version: ${CPACK_PACKAGE_VERSION}")
 endif()
 
 if ( NOT WIN32 OR NOT CPACK_GENERATOR STREQUAL "7Z" ) # FIXME: that's to exclude DEB and RPM, but hacky.
-  install(FILES "${CMAKE_SOURCE_DIR}/res/linux/openxcom.desktop"
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/res/linux/${OXC_BASENAME}.desktop"
     DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/applications")
   install(FILES "${CMAKE_SOURCE_DIR}/res/linux/icons/openxcom_48x48.png"
-    DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/icons/hicolor/48x48/apps" RENAME openxcom.png)
+    DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/icons/hicolor/48x48/apps" RENAME "${OXC_BASENAME}.png")
   install(FILES "${CMAKE_SOURCE_DIR}/res/linux/icons/openxcom_128x128.png"
-    DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/icons/hicolor/128x128/apps" RENAME openxcom.png)
+    DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/icons/hicolor/128x128/apps" RENAME "${OXC_BASENAME}.png")
   install(FILES "${CMAKE_SOURCE_DIR}/res/linux/icons/openxcom.svg"
-    DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/icons/hicolor/scalable/apps")
+    DESTINATION "${CMAKE_INSTALL_FULL_DATAROOTDIR}/icons/hicolor/scalable/apps" RENAME "${OXC_BASENAME}.svg")
 endif ()
 
 add_subdirectory ( docs )
