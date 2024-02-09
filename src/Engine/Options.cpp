@@ -524,7 +524,8 @@ void createOptionsOTHER()
 
 void createAdvancedOptionsOTHER()
 {
-	// your fork's advanced options here
+	// OTHER options general
+	_info.push_back(OptionInfo(OPTION_OTHER, "r1doReservedAmountBehavior", &r1doReservedAmountBehavior, 0, "R1DO_RESERVED_BEHAVIOR", "STR_GENERAL"));
 }
 
 void createControlsOTHER()

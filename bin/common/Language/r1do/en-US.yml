@@ -1,0 +1,13 @@
+en-US:
+  #=================== Basescape ===================
+  #=================== Battlescape ===================
+  #=================== Engine ===================
+  #=================== Geoscape ===================
+  #=================== Menu ===================
+# Options.cpp
+  R1DO_RESERVED_BEHAVIOR: "DEMO: Reserved items columns behavior"
+  R1DO_RESERVED_BEHAVIOR_DESC: |
+    Behavior of reserved items column for buy/sell/transfer screens:
+    0: Do not use, 1: Claimed by soldiers, 2: Claimed by crafts/engineering/research, 3: Greedy (max of 1 and 2).
+  #=================== Savegame ===================
+  #=================== Ufopaedia ===================
