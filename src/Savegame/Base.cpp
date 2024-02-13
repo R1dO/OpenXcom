@@ -639,21 +639,25 @@ int Base::getAvailableScientists() const
 /**
  * Returns the total amount of scientists contained
  * in the base.
+ * @param excludeTransfers Whether to exclude scientists currently en-route.
  * @return Number of scientists.
  */
-int Base::getTotalScientists() const
+int Base::getTotalScientists(bool excludeTransfers) const
 {
 	int total = _scientists;
-	for (const auto* transfer : _transfers)
-	{
-		if (transfer->getType() == TRANSFER_SCIENTIST)
-		{
-			total += transfer->getQuantity();
-		}
-	}
 	for (const auto* proj : _research)
 	{
 		total += proj->getAssigned();
+	}
+	if (!excludeTransfers)
+	{
+		for (const auto* transfer : _transfers)
+		{
+			if (transfer->getType() == TRANSFER_SCIENTIST)
+			{
+				total += transfer->getQuantity();
+			}
+		}
 	}
 	return total;
 }
@@ -671,21 +675,25 @@ int Base::getAvailableEngineers() const
 /**
  * Returns the total amount of engineers contained
  * in the base.
+ * @param excludeTransfers Whether to exclude engineers currently en-route.
  * @return Number of engineers.
  */
-int Base::getTotalEngineers() const
+int Base::getTotalEngineers(bool excludeTransfers) const
 {
 	int total = _engineers;
-	for (const auto* transfer : _transfers)
-	{
-		if (transfer->getType() == TRANSFER_ENGINEER)
-		{
-			total += transfer->getQuantity();
-		}
-	}
 	for (const auto* prod : _productions)
 	{
 		total += prod->getAssignedEngineers();
+	}
+	if (!excludeTransfers)
+	{
+		for (const auto* transfer : _transfers)
+		{
+			if (transfer->getType() == TRANSFER_ENGINEER)
+			{
+				total += transfer->getQuantity();
+			}
+		}
 	}
 	return total;
 }
@@ -900,6 +908,451 @@ int Base::getAvailableStores() const
 		}
 	}
 	return total;
+}
+
+/**
+ * Returns the amount of a specific storage item used as building material for (queued) facilities.
+ *
+ * @remark
+ * Engine differentiates between refunds of queued facilities and (partially) build ones.
+ * @note
+ * These items can only return to base storage upon facility dismantle.
+ * @note
+ * Fixed facility building material only, for facility consumables see: `getItemCountDefenses*()`.
+ *
+ * @param item              Pointer to item ruleset.
+ * @param ignoreQueueEffect Whether to ignore full refunds on queued buildings.
+ * @return Amount of a specific item refundable upon dismantle, for all (queued) facilities.
+ */
+int	Base::getItemCountFacilities(const RuleItem* item, bool ignoreQueueEffect) const
+{
+	if (!item)
+		return 0;
+
+	int qty = 0;
+	for (const auto* facility : _facilities)
+	{
+		if (!facility || !facility->getRules())
+			continue;
+
+		if (facility->getRules()->getBuildCostItems().empty())
+			continue;
+
+		// Full item refund on queued facilities.
+		bool fullRefund = facility->getBuildTime() > facility->getRules()->getBuildTime();
+		if (ignoreQueueEffect)
+		{
+			fullRefund = false;
+		}
+
+		for (auto& pair : facility->getRules()->getBuildCostItems())
+		{
+			if (pair.first != item->getType())
+				continue;
+
+			qty += fullRefund ? pair.second.first : pair.second.second;
+		}
+	}
+	return qty;
+}
+
+/**
+ * Return the amount of a specific storage item assigned to armament for all craft on this base.
+ *
+ * @note
+ * Armament includes both craft weapons and their ammunition.
+ *
+ * @param item              Pointer to item ruleset.
+ * @param assumeFullyLoaded Whether ammo count uses current value `false` or total capacity `true`.
+ * @return Amount of specific item assigned to armament for all craft on this base.
+ */
+int Base::getItemCountCraftArmament(const RuleItem* item,  bool assumeFullyLoaded) const
+{
+	int qty = 0;
+	for (const auto* craft : _crafts)
+	{
+		if (!craft)
+			continue;
+
+		qty += craft->getItemCountArmament(item, assumeFullyLoaded);
+	}
+	return qty;
+}
+
+/**
+ * Return the amount of a specific storage item assigned to armament for all craft in transfer to this base.
+ *
+ * @note
+ * Armament includes both craft weapons and their ammunition.
+ *
+ * @param item              Pointer to item ruleset.
+ * @param assumeFullyLoaded Whether ammo count uses current value `false` or total capacity `true`.
+ * @return Amount of specific item assigned to armament for all craft in transfer to this base.
+ */
+int Base::getItemCountTransfersCraftArmament(const RuleItem* item, bool assumeFullyLoaded) const
+{
+	int qty = 0;
+	for (const auto* transfer : _transfers)
+	{
+		if (!transfer || !transfer->getCraft())
+			continue;
+
+		qty += transfer->getCraft()->getItemCountArmament(item, assumeFullyLoaded);
+	}
+	return qty;
+}
+
+/**
+ * Return the amount of a specific storage item assigned to cargo bays for all craft on this base.
+ *
+ * @note
+ * This includes vehicles and their ammo.
+ *
+ * @param item Pointer to item ruleset.
+ * @return Amount of specific item assigned to cargo bays for all craft on this base.
+ */
+int Base::getItemCountCraftCargoBay(const RuleItem* item) const
+{
+	int qty = 0;
+	for (const auto* craft : _crafts)
+	{
+		if (!craft)
+			continue;
+
+		qty += craft->getItemCountCargoBay(item);
+	}
+	return qty;
+}
+
+/**
+ * Return the amount of a specific storage item assigned to cargo bays for all craft in transfer to this base.
+ *
+ * @note
+ * This includes vehicles and their ammo.
+ *
+ * @param item Pointer to item ruleset.
+ * @return Amount of specific item assigned to cargo bays for all craft in transfer to this base.
+ */
+int Base::getItemCountTransfersCraftCargoBay(const RuleItem* item) const
+{
+	int qty = 0;
+	for (const auto* transfer : _transfers)
+	{
+		if (!transfer || !transfer->getCraft())
+			continue;
+
+		qty += transfer->getCraft()->getItemCountCargoBay(item);
+	}
+	return qty;
+}
+
+/**
+ * Return the amount of a specific storage item loaded as fuel for all craft on this base.
+ *
+ * @note
+ * Craft fuel should only be used for display purposes.
+ *
+ * @param item              Pointer to item ruleset.
+ * @param assumeFullyLoaded Whether fuel count uses current value `false` or total capacity `true`.
+ * @return Amount of specific item in fuel tanks for all craft on this base.
+ */
+int Base::getItemCountCraftFuel(const RuleItem* item, bool assumeFullyLoaded) const
+{
+	int qty = 0;
+	for (const auto* craft : _crafts)
+	{
+		if (!craft)
+			continue;
+
+		qty += craft->getItemCountFuel(item, assumeFullyLoaded);
+	}
+	return qty;
+}
+
+/**
+ * Return the amount of a specific storage item loaded as fuel for all craft in transfer to this base.
+ *
+ * @note
+ * Craft fuel should only be used for display purposes.
+ *
+ * @param item              Pointer to item ruleset.
+ * @param assumeFullyLoaded Whether fuel count uses current value `false` or total capacity `true`.
+ * @return Amount of specific item loaded as fuel for all craft in transfer to this base.
+ */
+int Base::getItemCountTransfersCraftFuel(const RuleItem* item, bool assumeFullyLoaded) const
+{
+	int qty = 0;
+	for (const auto* transfer : _transfers)
+	{
+		if (!transfer || !transfer->getCraft())
+			continue;
+
+		qty += transfer->getCraft()->getItemCountFuel(item, assumeFullyLoaded);
+	}
+	return qty;
+}
+
+/**
+ * Returns the amount of a specific storage item assigned to (queued) manufacture projects.
+ *
+ * @remark
+ * Items get taken from base stores on the following occasions:
+ * + The moment a manufacture project enters the production queue.
+ *   Which also holds for "queued only" projects.
+ * + The moment a new iteration starts.
+ * Hence items needed for future iterations of an existing project are still in base stores.
+ *
+ * @note
+ * Future production refers to projects that still need to run multiple times
+ * after the current iteration to arrive at requested `AmountTotal`.
+ * The only scenario for which non-refundable items are allowed to enter the count,
+ * since those are not yet taken from base stores.
+ *
+ * @param item                    Pointer to item ruleset.
+ * @param includeFutureProduction Whether to include items needed for
+ *                                future iterations of existing projects.
+ * @return Amount of a specific item claimed by manufacture projects.
+ */
+int Base::getItemCountManufacture(const RuleItem* item, bool includeFutureProduction) const
+{
+	if (!item)
+		return 0;
+
+	int qty = 0;
+	for (const auto* production : _productions)
+	{
+		if (!production || !production->getRules())
+			continue;
+
+		if (production->getRules()->getRequiredItems().empty())
+			continue;
+
+		int futureIterations = 0;
+		if (includeFutureProduction && production->getInfiniteAmount())
+		{
+			/// "inf-1 = 999" according to commit: 23e0ccce8. ;-)
+			futureIterations = 999;
+		}
+		else if (includeFutureProduction)
+		{
+			futureIterations = production->getAmountTotal() - production->getAmountProduced();
+			futureIterations -= 1; // Correct for current iteration
+		}
+
+		for (const auto& ruleItem : production->getRules()->getRequiredItems())
+		{
+			if (ruleItem.first != item)
+				continue;
+
+			int totalIterations = futureIterations;
+			if (production->getRules()->getRefund())
+			{
+				totalIterations += 1;
+			}
+			qty += totalIterations * ruleItem.second;
+		}
+	}
+	return qty;
+}
+
+/**
+ * Returns the amount of a specific storage item assigned to (queued) research projects.
+ *
+ * @remark
+ * No reason to account for non-refundable (unless some display-only need arises).
+ * * Needed items by themselves are never taken from base stores.
+ * * Only if also marked as destroyable are those items taken from base stores.
+ * This combination makes all needed items 'refundable'.
+ *
+ * @note
+ * Does recognise the possibility a specific item is used by multiple research topics.
+ *
+ * @param item Pointer to item ruleset.
+ * @return Amount of a specific item claimed by research projects.
+ */
+int Base::getItemCountResearch(const RuleItem* item) const
+{
+	if (!item)
+		return 0;
+
+	int qty = 0;
+	for (const auto* research : _research)
+	{
+		if (!research)
+			continue;
+
+		const auto* rule = research->getRules();
+		if (!rule || !rule->needItem() || !rule->destroyItem())
+			continue;
+
+		if (!rule->getNeededItem() || rule->getNeededItem()->getType() != item->getType())
+			continue;
+
+		qty++;
+	}
+	return qty;
+}
+
+/**
+ * Returns the amount of a specific storage item claimed by soldiers on this base.
+ *
+ * @note
+ * Assigned armor should only be used for display purposes.
+ *
+ * @param item       Pointer to item ruleset.
+ * @param countArmor Are we allowed to count armor?
+ * @return Amount of specific item claimed, for all soldiers on this base.
+ */
+int Base::getItemCountSoldierEquipment(const RuleItem* item, bool countArmor) const
+{
+	int qty = 0;
+	for (const auto* soldier : _soldiers)
+	{
+		if (!soldier)
+			continue;
+
+		qty += soldier->getItemCountAssignedToSoldier(item, countArmor);
+	}
+	return qty;
+}
+
+/**
+ * Returns the amount of a specific storage item claimed by soldiers in transfer to this base.
+ *
+ * @note
+ * Assigned armor should only be used for display purposes.
+ *
+ * @param item       Pointer to item ruleset.
+ * @param countArmor Are we allowed to count armor?
+ * @return Amount of specific item claimed, for all soldiers in transfer to this base.
+ */
+int Base::getItemCountTransfersSoldierEquipment(const RuleItem* item, bool countArmor) const
+{
+	int qty = 0;
+
+	for (const auto* transfer : _transfers)
+	{
+		if (!transfer || !transfer->getSoldier())
+			continue;
+
+		qty += transfer->getSoldier()->getItemCountAssignedToSoldier(item, countArmor);
+	}
+	return qty;
+}
+
+/**
+ * Return the amount of a specific storage item needed by base defenses without own ammo storage.
+ *
+ * @remark
+ * No need to differentiate between capacity and actual assignment,
+ * the latter will always be zero.
+ * @remark
+ * Includes facilities that are (queued for) being build since intention is
+ * to inform player about future usage.
+ *
+ * @note
+ * This method should only be used for display purposes.
+ * These facilities take items from base stores *during* defense phase, not before.
+ *
+ * @param item                 Pointer to item ruleset.
+ * @param assumeMaximumDefense Whether calculation assume a single defense pass `false`,
+ *                             or the theoretical maximum base defense passes `true`.
+ * @return Amount of the specific item needed by base defenses without own ammo storage.
+ */
+int Base::getItemCountDefenses(const RuleItem* item, bool assumeMaximumDefense) const
+{
+	if (!item)
+		return 0;
+
+	int qty = 0;
+	int defensePasses = 1;
+	for (const auto* facility : _facilities)
+	{
+		if (!facility || !facility->getRules())
+			continue;
+
+		if (facility->getRules()->getAmmoItem() == item)
+		{
+			qty += facility->getRules()->getAmmoNeeded();
+		}
+
+		if (assumeMaximumDefense && facility->getRules()->isGravShield())
+		{
+			defensePasses++;
+		}
+	}
+	return qty * defensePasses;
+ }
+
+/**
+ * Return the amount of a specific storage item assigned to base defenses with own ammo storage.
+ *
+ * @remark
+ * No need to consider Grav shields (Bombardment Shields for TFTD enthusiasts)
+ * since facility cannot reload during a base defense.
+ * @remark
+ * Includes facilities that are still being build since part of this methods
+ * intention is to inform player about future usage.
+ *
+ * @note
+ * These facilities remove items from base storage to fulfill their storage need.
+ *
+ * @param item              Pointer to item ruleset.
+ * @param assumeFullyLoaded Whether defense ammo count uses current value `false` or total capacity `true`.
+ * @return Amount of the specific item claimed by base defenses with own ammo storage.
+ */
+int Base::getItemCountDefensesWithOwnAmmo(const RuleItem* item, bool assumeFullyLoaded) const
+{
+	if (!item)
+		return 0;
+
+	int qty = 0;
+	for (const auto* facility : _facilities)
+	{
+		if (!facility || !facility->getRules())
+			continue;
+
+		if (facility->getRules()->getAmmoMax() <= 0 || facility->getRules()->getAmmoItem() != item)
+			continue;
+
+		if (assumeFullyLoaded)
+		{
+			qty += facility->getRules()->getAmmoMax();
+		}
+		else
+		{
+			qty += facility->getAmmo();
+		}
+	}
+
+	return qty;
+}
+
+/**
+ * Return the amount of a storage item in transfer to this base.
+ *
+ * @note
+ * Only recognizes pure item transfers.
+ * Use related``getItemCountTransfers*()`` methods for items
+ * that are part of craft and/or soldier transfers.
+ *
+ * @param item Pointer to item ruleset.
+ * @return Amount of a specific item in transfer to this base.
+ */
+int Base::getItemCountTransfers(const RuleItem* item) const
+{
+	if (!item)
+		return 0;
+
+	int qty = 0;
+	for (const auto* transfer : _transfers)
+	{
+		if (!transfer || transfer->getItems() != item)
+			continue;
+
+		qty += transfer->getQuantity();
+	}
+	return qty;
 }
 
 /**
@@ -1145,23 +1598,27 @@ int Base::getLongRangeDetection() const
  * Returns the total amount of craft of
  * a certain type stored in the base.
  * @param craft Craft type.
+ * @param excludeTransfers Whether to exclude craft currently en-route.
  * @return Number of craft.
  */
-int Base::getCraftCount(const RuleCraft *craft) const
+int Base::getCraftCount(const RuleCraft *craft, bool excludeTransfers) const
 {
 	int total = 0;
-	for (auto* transfer : _transfers)
-	{
-		if (transfer->getType() == TRANSFER_CRAFT && transfer->getCraft()->getRules() == craft)
-		{
-			total++;
-		}
-	}
 	for (const auto* xcraft : _crafts)
 	{
 		if (xcraft->getRules() == craft)
 		{
 			total++;
+		}
+	}
+	if (!excludeTransfers)
+	{
+		for (auto* transfer : _transfers)
+		{
+			if (transfer->getType() == TRANSFER_CRAFT && transfer->getCraft()->getRules() == craft)
+			{
+				total++;
+			}
 		}
 	}
 	return total;
@@ -1209,20 +1666,13 @@ int Base::getCraftMaintenance() const
  * Returns the total count and total salary of soldiers of
  * a certain type stored in the base.
  * @param soldier Soldier type.
+ * @param excludeTransfers Whether to exclude soldiers currently en-route.
  * @return Number of soldiers and their salary.
  */
-std::pair<int, int> Base::getSoldierCountAndSalary(const std::string &soldier) const
+std::pair<int, int> Base::getSoldierCountAndSalary(const std::string &soldier, bool excludeTransfers) const
 {
 	int total = 0;
 	int totalSalary = 0;
-	for (auto* transfer : _transfers)
-	{
-		if (transfer->getType() == TRANSFER_SOLDIER && transfer->getSoldier()->getRules()->getType() == soldier)
-		{
-			total++;
-			totalSalary += transfer->getSoldier()->getRules()->getSalaryCost(transfer->getSoldier()->getRank());
-		}
-	}
 	for (const auto* xsoldier : _soldiers)
 	{
 		if (xsoldier->getRules()->getType() == soldier)
@@ -1231,7 +1681,47 @@ std::pair<int, int> Base::getSoldierCountAndSalary(const std::string &soldier) c
 			totalSalary += xsoldier->getRules()->getSalaryCost(xsoldier->getRank());
 		}
 	}
+	if (!excludeTransfers)
+	{
+		for (auto* transfer : _transfers)
+		{
+			if (transfer->getType() == TRANSFER_SOLDIER && transfer->getSoldier()->getRules()->getType() == soldier)
+			{
+				total++;
+				totalSalary += transfer->getSoldier()->getRules()->getSalaryCost(transfer->getSoldier()->getRank());
+			}
+		}
+	}
 	return std::make_pair(total, totalSalary);
+}
+
+ /**
+ * Gets the amount of a certain soldier type not available for immediate assignment.
+ *
+ * @note
+ * A soldier is not available if assigned to a craft or in sickbay
+ * (even if able to attend a base defense).
+ *
+ * @param soldierType A specific soldier type.
+ * @return Total amount of the soldier type unavailable for direct reassignment.
+ */
+int Base::getSoldierCountAssigned(const std::string &soldierType) const
+{
+	if (soldierType.empty())
+		return 0;
+
+	int qty = 0;
+	for (const auto* s : _soldiers)
+	{
+		if (!s || !s->getRules() || s->getRules()->getType() != soldierType)
+			continue;
+
+		if (s->getCraft() != 0 || s->isWounded())
+		{
+			qty++;
+		}
+	}
+	return qty;
 }
 
 /**

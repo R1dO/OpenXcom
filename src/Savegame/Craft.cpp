@@ -1791,7 +1791,6 @@ int Craft::getItemCountCargoBay(const RuleItem* item) const
 	int qty = _items->getItem(item);
 	for (const auto* v : _vehicles)
 	{
-		qty += _fuel;
 		if (!v || !v->getRules())
 			continue;
 

@@ -166,7 +166,7 @@ void Transfer::setCraft(Craft *craft)
  * Gets the craft being transferred.
  * @return a Pointer to craft.
  */
-Craft *Transfer::getCraft()
+Craft *Transfer::getCraft() const
 {
 	return _craft;
 }
@@ -331,7 +331,7 @@ void Transfer::advance(Base *base)
  * Get a pointer to the soldier being transferred.
  * @return a pointer to the soldier being moved.
  */
-Soldier *Transfer::getSoldier()
+Soldier *Transfer::getSoldier() const
 {
 	return _soldier;
 }

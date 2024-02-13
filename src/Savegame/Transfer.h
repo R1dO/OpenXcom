@@ -83,7 +83,7 @@ public:
 	/// Sets the craft of the transfer.
 	void setCraft(Craft *craft);
 	/// Gets the craft of the transfer.
-	Craft *getCraft();
+	Craft *getCraft() const;
 	/// Gets the items of the transfer.
 	const RuleItem* getItems() const;
 	/// Sets the items of the transfer.
@@ -103,7 +103,7 @@ public:
 	/// Advances the transfer.
 	void advance(Base *base);
 	/// Get a pointer to the soldier being transferred.
-	Soldier *getSoldier();
+	Soldier *getSoldier() const;
 
 };
 

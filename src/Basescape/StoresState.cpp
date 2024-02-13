@@ -250,7 +250,6 @@ void StoresState::initList()
 		}
 		else
 		{
-
 			// items from all bases
 			for (auto* xbase : *_game->getSavedGame()->getBases())
 			{
@@ -258,65 +257,27 @@ void StoresState::initList()
 				qty += xbase->getStorageItems()->getItem(rule);
 
 				// 1b. items from base defense facilities
-				for (const auto* facility : *xbase->getFacilities())
-				{
-					if (facility->getRules()->getAmmoMax() > 0 && facility->getRules()->getAmmoItem() == rule)
-					{
-						qty += facility->getAmmo();
-					}
-				}
+				qty += xbase->getItemCountDefensesWithOwnAmmo(rule);
 
 				// 2. items from craft
-				for (const auto* craft : *xbase->getCrafts())
-				{
-					qty += craft->getTotalItemCount(rule);
-				}
+				qty += xbase->getItemCountCraftArmament(rule);
+				qty += xbase->getItemCountCraftCargoBay(rule);
 
 				// 3. armor in use (worn by soldiers)
-				for (const auto* soldier : *xbase->getSoldiers())
-				{
-					if (soldier->getArmor()->getStoreItem() == rule)
-					{
-						qty += 1;
-					}
-				}
+				qty += xbase->getItemCountSoldierEquipment(rule, true);
+				qty -= xbase->getItemCountSoldierEquipment(rule);
 
 				// 4. items/aliens in research
-				for (const auto* research : xbase->getResearch())
-				{
-					const auto* rrule = research->getRules();
-					if (rrule->needItem() && rrule->destroyItem())
-					{
-						if (rrule->getNeededItem() && rrule->getNeededItem() == rule)
-						{
-							qty += 1;
-							break;
-						}
-					}
-				}
+				// Due to `neededItem` ruleset variable an item can be linked to multiple research projects.
+				qty += xbase->getItemCountResearch(rule);
 
 				// 5. items in transfer
-				for (auto* transfer : *xbase->getTransfers())
-				{
-					if (transfer->getCraft())
-					{
-						// 5a. craft equipment, weapons, vehicles
-						qty += transfer->getCraft()->getTotalItemCount(rule);
-					}
-					else if (transfer->getSoldier())
-					{
-						// 5c. armor in use (worn by soldiers)
-						if (transfer->getSoldier()->getArmor()->getStoreItem() == rule)
-						{
-							qty += 1;
-						}
-					}
-					else if (transfer->getItems() == rule)
-					{
-						// 5b. items in transfer
-						qty += transfer->getQuantity();
-					}
-				}
+				qty += xbase->getItemCountTransfers(rule);
+				qty += xbase->getItemCountTransfersCraftArmament(rule);
+				qty += xbase->getItemCountTransfersCraftCargoBay(rule);
+				// Only worn armors are valid here
+				qty += xbase->getItemCountTransfersSoldierEquipment(rule, true);
+				qty -= xbase->getItemCountTransfersSoldierEquipment(rule);
 			}
 		}
 
