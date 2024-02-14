@@ -53,6 +53,8 @@
 #include "../Mod/Texture.h"
 #include "../Interface/Cursor.h"
 #include "../Engine/Screen.h"
+#include <vector>
+#include <iostream>
 
 namespace OpenXcom
 {
@@ -356,6 +358,7 @@ Globe::Globe(Game* game, int cenX, int cenY, int width, int height, int x, int y
 	_zoomOld = _zoom;
 
 	setupRadii(width, height);
+std::cout << "B. _earthData[0].size() final:\t" << _earthData[0].size() << std::endl;
 	setZoom(_zoom);
 
 	cachePolygons();
@@ -2081,6 +2084,7 @@ void Globe::resize()
 	_cenX = width / 2;
 	_cenY = height / 2;
 	setupRadii(width, height);
+std::cout << "A. _earthData[0].size() final:\t" << _earthData[0].size() << std::endl;
 	invalidate();
 }
 
@@ -2091,6 +2095,11 @@ void Globe::resize()
  */
 void Globe::setupRadii(int width, int height)
 {
+std::cout << "Input" << std::endl;
+std::cout << "width:\t" << width << std::endl;
+std::cout << "height\t" << height << std::endl;
+std::cout << std::endl;
+
 	_zoomRadius.clear();
 
 	_zoomRadius.push_back(0.45*height);
@@ -2110,13 +2119,17 @@ void Globe::setupRadii(int width, int height)
 
 		for (size_t r = 0; r<_zoomRadius.size(); ++r)
 		{
+std::cout << "_earthData[" << r << "].capacity() before resize:\t" << _earthData[r].capacity() << std::endl;
 			_earthData[r].resize(width * height);
+std::cout << "_earthData[" << r << "].capacity() after resize:\t" << _earthData[r].capacity() << std::endl;
 			for (int j=0; j<height; ++j)
 				for (int i=0; i<width; ++i)
 				{
 					_earthData[r][width*j + i] = static_data.circle_norm(width/2, height/2, _zoomRadius[r], i+.5, j+.5);
 				}
+std::cout << "_earthData[" << r << "].capacity() final:\t" << _earthData[r].capacity() << std::endl;
 		}
+std::cout << "_earthData[0].capacity() final:\t" << _earthData[0].capacity() << std::endl;
 	}
 	else
 	{
