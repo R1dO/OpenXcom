@@ -359,7 +359,6 @@ void CraftEquipmentState::initList()
 	_items.clear();
 	_lstEquipment->clearList();
 
-	int row = 0;
 	for (auto& itemType : _game->getMod()->getItemsList())
 	{
 		const RuleItem *rule = _game->getMod()->getItem(itemType);
@@ -449,7 +448,6 @@ void CraftEquipmentState::initList()
 			}
 
 			_items.push_back(itemType);
-			std::ostringstream ss, ss2;
 			if (Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
 			{
 				// doing this once (on opening the screen) is enough
@@ -468,26 +466,6 @@ void CraftEquipmentState::initList()
 						_totalItemStorageSize += itemsToAdd * rule->getSize();
 					}
 				}
-				if (isVehicle)
-					ss2 << cQty;
-				else if (cQty - reserved > 0)
-					ss2 << reserved << "/+" << cQty - reserved;
-				else if (cQty - reserved == 0)
-					ss2 << cQty;
-				else
-					ss2 << cQty << "/" << cQty - reserved;
-			}
-			else
-			{
-				ss2 << cQty;
-			}
-			if (!_isNewBattle)
-			{
-				ss << bQty;
-			}
-			else
-			{
-				ss << "-";
 			}
 
 			std::string s = tr(itemType);
@@ -495,29 +473,14 @@ void CraftEquipmentState::initList()
 			{
 				s.insert(0, "  ");
 			}
-			_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
+			_lstEquipment->addRow(3, s.c_str(), "", "");
 
-			Uint8 color;
-			if (cQty == 0)
-			{
-				if (rule->getBattleType() == BT_AMMO)
-				{
-					color = _ammoColor;
-				}
-				else
-				{
-					color = _lstEquipment->getColor();
-				}
-			}
-			else
-			{
-					color = _lstEquipment->getSecondaryColor();
-			}
-			_lstEquipment->setRowColor(row, color);
-
-			++row;
+			// Apply amounts and correct row color.
+			_sel = _lstEquipment->getLastRowIndex();
+			updateQuantity();
 		}
 	}
+	_sel = 0; // During the loop it was reset to end of list, time to undo.
 	updateSubtitleArea();
 
 	_lstEquipment->draw();
@@ -721,8 +684,6 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setRowColor(_sel, color);
 	_lstEquipment->setCellText(_sel, 1, ss.str());
 	_lstEquipment->setCellText(_sel, 2, ss2.str());
-
-	updateSubtitleArea();
 }
 
 /**
@@ -812,6 +773,7 @@ void CraftEquipmentState::moveLeftByValue(int change)
 		}
 	}
 	updateQuantity();
+	updateSubtitleArea();
 }
 
 /**
@@ -946,6 +908,7 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 		}
 	}
 	updateQuantity();
+	updateSubtitleArea();
 }
 
 /**
