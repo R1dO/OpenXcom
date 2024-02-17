@@ -584,7 +584,6 @@ void CraftEquipmentState::think()
 	}
 }
 
-
 /**
  * Handler for clicking the OK button.
  *
@@ -1022,17 +1021,53 @@ void CraftEquipmentState::moveLeftEachItem()
 
 /**
  * Moves the given number of each visible by filter item to the base.
+ *
+ * Uses a 2 step approach:
+ * 1st click: Balance claimed items (remove excess).
+ * 2nd click: Operate on all items.
+ *
+ * @note
+ * Protection for claims due to `oxceAlternateCraftEquipmentManagement`
+ * is provided by `moveLeftByValue()`.
  * @param change Amount of each item to move.
  */
 void CraftEquipmentState::moveLeftByValueEachItem(int change)
 {
+	Craft *c = _base->getCrafts()->at(_craft);
+
+	bool balancing = false;
+	for (const auto& item : _items)
+	{
+		if (_game->getMod()->getItem(item)->getVehicleUnit())
+			continue;
+
+		int craftQty = c->getItems()->getItem(item);
+		int claimQty = c->getSoldierItems()->getItem(item);
+		if (claimQty > 0 && craftQty > claimQty)
+		{
+			balancing = true;
+			break;
+		}
+	}
+
 	// `moveLeftByValue()` depends on `_sel` to identify items.
 	for (_sel = 0; _sel != _items.size(); ++_sel)
 	{
 		if (_game->getMod()->getItem(_items[_sel])->getVehicleUnit())
 			continue;
 
-		moveLeftByValue(change);
+		if (!balancing)
+		{
+			moveLeftByValue(change);
+			continue;
+		}
+
+		int craftQty = c->getItems()->getItem(_items[_sel]);
+		int claimQty = c->getSoldierItems()->getItem(_items[_sel]);
+		if (claimQty == 0 || claimQty >= craftQty)
+			continue;
+
+		moveLeftByValue(std::min(craftQty - claimQty, change));
 	}
 	_sel = 0;
 }
@@ -1154,18 +1189,53 @@ void CraftEquipmentState::moveRightEachItem()
 }
 
 /**
- * Moves the given number of each visible by filter item to the craft.
+ * Moves the given number of each item to the craft.
+ *
+ * Uses a 2 step approach:
+ * 1st click: Balance claimed items (add missing).
+ * 2nd click: Operate on all items.
+ *
  * @param change Amount of each item to move.
  */
 void CraftEquipmentState::moveRightByValueEachItem(int change)
 {
+	Craft *c = _base->getCrafts()->at(_craft);
+
+	bool balancing = false;
+	for (const auto& item : _items)
+	{
+		if (_game->getMod()->getItem(item)->getVehicleUnit())
+			continue;
+
+		int baseQty = _base->getStorageItems()->getItem(item);
+		int craftQty = c->getItems()->getItem(item);
+		int claimQty = c->getSoldierItems()->getItem(item);
+		// Do not get stuck in balancing mode due to having to little of an item.
+		if (claimQty > 0 && craftQty < claimQty && baseQty + craftQty >= claimQty)
+		{
+			balancing = true;
+			break;
+		}
+	}
+
 	// `moveRightByValue()` depends on `_sel` to identify items.
 	for (_sel = 0; _sel != _items.size(); ++_sel)
 	{
 		if (_game->getMod()->getItem(_items[_sel])->getVehicleUnit())
 			continue;
 
-		moveRightByValue(change, true);
+		if (!balancing)
+		{
+			moveRightByValue(change, true);
+			continue;
+		}
+
+		int craftQty = c->getItems()->getItem(_items[_sel]);
+		int claimQty = c->getSoldierItems()->getItem(_items[_sel]);
+		if (claimQty == 0 || craftQty >= claimQty)
+			continue;
+
+		moveRightByValue(std::min(claimQty - craftQty, change), true);
 	}
 	_sel = 0;
 }
