@@ -76,6 +76,8 @@ private:
 	bool isScreenExitAllowed();
 	ArrowButton *_arrowEachItemLeft, *_arrowEachItemRight;
 	std::set<std::string> _errorQueue;
+	/// Should list display the inverse of selected filter category?
+	bool _invertFilter;
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);

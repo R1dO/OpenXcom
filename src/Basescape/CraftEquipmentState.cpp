@@ -75,6 +75,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	Craft *c = _base->getCrafts()->at(_craft);
 	bool craftHasACrew = c->getNumTotalSoldiers() > 0;
 	_isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
+	_invertFilter = false;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -224,7 +225,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	{
 		_categoryStrings.push_back("STR_UNASSIGNED");
 	}
-	_categoryStrings.push_back("STR_NOT_EQUIPPED");
 
 	_cbxFilterBy->setOptions(_categoryStrings, true);
 	_cbxFilterBy->setSelected(0);
@@ -311,6 +311,7 @@ CraftEquipmentState::~CraftEquipmentState()
  */
 void CraftEquipmentState::cbxFilterByChange(Action *action)
 {
+	_invertFilter = action->getDetails()->button.button == SDL_BUTTON_RIGHT;
 	initList();
 }
 
@@ -400,7 +401,6 @@ void CraftEquipmentState::initList()
 	bool categoryClaimedBySoldiers = (selectedCategory == "STR_CLAIMED_BY_SOLDIERS");
 	bool categoryUnassigned = (selectedCategory == "STR_UNASSIGNED");
 	bool categoryEquipped = (selectedCategory == "STR_EQUIPPED");
-	bool categoryNotEquipped = (selectedCategory == "STR_NOT_EQUIPPED");
 	bool shareAmmoCategories = _game->getMod()->getShareAmmoCategories();
 
 	Craft *c = _base->getCrafts()->at(_craft);
@@ -446,38 +446,23 @@ void CraftEquipmentState::initList()
 			// filter by category
 			if (categoryFilterEnabled)
 			{
+				bool showItem = false;
 				if (categoryUnassigned)
 				{
-					if (!rule->getCategories().empty())
-					{
-						continue;
-					}
+					showItem = rule->getCategories().empty();
 				}
 				else if (categoryEquipped)
 				{
-					if (!(cQty > 0))
-					{
-						continue;
-					}
-				}
-				else if (categoryNotEquipped)
-				{
-					if (cQty > 0)
-					{
-						continue;
-					}
+					showItem = cQty > 0;
 				}
 				else if (categoryClaimedBySoldiers)
 				{
-					if (c->getSoldierItems()->getItem(rule) <= 0)
-					{
-						continue;
-					}
+					showItem = c->getSoldierItems()->getItem(rule) > 0;
 				}
 				else
 				{
-					bool isOK = rule->belongsToCategory(selectedCategory);
-					if (shareAmmoCategories && !isOK && rule->getBattleType() == BT_FIREARM)
+					showItem = rule->belongsToCategory(selectedCategory);
+					if (shareAmmoCategories && !showItem && rule->getBattleType() == BT_FIREARM)
 					{
 						for (auto* ammoRule : *rule->getPrimaryCompatibleAmmo())
 						{
@@ -485,14 +470,16 @@ void CraftEquipmentState::initList()
 							{
 								if (ammoRule->isInventoryItem() && ammoRule->canBeEquippedToCraftInventory() && _game->getSavedGame()->isResearched(ammoRule->getRequirements()))
 								{
-									isOK = ammoRule->belongsToCategory(selectedCategory);
-									if (isOK) break;
+									showItem = ammoRule->belongsToCategory(selectedCategory);
+									if (showItem) break;
 								}
 							}
 						}
 					}
-					if (!isOK) continue;
 				}
+
+				showItem ^= _invertFilter;
+				if (!showItem) continue;
 			}
 
 			// quick search
@@ -571,6 +558,12 @@ void CraftEquipmentState::initList()
 	{
 		_lstEquipment->scrollTo(_lstScroll);
 		_lstScroll = 0;
+	}
+
+	// Inform player inverse filter is in effect.
+	if (categoryFilterEnabled && _invertFilter)
+	{
+		_cbxFilterBy->setText(tr("STR_INVERSE_FILTER_INDICATOR").arg(tr(selectedCategory)));
 	}
 }
 
