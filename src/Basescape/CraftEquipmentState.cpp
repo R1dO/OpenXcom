@@ -947,6 +947,8 @@ void CraftEquipmentState::btnInventoryClick(Action *)
 	Craft *craft = _base->getCrafts()->at(_craft);
 	if (craft->getNumTotalSoldiers() > 0)
 	{
+		_lstScroll = _lstEquipment->getScroll();
+
 		if (Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
 		{
 			// This is a bit tricky... here's what we're doing:
