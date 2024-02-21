@@ -83,6 +83,7 @@ private:
 		bool allowInventoryWarningMessage; // When an inventory visit would cause soldiers to lose some items.
 		bool showCraftLimits;
 		bool showSoldiersAssignedToCraft;  // OXC(E) QoL.
+		int displayStyleClaimedAmounts;
 	} _screenBehavior;
 	void setScreenBehavior();
 

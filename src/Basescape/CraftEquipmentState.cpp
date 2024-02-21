@@ -105,13 +105,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 
 	// Set palette
 	setInterface("craftEquipment");
-
 	_ammoColor = _game->getMod()->getInterface("craftEquipment")->getElement("ammoColor")->color;
-
-
-	_itemClaimDisplayStyle = 0; // 0 = off, 1 = Meridian style, 2 = r1do style.
-	if (_screenInterface->getElement("optionShowClaimedAmounts"))
-		_itemClaimDisplayStyle = _screenInterface->getElement("optionShowClaimedAmounts")->custom;
 
 	_useGlobalListArrows = false;
 	if (_screenInterface->getElement("optionUseGlobalListArrows"))
@@ -246,7 +240,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 		}
 	}
 
-	if (_itemClaimDisplayStyle == 2)
+	if (_screenBehavior.displayStyleClaimedAmounts == 2)
 	{
 		_lstEquipment->setArrowColumn(203-6, ARROW_HORIZONTAL);
 		_lstEquipment->setColumns(4, 156, 25+52, 22, 24);
@@ -334,7 +328,7 @@ void CraftEquipmentState::init()
 	// don't reload after closing error popups
 	if (_reload)
 	{
-		if ((_itemClaimDisplayStyle > 0 || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
+		if ((_screenBehavior.displayStyleClaimedAmounts > 0 || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 		{
 			// skip when returning from craft equipment template load/save
 			if (!_returningFromGlobalTemplates)
@@ -435,7 +429,7 @@ void CraftEquipmentState::initList()
 		int bQty = _base->getStorageItems()->getItem(rule);
 		int reserved = 0;
 		// Allows to hide claimed items while still honor user option.
-		if ((_itemClaimDisplayStyle > 0 || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
+		if ((_screenBehavior.displayStyleClaimedAmounts > 0 || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 		{
 			reserved = c->getSoldierItems()->getItem(rule);
 		}
@@ -525,7 +519,7 @@ void CraftEquipmentState::initList()
 				s.insert(0, "  ");
 			}
 
-			if (_itemClaimDisplayStyle == 2)
+			if (_screenBehavior.displayStyleClaimedAmounts == 2)
 			{
 				_lstEquipment->addRow(4, s.c_str(), "", "", "");
 			}
@@ -923,7 +917,7 @@ void CraftEquipmentState::updateQuantity()
 
 	std::string onCraftString, reservedString;
 	int reserved = c->getSoldierItems()->getItem(item);
-	if (_itemClaimDisplayStyle == 2)
+	if (_screenBehavior.displayStyleClaimedAmounts == 2)
 	{
 		if (_isNewBattle || reserved == 0)
 		{
@@ -943,7 +937,7 @@ void CraftEquipmentState::updateQuantity()
 		}
 		onCraftString = Unicode::formatNumber(cQty);
 	}
-	else if (_itemClaimDisplayStyle == 1)
+	else if (_screenBehavior.displayStyleClaimedAmounts == 1)
 	{
 		std::ostringstream ss2;
 		if (cQty > reserved)
@@ -985,7 +979,7 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setRowColor(_sel, color);
 	_lstEquipment->setCellText(_sel, 1, onBaseString);
 	_lstEquipment->setCellText(_sel, 2, onCraftString);
-	if (_itemClaimDisplayStyle == 2)
+	if (_screenBehavior.displayStyleClaimedAmounts == 2)
 	{
 		_lstEquipment->setCellText(_sel, 3, reservedString);
 	}
@@ -1477,7 +1471,8 @@ void CraftEquipmentState::btnInventoryClick(Action *action)
 	{
 		std::string msg(tr("STR_WARNING_NOT_ENOUGH_FOR_SOLDIER_CLAIMS"));
 
-		bool ignoreWarning = _game->isCtrlPressed();
+		bool ignoreWarning = !_screenBehavior.allowInventoryWarningMessage;
+		ignoreWarning |= _game->isCtrlPressed();
 		ignoreWarning |= action->getDetails()->button.button == SDL_BUTTON_RIGHT;
 		if (!ignoreWarning && _screenInterface->getElement("ignoreInventoryWarningMessage"))
 		{
@@ -1769,9 +1764,10 @@ void CraftEquipmentState::populateFilters()
 	// Determine which categories should be visible.
 	_usedCategoryStrings["STR_ALL"] = true;
 	_usedCategoryStrings["STR_EQUIPPED"] = true;
-	if ((_itemClaimDisplayStyle > 0 || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
+	if ((_screenBehavior.displayStyleClaimedAmounts > 0 || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 	{
-		// No point in showing empty filter if claims are not known to this screen, see: 'init()'.
+		// Category need only be visible if claims are known to this screen.
+		// Knowledge of claims is controlled by 'init()'.
 		_usedCategoryStrings["STR_CLAIMED_BY_SOLDIERS"] = true;
 	}
 	const std::vector<std::string> &items = _game->getMod()->getItemsList();
@@ -1855,6 +1851,12 @@ void CraftEquipmentState::setScreenBehavior()
 		{
 			_screenBehavior.allowInventoryWarningMessage = false;
 		}
+	}
+
+	_screenBehavior.displayStyleClaimedAmounts = Options::oxceAlternateCraftEquipmentManagement; // Integral promotion.
+	if (rules->getOption("showClaimedAmounts"))
+	{
+		_screenBehavior.displayStyleClaimedAmounts = rules->getOption("showClaimedAmounts")->variant;
 	}
 
 	///

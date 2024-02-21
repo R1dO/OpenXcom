@@ -1744,8 +1744,6 @@ interfaces: #done
         color: 2
       - id: errorMessage
         color: 1
-      - id: optionShowClaimedAmounts
-        custom: 2
       - id: optionUseGlobalListArrows
         customBool: true
       - id: optionUseFilterButton
@@ -1757,6 +1755,8 @@ interfaces: #done
         active: true
       - id: showInventoryButton
         variant: 2
+      - id: showClaimedAmounts
+        variant: 1
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
     parent: craftEquipment

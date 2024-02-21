@@ -1725,9 +1725,6 @@ interfaces:
         color: 2     # orange
       - id: errorMessage
         color: 241   # pink
-      # Control display of claimed items
-      - id: optionShowClaimedAmounts
-        custom: 2    # 0 = off, 1 = Meridian style, 2 = r1do style.
       # Activate global arrow functionality (and safety on OK button)
       - id: optionUseGlobalListArrows
         customBool: true
@@ -1756,6 +1753,8 @@ interfaces:
         active: true
       - id: showInventoryButton # Vanilla did not allow inventory visits from this screen.
         variant: 2              # 0 = not visible, 1 = visible, 2 = visible and support warning message if soldiers are about to lose items.
+      - id: showClaimedAmounts # Display of soldier claims on items
+        variant: 1             # 0 = off, 1 = Meridian style, 2 = r1do style.
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
     parent: craftEquipment
