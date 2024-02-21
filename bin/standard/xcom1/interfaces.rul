@@ -1730,11 +1730,11 @@ interfaces:
       # Control display of claimed items
       - id: optionShowClaimedAmounts
         custom: 2    # 0 = off, 1 = Meridian style, 2 = r1do style.
-
       # Activate global arrow functionality (and safety on OK button)
       - id: optionUseGlobalListArrows
         customBool: true
         #TFTDMode: true # Alternative way of activating, not chosen since name is kinda misleading here.
+
       # Since i've added a filter, might as well control the 'complete' combobox.
       - id: filterButton
         color: 241

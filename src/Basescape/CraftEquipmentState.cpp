@@ -95,13 +95,10 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_txtCraftSpaceUSage = new Text(76, 9, 84, 24);
 	_txtItemLimitAmount = new Text(76, 9, 160, 24);
 	_txtItemLimitSize = new Text(76, 9, 236, 24);
-
-	if (Options::r1doStyle_craftEquipmentState)
-	{
-		// {11,9} is maximum size for left/right buttons before they become ugly.
-		_arrowEachItemLeft = new ArrowButton(ARROW_SMALL_LEFT, 11, 9, 205, 33);
-		_arrowEachItemRight = new ArrowButton(ARROW_SMALL_RIGHT, 11, 9, 217, 33);
-	}
+	// Buttons operating on the whole list
+	// {11,9} is maximum size for left/right buttons before they become ugly.
+	_arrowEachItemLeft = new ArrowButton(ARROW_SMALL_LEFT, 11, 9, 205, 33);
+	_arrowEachItemRight = new ArrowButton(ARROW_SMALL_RIGHT, 11, 9, 217, 33);
 
 	// Set palette
 	setInterface("craftEquipment");
@@ -115,6 +112,10 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_itemClaimDisplayStyle = 0; // 0 = off, 1 = Meridian style, 2 = r1do style.
 	if (_screenInterface->getElement("optionShowClaimedAmounts"))
 		_itemClaimDisplayStyle = _screenInterface->getElement("optionShowClaimedAmounts")->custom;
+
+	_useGlobalListArrows = false;
+	if (_screenInterface->getElement("optionUseGlobalListArrows"))
+		_useGlobalListArrows = _screenInterface->getElement("optionUseGlobalListArrows")->customBool;
 
 	add(_window, "window", "craftEquipment");
 	add(_btnQuickSearch, "button", "craftEquipment");
@@ -133,17 +134,22 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	add(_txtCraftSpaceUSage, "text", "craftEquipment");
 	add(_txtItemLimitAmount, "text", "craftEquipment");
 	add(_txtItemLimitSize, "text", "craftEquipment");
-	if (Options::r1doStyle_craftEquipmentState)
-	{
-		add(_arrowEachItemLeft, "button", "craftEquipment");
-		add(_arrowEachItemRight, "button", "craftEquipment");
+	// Buttons operating on the whole list
+	add(_arrowEachItemLeft, "button", "craftEquipment");
+	add(_arrowEachItemRight, "button", "craftEquipment");
 
+	if (_useGlobalListArrows)
+	{
 		// Increase visual spacing between 'subtitle' area and spreadsheet header.
 		_txtItem->setY(_txtItem->getY() + 2);
 		_txtStores->setY(_txtStores->getY() + 2);
 		// Prefer a 1 pixel spacing between spreadsheet header and list (visual pleasing).
 		_lstEquipment->setY(_lstEquipment->getY() + 3);
-
+	}
+	else
+	{
+		_arrowEachItemLeft->setVisible(false);
+		_arrowEachItemRight->setVisible(false);
 	}
 
 	bool showCraftLimits = (infoLineBehavior > 0);
@@ -282,20 +288,17 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_timerLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeft);
 	_timerRight = new Timer(250);
 	_timerRight->onTimer((StateHandler)&CraftEquipmentState::moveRight);
-	if (Options::r1doStyle_craftEquipmentState)
-	{
-		_arrowEachItemLeft->onMousePress((ActionHandler)&CraftEquipmentState::arrowEachItemLeftPress);
-		_arrowEachItemLeft->onMouseRelease((ActionHandler)&CraftEquipmentState::arrowEachItemLeftRelease);
-		_arrowEachItemLeft->onMouseClick((ActionHandler)&CraftEquipmentState::arrowEachItemLeftClick, 0);
-		_arrowEachItemRight->onMousePress((ActionHandler)&CraftEquipmentState::arrowEachItemRightPress);
-		_arrowEachItemRight->onMouseRelease((ActionHandler)&CraftEquipmentState::arrowEachItemRightRelease);
-		_arrowEachItemRight->onMouseClick((ActionHandler)&CraftEquipmentState::arrowEachItemRightClick, 0);
+	_timerEachItemLeft = new Timer(250);
+	_timerEachItemLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeftEachItem);
+	_timerEachItemRight = new Timer(250);
+	_timerEachItemRight->onTimer((StateHandler)&CraftEquipmentState::moveRightEachItem);
 
-		_timerEachItemLeft = new Timer(250);
-		_timerEachItemLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeftEachItem);
-		_timerEachItemRight = new Timer(250);
-		_timerEachItemRight->onTimer((StateHandler)&CraftEquipmentState::moveRightEachItem);
-	}
+	_arrowEachItemLeft->onMouseClick((ActionHandler)&CraftEquipmentState::arrowEachItemLeftClick, 0);
+	_arrowEachItemLeft->onMousePress((ActionHandler)&CraftEquipmentState::arrowEachItemLeftPress);
+	_arrowEachItemLeft->onMouseRelease((ActionHandler)&CraftEquipmentState::arrowEachItemLeftRelease);
+	_arrowEachItemRight->onMouseClick((ActionHandler)&CraftEquipmentState::arrowEachItemRightClick, 0);
+	_arrowEachItemRight->onMousePress((ActionHandler)&CraftEquipmentState::arrowEachItemRightPress);
+	_arrowEachItemRight->onMouseRelease((ActionHandler)&CraftEquipmentState::arrowEachItemRightRelease);
 }
 
 /**
@@ -305,12 +308,9 @@ CraftEquipmentState::~CraftEquipmentState()
 {
 	delete _timerLeft;
 	delete _timerRight;
+	delete _timerEachItemLeft;
+	delete _timerEachItemRight;
 
-	if (Options::r1doStyle_craftEquipmentState)
-	{
-		delete _timerEachItemLeft;
-		delete _timerEachItemRight;
-	}
 }
 
 /**
@@ -546,7 +546,7 @@ void CraftEquipmentState::initList()
 	_sel = 0; // During the loop it was reset to end of list, time to undo.
 	updateSubtitleArea();
 
-	if (Options::r1doStyle_craftEquipmentState)
+	if (_useGlobalListArrows)
 	{
 		if (_totalItems > c->getMaxItemsClamped())
 		{
@@ -585,12 +585,8 @@ void CraftEquipmentState::think()
 
 	_timerLeft->think(this, 0);
 	_timerRight->think(this, 0);
-
-	if (Options::r1doStyle_craftEquipmentState)
-	{
-		_timerEachItemLeft->think(this, 0);
-		_timerEachItemRight->think(this, 0);
-	}
+	_timerEachItemLeft->think(this, 0);
+	_timerEachItemRight->think(this, 0);
 }
 
 /**
@@ -1148,7 +1144,7 @@ void CraftEquipmentState::moveLeftByValue(int change)
 			_base->getStorageItems()->addItem(item, change);
 		}
 
-		if(Options::r1doStyle_craftEquipmentState && !_errorQueue.empty())
+		if(_useGlobalListArrows && !_errorQueue.empty())
 		{
 			if (_totalItems <= c->getMaxItemsClamped())
 			{
@@ -1330,7 +1326,7 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 				_reload = false;
 			}
 
-			if (Options::r1doStyle_craftEquipmentState)
+			if (_useGlobalListArrows)
 			{
 				_errorQueue.insert(msg);
 			}
@@ -1348,7 +1344,8 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 				_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
 				_reload = false;
 			}
-			if (Options::r1doStyle_craftEquipmentState)
+
+			if (_useGlobalListArrows && suppressErrors)
 			{
 				_errorQueue.insert(msg);
 			}

@@ -79,6 +79,7 @@ private:
 	/// Should list display the inverse of selected filter category?
 	bool _invertFilter;
 	int _itemClaimDisplayStyle;
+	bool _useGlobalListArrows;
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);
