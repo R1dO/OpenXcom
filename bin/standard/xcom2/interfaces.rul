@@ -1751,12 +1751,7 @@ interfaces: #done
         customBool: true
       - id: ignoreInventoryWarningMessage
         customBool: false
-      - id: filterButton
-        color: 1
-        customList:
-          - STR_ALL                              # Code defined
-          - STR_EQUIPPED                         # Code defined
-          - STR_CLAIMED_BY_SOLDIERS              # Code defined
+      - id: optionUseFilterButton
         customBool: true
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR

@@ -118,6 +118,10 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	if (_screenInterface->getElement("optionUseGlobalListArrows"))
 		_useGlobalListArrows = _screenInterface->getElement("optionUseGlobalListArrows")->customBool;
 
+	int activateFilterBox = true;
+	if (_screenInterface->getElement("optionUseFilterButton"))
+		activateFilterBox = _screenInterface->getElement("optionUseFilterButton")->customBool;
+
 	add(_window, "window", "craftEquipment");
 	add(_btnQuickSearch, "button", "craftEquipment");
 	add(_btnOk, "button", "craftEquipment");
@@ -202,56 +206,21 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 
 	_txtStores->setText(tr("STR_STORES"));
 
-	// populate sort options
-	_categoryStrings.push_back("STR_ALL");
-	_categoryStrings.push_back("STR_EQUIPPED");
-	if (Options::r1doStyle_craftEquipmentState)
-	{
-		_categoryStrings.push_back("STR_CLAIMED_BY_SOLDIERS");
-	}
-	bool hasUnassigned = false;
-	for (auto& itemType : _game->getMod()->getItemsList())
-	{
-		RuleItem *rule = _game->getMod()->getItem(itemType);
-		Unit* isVehicle = rule->getVehicleUnit();
-		int cQty = isVehicle ? c->getVehicleCount(itemType) : c->getItems()->getItem(rule);
-
-		if ((isVehicle || rule->isInventoryItem()) && rule->canBeEquippedToCraftInventory() &&
-			_game->getSavedGame()->isResearched(rule->getRequirements()) &&
-			(_base->getStorageItems()->getItem(rule) > 0 || cQty > 0))
-		{
-			if (rule->getCategories().empty())
-			{
-				hasUnassigned = true;
-			}
-			else
-			{
-				for (auto& itemCategoryName : rule->getCategories())
-				{
-					_usedCategoryStrings[itemCategoryName] = true;
-				}
-			}
-		}
-	}
-	auto& itemCategories = _game->getMod()->getItemCategoriesList();
-	for (auto& categoryName : itemCategories)
-	{
-		if (_usedCategoryStrings[categoryName])
-		{
-			if (!_game->getMod()->getItemCategory(categoryName)->isHidden())
-			{
-				_categoryStrings.push_back(categoryName);
-			}
-		}
-	}
-	if (hasUnassigned && !itemCategories.empty())
-	{
-		_categoryStrings.push_back("STR_UNASSIGNED");
-	}
-
+	populateFilters();
 	_cbxFilterBy->setOptions(_categoryStrings, true);
 	_cbxFilterBy->setSelected(0);
 	_cbxFilterBy->onChange((ActionHandler)&CraftEquipmentState::cbxFilterByChange);
+	if (!activateFilterBox)
+	{
+		_cbxFilterBy->setVisible(false);
+		// Reset to vanilla button placement
+		_btnClear->setWidth(148);
+		_btnClear->setX(8);
+		_btnInventory->setWidth(148);
+		_btnInventory->setX(8);
+		_btnOk->setWidth((craftHasACrew || _isNewBattle) ? 148 : 288);
+		_btnOk->setX((craftHasACrew || _isNewBattle) ? 164: 16);
+	}
 
 	if (_itemClaimDisplayStyle == 2)
 	{
@@ -300,6 +269,8 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_arrowEachItemRight->onMouseClick((ActionHandler)&CraftEquipmentState::arrowEachItemRightClick, 0);
 	_arrowEachItemRight->onMousePress((ActionHandler)&CraftEquipmentState::arrowEachItemRightPress);
 	_arrowEachItemRight->onMouseRelease((ActionHandler)&CraftEquipmentState::arrowEachItemRightRelease);
+
+	updateSubtitleArea();
 }
 
 /**
@@ -1463,7 +1434,7 @@ void CraftEquipmentState::btnInventoryClick(Action *action)
 {
 	bool skipWarning = _game->isCtrlPressed() || action->getDetails()->button.button == SDL_BUTTON_RIGHT;
 
-	if (!skipWarning && _btnInventory->getText() != tr("STR_INVENTORY").c_str())
+	if (!skipWarning && _notEnoughItemsForSoldierClaims)
 	{
 		std::string msg(tr("STR_WARNING_NOT_ENOUGH_FOR_SOLDIER_CLAIMS"));
 
@@ -1719,6 +1690,85 @@ bool CraftEquipmentState::isScreenExitAllowed()
 	}
 	Log(LOG_WARNING) << "Allowed exit of craft equipment screen, due to broken item limits. Most likely case: Mod recently changed those limits.";
 	return true;
+}
+
+/**
+* Fills '_categoryStrings' with desired filters.
+*/
+void CraftEquipmentState::populateFilters()
+{
+	_categoryStrings.clear();
+	Craft *c = _base->getCrafts()->at(_craft);
+	const std::vector<std::string> &itemCategories = _game->getMod()->getItemCategoriesList();
+
+	// Start with adding anything that might be used.
+	if (_screenInterface->getElement("optionUseFilterButton"))
+	{
+		_categoryStrings = _screenInterface->getElement("optionUseFilterButton")->customList;
+		if (!_screenInterface->getElement("optionUseFilterButton")->customBool)
+		{
+			// We need only one filter (that remains hidden)
+			_categoryStrings.push_back("STR_ALL");
+			return;
+		}
+	}
+	if (_categoryStrings.empty())
+	{
+		_categoryStrings.push_back("STR_ALL");
+		_categoryStrings.push_back("STR_EQUIPPED");
+		_categoryStrings.push_back("STR_CLAIMED_BY_SOLDIERS");
+		for (std::vector<std::string>::const_iterator i = itemCategories.begin(); i != itemCategories.end(); ++i)
+		{
+			if (!_game->getMod()->getItemCategory((*i))->isHidden())
+			{
+				_categoryStrings.push_back((*i));
+			}
+		}
+		_categoryStrings.push_back("STR_UNASSIGNED");
+	}
+
+	// Determine which categories should be visible.
+	_usedCategoryStrings["STR_ALL"] = true;
+	_usedCategoryStrings["STR_EQUIPPED"] = true;
+	if ((_itemClaimDisplayStyle > 0 || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
+	{
+		// No point in showing empty filter if claims are not known to this screen, see: 'init()'.
+		_usedCategoryStrings["STR_CLAIMED_BY_SOLDIERS"] = true;
+	}
+	const std::vector<std::string> &items = _game->getMod()->getItemsList();
+	for (std::vector<std::string>::const_iterator i = items.begin(); i != items.end(); ++i)
+	{
+		RuleItem *rule = _game->getMod()->getItem(*i);
+		Unit* isVehicle = rule->getVehicleUnit();
+		int cQty = isVehicle ? c->getVehicleCount(*i) : c->getItems()->getItem(*i);
+
+		if ((isVehicle || rule->isInventoryItem()) && rule->canBeEquippedToCraftInventory() &&
+			_game->getSavedGame()->isResearched(rule->getRequirements()) &&
+			(_base->getStorageItems()->getItem(*i) > 0 || cQty > 0))
+		{
+			if (rule->getCategories().empty() && !itemCategories.empty())
+			{
+				_usedCategoryStrings["STR_UNASSIGNED"] = true;
+			}
+			else
+			{
+				for (std::vector<std::string>::const_iterator j = rule->getCategories().begin(); j != rule->getCategories().end(); ++j)
+				{
+					_usedCategoryStrings[(*j)] = true;
+				}
+			}
+		}
+	}
+
+	// We are only interested in categories that can show items.
+	Collections::removeIf(_categoryStrings, [&](std::string cat)
+		{
+			if (_usedCategoryStrings.find(cat) == _usedCategoryStrings.end())
+				return true;
+			else
+				return !_usedCategoryStrings.find(cat)->second;
+		}
+	);
 }
 
 }

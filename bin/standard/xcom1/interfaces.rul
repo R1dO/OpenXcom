@@ -1737,23 +1737,22 @@ interfaces:
       # Control display of warning message if inventory visit leads to soldiers losing items.
       - id: ignoreInventoryWarningMessage
         customBool: false
-
-      # Since i've added a filter, might as well control the 'complete' combobox.
-      - id: filterButton
-        color: 241
-        # Filter ordering, any (mod) item category not included will be added after the last entry.
-        # When empty fall back to default behavior (the one listed here).
-        customList:
-          - STR_ALL                              # Code defined
-          - STR_EQUIPPED                         # Code defined
-          - STR_CLAIMED_BY_SOLDIERS              # Code defined
-#          - STR_SOME_DEFINED_ITEM_CATEGORY_NO9   # Example
-#          - STR_SOME_DEFINED_ITEM_CATEGORY_NO3   # Example
-          # Unless defined here the next entry will always be included as last one if conditions are satisfied.
-          # Condition: mod uses item categories but not all items are assigned to one.
-#          - STR_UNASSIGNED                       # Code defined
-        # Does RMB cause selection to be inverted?
-        customBool: true
+      # Control filter functionality.
+      - id: optionUseFilterButton
+        customBool: true # Activate this functionality?
+        # Custom filter order.
+        # If empty or non-existent code falls back to default behavior (the one shown below).
+        # If not empty filter will only show included categories (default and item ones).
+        # Category is only visible if there exist an item that belongs to said category.
+        customList: []
+#       customList:
+#          - STR_ALL                      # Default
+#          - STR_EQUIPPED                 # Default
+#          - STR_CLAIMED_BY_SOLDIERS      # Default
+#          - STR_CUSTOM_ITEM_CATEGORY_1   # Example item category
+#          - STR_CUSTOM_ITEM_CATEGORY_2   # Example item category
+#          - STR_CUSTOM_ITEM_CATEGORY_N   # Example item category
+#          - STR_UNASSIGNED               # Default, after custom categories.
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
     parent: craftEquipment

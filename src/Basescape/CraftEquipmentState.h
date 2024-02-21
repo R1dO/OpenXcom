@@ -81,6 +81,7 @@ private:
 	int _itemClaimDisplayStyle;
 	bool _useGlobalListArrows;
 	bool _notEnoughItemsForSoldierClaims;
+	void populateFilters();
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);
