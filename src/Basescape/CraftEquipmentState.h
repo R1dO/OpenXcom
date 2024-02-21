@@ -21,6 +21,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <set>
 
 namespace OpenXcom
 {
@@ -33,6 +34,7 @@ class TextList;
 class ComboBox;
 class Timer;
 class Base;
+class ArrowButton;
 
 /**
  * Equipment screen that lets the player
@@ -44,13 +46,13 @@ private:
 	TextButton *_btnOk, *_btnClear, *_btnInventory;
 	TextEdit *_btnQuickSearch;
 	Window *_window;
-	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew;
+	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew, *_txtCraftSpaceUSage, *_txtItemLimitAmount, *_txtItemLimitSize;
 	std::vector<std::string> _categoryStrings;
 	std::map<std::string, bool> _usedCategoryStrings;
 	ComboBox *_cbxFilterBy;
 	TextList *_lstEquipment;
 	size_t _lstScroll;
-	Timer *_timerLeft, *_timerRight;
+	Timer *_timerLeft, *_timerRight, *_timerEachItemLeft, *_timerEachItemRight;
 	size_t _sel, _craft;
 	Base *_base;
 	std::vector<std::string> _items;
@@ -66,6 +68,17 @@ private:
 	void updateQuantity();
 	/// initializes the displayed list
 	void initList();
+
+	bool _showSpaceLimit, _showItemLimit, _showItemSizeLimit;
+	void updateSubtitleArea();
+	void updateOkButtonText();
+	void updateInventoryButtonText();
+	bool isScreenExitAllowed();
+	ArrowButton *_arrowEachItemLeft, *_arrowEachItemRight;
+	std::set<std::string> _errorQueue;
+	/// Should list display the inverse of selected filter category?
+	bool _invertFilter;
+	int _itemClaimDisplayStyle; // 0 = off, 1 = Meridian style, 2 = r1do style.
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);
@@ -104,6 +117,18 @@ public:
 	void moveRight();
 	/// Moves the given number of items to the craft.
 	void moveRightByValue(int change, bool suppressErrors = false);
+
+	void arrowEachItemLeftPress(Action *action);
+	void arrowEachItemLeftRelease(Action *action);
+	void arrowEachItemLeftClick(Action *action);
+	void arrowEachItemRightPress(Action *action);
+	void arrowEachItemRightRelease(Action *action);
+	void arrowEachItemRightClick(Action *action);
+	void moveLeftEachItem();
+	void moveLeftByValueEachItem(int change);
+	void moveRightEachItem();
+	void moveRightByValueEachItem(int change);
+
 	/// Empties the contents of the craft, moving all of the items back to the base.
 	void btnClearClick(Action *action);
 	/// Handler for clicking the Inventory button.

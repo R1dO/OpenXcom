@@ -108,6 +108,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 
 	_ammoColor = _game->getMod()->getInterface("craftEquipment")->getElement("ammoColor")->color;
 	int infoLineBehavior = _screenInterface->getElement("optionShowCraftLimits")->custom; // 0 = never, 1 = always, 2 = if such a limit exist
+	_itemClaimDisplayStyle = _screenInterface->getElement("optionShowClaimedAmounts")->custom;
 
 	add(_window, "window", "craftEquipment");
 	add(_btnQuickSearch, "button", "craftEquipment");
@@ -239,32 +240,10 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_cbxFilterBy->setSelected(0);
 	_cbxFilterBy->onChange((ActionHandler)&CraftEquipmentState::cbxFilterByChange);
 
-	if (Options::r1doStyle_craftEquipmentState)
+	if (_itemClaimDisplayStyle == 2)
 	{
-		bool useOriginalColumnLocations = true;
-		useOriginalColumnLocations &= Unicode::caseFind(tr("STR_CRAFTINVENTORY_BIGGER_THAN_CLAIMED"), "{DISABLED}");
-		useOriginalColumnLocations &= Unicode::caseFind(tr("STR_CRAFTINVENTORY_SMALLER_THAN_CLAIMED"), "{DISABLED}");
-		useOriginalColumnLocations &= Unicode::caseFind(tr("STR_CRAFTINVENTORY_EQUAL_TO_CLAIMED"), "{DISABLED}");
-
-		// Spacing based on placeholders, using following rules.
-		// * Items on base allow for "9 999" + what is needed for arrow buttons.
-		// * Items on craft allow for "9 999"
-		// * Items reserved allow for "999" + what is needed for the (`= `/`< `/`> `) indicators.
-		// * Have a 3px 'spacing' between columns (based on numbers above).
-		// This still leaves plenty of pixels left for 'adjustment'.
-		// Rules above however keeps it reasonably close to original locations.
-
-		if (!useOriginalColumnLocations)
-		{
-			_lstEquipment->setArrowColumn(203-6, ARROW_HORIZONTAL);
-			int arrowColumnReservation = 23; // 23 = _lstEquipment->getArrowsRightEdge() - _lstEquipment->getArrowsLeftEdge()
-			_lstEquipment->setColumns(4, 156, 26 + arrowColumnReservation + 15, 26, 26);
-		}
-		else
-		{
-			_lstEquipment->setArrowColumn(203, ARROW_HORIZONTAL);
-			_lstEquipment->setColumns(4, 156, 83, 41, 0);
-		}
+		_lstEquipment->setArrowColumn(203-6, ARROW_HORIZONTAL);
+		_lstEquipment->setColumns(4, 156, 25+52, 22, 24);
 	}
 	else
 	{
@@ -353,7 +332,7 @@ void CraftEquipmentState::init()
 	// don't reload after closing error popups
 	if (_reload)
 	{
-		if ((Options::r1doStyle_craftEquipmentState || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
+		if ((_itemClaimDisplayStyle > 0 || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 		{
 			// skip when returning from craft equipment template load/save
 			if (!_returningFromGlobalTemplates)
@@ -453,7 +432,8 @@ void CraftEquipmentState::initList()
 
 		int bQty = _base->getStorageItems()->getItem(rule);
 		int reserved = 0;
-		if ((Options::r1doStyle_craftEquipmentState || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
+		// Allows to hide claimed items while still honor user option.
+		if ((_itemClaimDisplayStyle > 0 || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 		{
 			reserved = c->getSoldierItems()->getItem(rule);
 		}
@@ -543,7 +523,7 @@ void CraftEquipmentState::initList()
 				s.insert(0, "  ");
 			}
 
-			if (Options::r1doStyle_craftEquipmentState)
+			if (_itemClaimDisplayStyle == 2)
 			{
 				_lstEquipment->addRow(4, s.c_str(), "", "", "");
 			}
@@ -929,18 +909,12 @@ void CraftEquipmentState::updateQuantity()
 		cQty = c->getItems()->getItem(item);
 	}
 
-	int reserved = 0;
-	if ((Options::r1doStyle_craftEquipmentState || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
-	{
-		reserved = c->getSoldierItems()->getItem(item);
-	}
-
-	std::string onBaseString, onCraftString, reservedString;
+	std::string onBaseString;
 	if (_isNewBattle)
 	{
 		onBaseString = "-";
 	}
-	else if (Options::r1doStyle_craftEquipmentState)
+	else if (_itemClaimDisplayStyle == 2)
 	{
 		onBaseString = Unicode::formatNumber(_base->getStorageItems()->getItem(item));
 	}
@@ -949,13 +923,11 @@ void CraftEquipmentState::updateQuantity()
 		onBaseString = std::to_string(_base->getStorageItems()->getItem(item));
 	}
 
-	// Temporal overrides for column alignment
-	//onBaseString = Unicode::formatNumber(9'999);
-	//cQty = 9'999;
-	//reserved = 999;
-	if (Options::r1doStyle_craftEquipmentState)
+	std::string onCraftString, reservedString;
+	int reserved = c->getSoldierItems()->getItem(item);
+	if (_itemClaimDisplayStyle == 2)
 	{
-		if (reserved == 0)
+		if (_isNewBattle || reserved == 0)
 		{
 			reservedString = "";
 		}
@@ -971,14 +943,9 @@ void CraftEquipmentState::updateQuantity()
 		{
 			reservedString = tr("STR_IS_EQUAL_TO_CLAIMED_NUMBER").arg(Unicode::formatNumber(reserved));
 		}
-
-		if (Unicode::caseFind(reservedString, "{DISABLED}"))
-		{
-			reservedString = "";
-		}
 		onCraftString = Unicode::formatNumber(cQty);
 	}
-	else if (Options::oxceAlternateCraftEquipmentManagement)
+	else if (_itemClaimDisplayStyle == 1)
 	{
 		std::ostringstream ss2;
 		if (cQty > reserved)
@@ -1020,7 +987,7 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setRowColor(_sel, color);
 	_lstEquipment->setCellText(_sel, 1, onBaseString);
 	_lstEquipment->setCellText(_sel, 2, onCraftString);
-	if (Options::r1doStyle_craftEquipmentState)
+	if (_itemClaimDisplayStyle == 2)
 	{
 		_lstEquipment->setCellText(_sel, 3, reservedString);
 	}

@@ -1727,9 +1727,10 @@ interfaces:
       # Change info line if craft has limits.
       - id: optionShowCraftLimits
         custom: 2    # 0 = never, 1 = always, 2 = if such a limit exist
-      # Control how list deals with claimed items
+      # Control display of claimed items
       - id: optionShowClaimedAmounts
         custom: 2    # 0 = off, 1 = Meridian style, 2 = r1do style.
+
       # Activate global arrow functionality (and safety on OK button)
       - id: optionUseGlobalListArrows
         customBool: true
