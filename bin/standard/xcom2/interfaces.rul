@@ -1731,6 +1731,7 @@ interfaces: #done
       - id: text
         color: 1
         color2: 244
+        border: 8  # Error color: Red. Or use 146 for gold
       - id: button
         color: 1
       - id: list
@@ -1743,8 +1744,6 @@ interfaces: #done
         color: 2
       - id: errorMessage
         color: 1
-      - id: optionShowCraftLimits
-        custom: 2
       - id: optionShowClaimedAmounts
         custom: 2
       - id: optionUseGlobalListArrows
@@ -1753,6 +1752,11 @@ interfaces: #done
         customBool: false
       - id: optionUseFilterButton
         customBool: true
+    options:
+      - id: showCraftLimits
+        custom: 2
+      - id: showSoldiersAssigned
+        active: true
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
     parent: craftEquipment

@@ -1712,21 +1712,19 @@ interfaces:
       - id: text
         color: 241   # pink
         color2: 208  # white
+        border: 213  # Error color: Gold
       - id: button
         color: 241   # pink
       - id: list
-        color: 218   # blue
-        color2: 208  # white
-        border: 241  # pink
+        color: 218   # blue (regular lines)
+        color2: 208  # white (lines with items on craft)
+        border: 241  # pink (arrow buttons)
       - id: ammoColor
         color: 246   # purple
       - id: errorPalette
         color: 2     # orange
       - id: errorMessage
         color: 241   # pink
-      # Change info line if craft has limits.
-      - id: optionShowCraftLimits
-        custom: 2    # 0 = never, 1 = always, 2 = if such a limit exist
       # Control display of claimed items
       - id: optionShowClaimedAmounts
         custom: 2    # 0 = off, 1 = Meridian style, 2 = r1do style.
@@ -1753,6 +1751,12 @@ interfaces:
 #          - STR_CUSTOM_ITEM_CATEGORY_2   # Example item category
 #          - STR_CUSTOM_ITEM_CATEGORY_N   # Example item category
 #          - STR_UNASSIGNED               # Default, after custom categories.
+    # New node as to not clutter elements with options.
+    options:
+      - id: showCraftLimits # Change info line if craft has limits.
+        variant: 2          # 0 = never, 1 = always, 2 = if such a limit exist
+      - id: showSoldiersAssigned # Vanilla info line did not include assigned soldiers.
+        active: true
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
     parent: craftEquipment

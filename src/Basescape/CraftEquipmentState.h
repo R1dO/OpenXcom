@@ -76,6 +76,15 @@ private:
 	bool isScreenExitAllowed();
 	ArrowButton *_arrowEachItemLeft, *_arrowEachItemRight;
 	std::set<std::string> _errorQueue;
+
+	struct CraftEquipmentStateOptions
+	{
+		bool allowDressUpMinigame;        // A.k.a. Inventory button.
+		bool showCraftLimits;
+		bool showSoldiersAssignedToCraft; // OXC(E) QoL.
+	} _screenBehavior;
+	void setScreenBehavior();
+
 	/// Should list display the inverse of selected filter category?
 	bool _invertFilter;
 	int _itemClaimDisplayStyle;
