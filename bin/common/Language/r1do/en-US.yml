@@ -10,6 +10,7 @@ en-US:
   STR_CLAIMED_BY_SOLDIERS: "Claimed by Soldiers"
   STR_OK_BUTTON_WARNING: "!!!"  # Yup ... screaming is allowed.
   STR_INVENTORY_BUTTON_WARNING: "!!! Inventory !!!"
+  STR_WARNING_NOT_ENOUGH_FOR_SOLDIER_CLAIMS: "Soldiers will lose equipment!{SMALLLINE}To visit inventory anyway use:{NEWLINE}\"CTRL + left mouse button\"{NEWLINE}or \"right mouse button\"."
   #=================== Battlescape ===================
   #=================== Engine ===================
 # GUI-element: Combo boxes

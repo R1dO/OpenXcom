@@ -163,7 +163,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_btnClear->setVisible(_isNewBattle);
 
 	_btnInventory->setText(tr("STR_INVENTORY"));
-	_btnInventory->onMouseClick((ActionHandler)&CraftEquipmentState::btnInventoryClick);
+	_btnInventory->onMouseClick((ActionHandler)&CraftEquipmentState::btnInventoryClick, 0);
 	_btnInventory->setVisible(craftHasACrew && !_isNewBattle);
 	_btnInventory->onKeyboardPress((ActionHandler)&CraftEquipmentState::btnInventoryClick, Options::keyBattleInventory);
 
@@ -552,6 +552,7 @@ void CraftEquipmentState::initList()
 		}
 	}
 	updateOkButtonText();
+	updateInventoryButtonText();
 
 	_lstEquipment->draw();
 	if (_lstScroll > 0)
@@ -615,6 +616,40 @@ void CraftEquipmentState::updateOkButtonText()
 	else
 	{
 		_btnOk->setText(tr("STR_OK_BUTTON_WARNING"));
+	}
+}
+
+/**
+ * Change appearance of inventory button.
+ *
+ * Based on difference between items assigned to craft and soldier claims.
+ */
+void CraftEquipmentState::updateInventoryButtonText()
+{
+	if (!Options::r1doStyle_craftEquipmentState)
+		return;
+
+	bool notEnoughClaimedItems = false;
+	Craft *c = _base->getCrafts()->at(_craft);
+	for (const auto& item : _items)
+	{
+		if (_game->getMod()->getItem(item)->getVehicleUnit())
+			continue;
+
+		if (c->getItems()->getItem(item) < c->getSoldierItems()->getItem(item))
+		{
+			notEnoughClaimedItems = true;
+			break;
+		}
+	}
+
+	if (notEnoughClaimedItems)
+	{
+		_btnInventory->setText(tr("STR_INVENTORY_BUTTON_WARNING"));
+	}
+	else
+	{
+		_btnInventory->setText(tr("STR_INVENTORY"));
 	}
 }
 
@@ -1090,6 +1125,7 @@ void CraftEquipmentState::moveLeftByValue(int change)
 	updateQuantity();
 	updateSubtitleArea();
 	updateOkButtonText();
+	updateInventoryButtonText();
 }
 
 /**
@@ -1259,6 +1295,7 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 	updateQuantity();
 	updateSubtitleArea();
 	updateOkButtonText();
+	updateInventoryButtonText();
 }
 
 /**
@@ -1331,8 +1368,17 @@ void CraftEquipmentState::btnClearClick(Action *)
  * inside the craft.
  * @param action Pointer to an action.
  */
-void CraftEquipmentState::btnInventoryClick(Action *)
+void CraftEquipmentState::btnInventoryClick(Action *action)
 {
+	bool skipWarning = _game->isCtrlPressed() || action->getDetails()->button.button == SDL_BUTTON_RIGHT;
+
+	if (!skipWarning && _btnInventory->getText() != tr("STR_INVENTORY").c_str())
+	{
+		std::string msg(tr("STR_WARNING_NOT_ENOUGH_FOR_SOLDIER_CLAIMS"));
+		_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
+		return;
+	}
+
 	Craft *craft = _base->getCrafts()->at(_craft);
 	if (craft->getNumTotalSoldiers() > 0)
 	{

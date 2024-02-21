@@ -72,6 +72,7 @@ private:
 	bool _showSpaceLimit, _showItemLimit, _showItemSizeLimit;
 	void updateSubtitleArea();
 	void updateOkButtonText();
+	void updateInventoryButtonText();
 	bool isScreenExitAllowed();
 	ArrowButton *_arrowEachItemLeft, *_arrowEachItemRight;
 	std::set<std::string> _errorQueue;
