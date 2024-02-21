@@ -78,7 +78,7 @@ private:
 	std::set<std::string> _errorQueue;
 	/// Should list display the inverse of selected filter category?
 	bool _invertFilter;
-	int _itemClaimDisplayStyle; // 0 = off, 1 = Meridian style, 2 = r1do style.
+	int _itemClaimDisplayStyle;
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);

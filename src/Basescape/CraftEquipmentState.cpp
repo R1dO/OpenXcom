@@ -107,8 +107,14 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	setInterface("craftEquipment");
 
 	_ammoColor = _game->getMod()->getInterface("craftEquipment")->getElement("ammoColor")->color;
-	int infoLineBehavior = _screenInterface->getElement("optionShowCraftLimits")->custom; // 0 = never, 1 = always, 2 = if such a limit exist
-	_itemClaimDisplayStyle = _screenInterface->getElement("optionShowClaimedAmounts")->custom;
+
+	int infoLineBehavior = 0; // 0 = never, 1 = always, 2 = if such a limit exist
+	if (_screenInterface->getElement("optionShowCraftLimits"))
+		infoLineBehavior = _screenInterface->getElement("optionShowCraftLimits")->custom;
+
+	_itemClaimDisplayStyle = 0; // 0 = off, 1 = Meridian style, 2 = r1do style.
+	if (_screenInterface->getElement("optionShowClaimedAmounts"))
+		_itemClaimDisplayStyle = _screenInterface->getElement("optionShowClaimedAmounts")->custom;
 
 	add(_window, "window", "craftEquipment");
 	add(_btnQuickSearch, "button", "craftEquipment");
