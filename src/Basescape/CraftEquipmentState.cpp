@@ -107,10 +107,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	setInterface("craftEquipment");
 	_ammoColor = _game->getMod()->getInterface("craftEquipment")->getElement("ammoColor")->color;
 
-	_useGlobalListArrows = false;
-	if (_screenInterface->getElement("optionUseGlobalListArrows"))
-		_useGlobalListArrows = _screenInterface->getElement("optionUseGlobalListArrows")->customBool;
-
 	int activateFilterBox = true;
 	if (_screenInterface->getElement("optionUseFilterButton"))
 		activateFilterBox = _screenInterface->getElement("optionUseFilterButton")->customBool;
@@ -171,8 +167,8 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 			_btnOk->setX(164); // Starting position of inventory button.
 		}
 	}
-
-	if (_useGlobalListArrows)
+	// Ability to move each item in the list.
+	if (_screenBehavior.allowGlobalArrowButtons)
 	{
 		// Create room for arrow buttons (too piled up otherwise).
 		_txtItem->setY(_txtItem->getY() + 2);
@@ -536,7 +532,7 @@ void CraftEquipmentState::initList()
 	_sel = 0; // During the loop it was reset to end of list, time to undo.
 	updateSubtitleArea();
 
-	if (_useGlobalListArrows)
+	if (_screenBehavior.allowGlobalArrowButtons)
 	{
 		if (_totalItems > c->getMaxItemsClamped())
 		{
@@ -1134,7 +1130,7 @@ void CraftEquipmentState::moveLeftByValue(int change)
 			_base->getStorageItems()->addItem(item, change);
 		}
 
-		if(_useGlobalListArrows && !_errorQueue.empty())
+		if(_screenBehavior.allowGlobalArrowButtons && !_errorQueue.empty())
 		{
 			if (_totalItems <= c->getMaxItemsClamped())
 			{
@@ -1321,7 +1317,7 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 				_reload = false;
 			}
 
-			if (_useGlobalListArrows)
+			if (_screenBehavior.allowGlobalArrowButtons)
 			{
 				_errorQueue.insert(msg);
 			}
@@ -1340,7 +1336,7 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 				_reload = false;
 			}
 
-			if (_useGlobalListArrows && suppressErrors)
+			if (_screenBehavior.allowGlobalArrowButtons && suppressErrors)
 			{
 				_errorQueue.insert(msg);
 			}
@@ -1865,6 +1861,11 @@ void CraftEquipmentState::setScreenBehavior()
 		_screenBehavior.displayStyleClaimedAmounts = rules->getOption("showClaimedAmounts")->variant;
 	}
 
+	_screenBehavior.allowGlobalArrowButtons = false;
+	if (rules->getOption("useGlobalArrowButtons"))
+	{
+		_screenBehavior.allowGlobalArrowButtons = rules->getOption("useGlobalArrowButtons")->isActive;
+	}
 	///
 	// std::string textElement = "text";
 }

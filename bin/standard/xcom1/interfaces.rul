@@ -1726,10 +1726,6 @@ interfaces:
         color: 241   # pink
       - id: textWarningColor
         color: 213  # Gold
-      # Activate global arrow functionality (and safety on OK button)
-      - id: optionUseGlobalListArrows
-        customBool: true
-        #TFTDMode: true # Alternative way of activating, not chosen since name is kinda misleading here.
       # Control filter functionality.
       - id: optionUseFilterButton
         customBool: true # Activate this functionality?
@@ -1756,6 +1752,8 @@ interfaces:
         variant: 2              # 0 = not visible, 1 = visible, 2 = visible and support warning message if soldiers are about to lose items.
       - id: showClaimedAmounts # Display of soldier claims on items
         variant: 1             # 0 = off, 1 = Meridian style, 2 = r1do style.
+      - id: useGlobalArrowButtons # Activate move each item in list functionality (and safety on OK button).
+        active: true
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
     parent: craftEquipment

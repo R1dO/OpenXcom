@@ -81,6 +81,7 @@ private:
 	{
 		bool allowDressUpMinigame;         // A.k.a. Show inventory button.
 		bool allowInventoryWarningMessage; // When an inventory visit would cause soldiers to lose some items.
+		bool allowGlobalArrowButtons;      // Functionality to move each visible item in the list.
 		bool showCraftLimits;
 		bool showSoldiersAssignedToCraft;  // OXC(E) QoL.
 		int displayStyleClaimedAmounts;
@@ -89,8 +90,6 @@ private:
 
 	/// Should list display the inverse of selected filter category?
 	bool _invertFilter;
-	int _itemClaimDisplayStyle;
-	bool _useGlobalListArrows;
 	bool _notEnoughItemsForSoldierClaims;
 	void populateFilters();
 public:

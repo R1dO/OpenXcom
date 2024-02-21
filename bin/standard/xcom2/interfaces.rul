@@ -1745,8 +1745,6 @@ interfaces: #done
         color: 1
       - id: textWarningColor
         color: 8  # Red, use 146 for gold
-      - id: optionUseGlobalListArrows
-        customBool: true
       - id: optionUseFilterButton
         customBool: true
     options:
@@ -1758,6 +1756,8 @@ interfaces: #done
         variant: 2
       - id: showClaimedAmounts
         variant: 1
+      - id: useGlobalArrowButtons
+        active: true
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
     parent: craftEquipment
