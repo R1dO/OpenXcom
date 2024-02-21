@@ -76,6 +76,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	bool craftHasACrew = c->getNumTotalSoldiers() > 0;
 	_isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
 	_invertFilter = false;
+	_notEnoughItemsForSoldierClaims = false;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -638,7 +639,7 @@ void CraftEquipmentState::updateInventoryButtonText()
 	if (!Options::r1doStyle_craftEquipmentState)
 		return;
 
-	bool notEnoughClaimedItems = false;
+	_notEnoughItemsForSoldierClaims = false;
 	Craft *c = _base->getCrafts()->at(_craft);
 	for (const auto& item : _items)
 	{
@@ -647,7 +648,7 @@ void CraftEquipmentState::updateInventoryButtonText()
 
 		if (c->getItems()->getItem(item) < c->getSoldierItems()->getItem(item))
 		{
-			notEnoughClaimedItems = true;
+			_notEnoughItemsForSoldierClaims = true;
 			break;
 		}
 	}
@@ -1157,11 +1158,16 @@ void CraftEquipmentState::moveLeftByValue(int change)
 				_errorQueue.erase(msg);
 			}
 		}
+
+		updateOkButton();
+		// It is possible we started ok but took away too much items.
+		if (!_notEnoughItemsForSoldierClaims)
+		{
+			updateInventoryButton();
+		}
 	}
 	updateQuantity();
 	updateSubtitleArea();
-	updateOkButtonText();
-	updateInventoryButtonText();
 }
 
 /**
@@ -1363,11 +1369,16 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 		{
 			_base->getStorageItems()->removeItem(item, change);
 		}
+
+		updateOkButton();
+		// It is possible we started with an error but solved it.
+		if (_notEnoughItemsForSoldierClaims)
+		{
+			updateInventoryButton();
+		}
 	}
 	updateQuantity();
 	updateSubtitleArea();
-	updateOkButtonText();
-	updateInventoryButtonText();
 }
 
 /**
@@ -1455,9 +1466,18 @@ void CraftEquipmentState::btnInventoryClick(Action *action)
 	if (!skipWarning && _btnInventory->getText() != tr("STR_INVENTORY").c_str())
 	{
 		std::string msg(tr("STR_WARNING_NOT_ENOUGH_FOR_SOLDIER_CLAIMS"));
-		if (!Unicode::caseFind(msg, "{DISABLED}"))
+
+		bool ignoreWarning = _game->isCtrlPressed();
+		ignoreWarning |= action->getDetails()->button.button == SDL_BUTTON_RIGHT;
+		if (!ignoreWarning && _screenInterface->getElement("ignoreInventoryWarningMessage"))
+		{
+			ignoreWarning = _screenInterface->getElement("ignoreInventoryWarningMessage")->customBool;
+		}
+
+		if (!ignoreWarning)
 		{
 			_game->pushState(new ErrorMessageState(msg, _palette, _screenInterface->getElement("errorMessage")->color, "BACK04.SCR", _screenInterface->getElement("errorPalette")->color));
+			_reload = false;
 			return;
 		}
 	}

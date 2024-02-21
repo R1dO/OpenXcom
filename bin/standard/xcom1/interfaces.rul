@@ -1734,6 +1734,9 @@ interfaces:
       - id: optionUseGlobalListArrows
         customBool: true
         #TFTDMode: true # Alternative way of activating, not chosen since name is kinda misleading here.
+      # Control display of warning message if inventory visit leads to soldiers losing items.
+      - id: ignoreInventoryWarningMessage
+        customBool: false
 
       # Since i've added a filter, might as well control the 'complete' combobox.
       - id: filterButton
@@ -1750,13 +1753,6 @@ interfaces:
           # Condition: mod uses item categories but not all items are assigned to one.
 #          - STR_UNASSIGNED                       # Code defined
         # Does RMB cause selection to be inverted?
-        customBool: true
-      # Control warning message if inventory visit would lead to soldiers losing items.
-      - id: inventoryWarningMessage
-        color: 241   # pink
-        # Should we show a warning message and protect player when entering inventory.
-        # Message will be shown if less items are on craft than claimed by soldiers.
-        # Does not affect message as shown on the button (use translation for that)
         customBool: true
   - type: craftEquipmentSave
     backgroundImage: BACK04.SCR
