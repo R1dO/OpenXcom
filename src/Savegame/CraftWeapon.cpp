@@ -220,4 +220,20 @@ int CraftWeapon::getClipsLoaded() const
 	return retVal;
 }
 
+/*
+ * Get how many clips fit into this weapon.
+ * @return Amount of clips needed to fully load weapon.
+ */
+int CraftWeapon::getClipCapacity() const
+{
+	int retVal = (int)floor((double)_rules->getAmmoMax() / _rules->getRearmRate());
+	auto* clip = _rules->getClipItem();
+
+	if (clip && clip->getClipSize() > 0)
+	{
+		retVal = (int)floor((double)_rules->getAmmoMax() / clip->getClipSize());
+	}
+
+	return retVal;
+}
 }

@@ -67,6 +67,7 @@ public:
 	CraftWeaponProjectile* fire() const;
 	/// get how many clips are loaded into this weapon.
 	int getClipsLoaded() const;
+	int getClipCapacity() const;
 
 };
 

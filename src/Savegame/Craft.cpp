@@ -1761,8 +1761,7 @@ int Craft::getItemCountArmament(const RuleItem* item, bool assumeFullyLoaded) co
 		{
 			if (assumeFullyLoaded)
 			{
-				// `getAmmoMax() > 0` enforces `getRearmRate() > 0`, see: `RuleCraftWeapon::afterLoad()`.
-				qty += w->getRules()->getAmmoMax() / w->getRules()->getRearmRate();
+				qty += w->getClipCapacity();
 			}
 			else
 			{
