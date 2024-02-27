@@ -19,6 +19,7 @@
  */
 #include <string>
 #include <yaml-cpp/yaml.h>
+#include <climits>
 
 namespace OpenXcom
 {
@@ -36,15 +37,43 @@ enum TransferType { TRANSFER_ITEM, TRANSFER_CRAFT, TRANSFER_SOLDIER, TRANSFER_SC
 
 struct TransferRow
 {
-	TransferType type;
-	const void *rule;
-	std::string name;
-	int cost;
-	int qtySrc, qtyDst;
-	int amount;
-	int listOrder;
-	double size, totalSize;
-	int64_t totalCost;
+	TransferType type = TRANSFER_ITEM;
+	const void *rule = nullptr;
+	std::string name = "";
+	int cost = 0;
+	int qtySrc = 0; // Amount on 1st base (screen left side).
+	int qtyDst = 0; // Amount on 2nd base or world market (screen right side).
+	/**
+	 * Requested change.
+	 *
+	 * + Positive values moves an item from `Src` to `Dst` (e.g. Left to Right).
+	 * + Negative values moves an item from `Dst` to `Src` (e.g  Right to Left).
+	 */
+	int amount = 0;
+	// Controls position in items list.
+	// Default is chosen to push troublesome entries to the top.
+	int listOrder = INT_MIN;
+	double size = 0, totalSize = 0; // List sorting by (combined) item sizes?
+	int64_t totalCost = 0;          // List Sorting by combined item cost?
+	// Amount currently on route **to** `Src` / `Dst`.
+	// Anything that will eventually end up in `qtySrc` / `qtyDst`.
+	int transferSrc = 0, transferDst = 0;
+	// Display only: Currently allocated items (e.g. reserved).
+	int allocatedSrc = 0, allocatedDst = 0;
+	// Display only: Add this amount to display of `qtySrc` / `qtyDst`,
+	// Allows display of non-refundable amounts.
+	int protectedSrc = 0, protectedDst = 0;
+
+	TransferRow() = default;
+	// Compatibility for existing code.
+	TransferRow(TransferType _type, const void *_rule, std::string _name,
+		int _cost, int _qtySrc, int _qtyDst, int _amount, int _listOrder,
+		double _size, double _totalSize, int64_t _totalCost
+		) :
+		type(_type), rule(_rule), name(_name), cost(_cost), qtySrc(_qtySrc),
+		qtyDst(_qtyDst), amount(_amount), listOrder(_listOrder), size(_size),
+		totalSize(_totalSize), totalCost(_totalCost)
+		{ }
 };
 
 class Soldier;
