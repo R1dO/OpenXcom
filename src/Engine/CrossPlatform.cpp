@@ -90,6 +90,12 @@
 #include "FileMap.h"
 #include "SDL2Helpers.h"
 #include "../version.h"
+/* C++17 introduced `__has_include()` */
+#if __has_include("oxc_basename.h")
+	#include "oxc_basename.h"
+#else
+	#define OXC_BASENAME "openxcom"
+#endif
 
 namespace OpenXcom
 {
@@ -237,7 +243,7 @@ std::vector<std::string> findDataFolders()
 #ifdef _WIN32
 	std::unordered_set<std::string> seen; // avoid dups in case cwd = dirname(exe)
 	wchar_t pathW[MAX_PATH+1];
-	const std::wstring oxconst = pathToWindows("OpenXcom/");
+	const std::wstring oxconst = pathToWindows(OXC_BASENAME "/");
 	// Get Documents folder
 	if (SHGetSpecialFolderPathW(NULL, pathW, CSIDL_PERSONAL, FALSE))
 	{
@@ -269,8 +275,8 @@ std::vector<std::string> findDataFolders()
 	char const *home = getHome();
 #ifdef __HAIKU__
 	char data_path[B_PATH_NAME_LENGTH];
-	find_directory(B_SYSTEM_SETTINGS_DIRECTORY, 0, true, data_path, sizeof(data_path)-strlen("/OpenXcom/"));
-	strcat(data_path,"/OpenXcom/");
+	find_directory(B_SYSTEM_SETTINGS_DIRECTORY, 0, true, data_path, sizeof(data_path)-strlen("/" OXC_BASENAME "/"));
+	strcat(data_path,"/" OXC_BASENAME "/");
 	list.push_back(data_path);
 #endif
 	char path[MAXPATHLEN];
@@ -278,14 +284,14 @@ std::vector<std::string> findDataFolders()
 	// Get user-specific data folders
 	if (char const *const xdg_data_home = getenv("XDG_DATA_HOME"))
  	{
-		snprintf(path, MAXPATHLEN, "%s/openxcom/", xdg_data_home);
+		snprintf(path, MAXPATHLEN, "%s/" OXC_BASENAME "/", xdg_data_home);
  	}
  	else
  	{
 #ifdef __APPLE__
-		snprintf(path, MAXPATHLEN, "%s/Library/Application Support/OpenXcom/", home);
+		snprintf(path, MAXPATHLEN, "%s/Library/Application Support/" OXC_BASENAME "/", home);
 #else
-		snprintf(path, MAXPATHLEN, "%s/.local/share/openxcom/", home);
+		snprintf(path, MAXPATHLEN, "%s/.local/share/" OXC_BASENAME "/", home);
 #endif
  	}
  	list.push_back(path);
@@ -298,16 +304,16 @@ std::vector<std::string> findDataFolders()
 		char *dir = strtok(xdg_data_dirs_copy, ":");
 		while (dir != 0)
 		{
-			snprintf(path, MAXPATHLEN, "%s/openxcom/", dir);
+			snprintf(path, MAXPATHLEN, "%s/" OXC_BASENAME "/", dir);
 			list.push_back(path);
 			dir = strtok(0, ":");
 		}
 	}
 #ifdef __APPLE__
-	list.push_back("/Users/Shared/OpenXcom/");
+	list.push_back("/Users/Shared/" OXC_BASENAME "/");
 #else
-	list.push_back("/usr/local/share/openxcom/");
-	list.push_back("/usr/share/openxcom/");
+	list.push_back("/usr/local/share/" OXC_BASENAME "/");
+	list.push_back("/usr/share/" OXC_BASENAME "/");
 #ifdef DATADIR
 	snprintf(path, MAXPATHLEN, "%s/", DATADIR);
 	list.push_back(path);
@@ -355,7 +361,7 @@ std::vector<std::string> findUserFolders()
 #ifdef _WIN32
 	std::unordered_set<std::string> seen;
 	wchar_t pathW[MAX_PATH+1];
-	const std::wstring oxconst = pathToWindows("OpenXcom/");
+	const std::wstring oxconst = pathToWindows(OXC_BASENAME "/");
 	const std::wstring usconst = pathToWindows("user/");
 
 	// Get Documents folder
@@ -388,8 +394,8 @@ std::vector<std::string> findUserFolders()
 #else
 #ifdef __HAIKU__
 	char user_path[B_PATH_NAME_LENGTH];
-	find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, user_path, sizeof(user_path)-strlen("/OpenXcom/"));
-	strcat(user_path,"/OpenXcom/");
+	find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, user_path, sizeof(user_path)-strlen("/" OXC_BASENAME "/"));
+	strcat(user_path,"/" OXC_BASENAME "/");
 	list.push_back(user_path);
 #endif
 	char const *home = getHome();
@@ -398,20 +404,20 @@ std::vector<std::string> findUserFolders()
 	// Get user folders
 	if (char const *const xdg_data_home = getenv("XDG_DATA_HOME"))
  	{
-		snprintf(path, MAXPATHLEN, "%s/openxcom/", xdg_data_home);
+		snprintf(path, MAXPATHLEN, "%s/" OXC_BASENAME "/", xdg_data_home);
  	}
  	else
  	{
 #ifdef __APPLE__
-		snprintf(path, MAXPATHLEN, "%s/Library/Application Support/OpenXcom/", home);
+		snprintf(path, MAXPATHLEN, "%s/Library/Application Support/" OXC_BASENAME "/", home);
 #else
-		snprintf(path, MAXPATHLEN, "%s/.local/share/openxcom/", home);
+		snprintf(path, MAXPATHLEN, "%s/.local/share/" OXC_BASENAME "/", home);
 #endif
  	}
 	list.push_back(path);
 
 	// Get old-style folder
-	snprintf(path, MAXPATHLEN, "%s/.openxcom/", home);
+	snprintf(path, MAXPATHLEN, "%s/." OXC_BASENAME "/", home);
 	list.push_back(path);
 
 	// Get working directory
@@ -435,8 +441,8 @@ std::string findConfigFolder()
 	return "";
 #elif defined (__HAIKU__)
 	char settings_path[B_PATH_NAME_LENGTH];
-	find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, settings_path, sizeof(settings_path)-strlen("/OpenXcom/"));
-	strcat(settings_path,"/OpenXcom/");
+	find_directory(B_USER_SETTINGS_DIRECTORY, 0, true, settings_path, sizeof(settings_path)-strlen("/" OXC_BASENAME "/"));
+	strcat(settings_path,"/" OXC_BASENAME "/");
 	return settings_path;
 #else
 	char const *home = getHome();
@@ -444,12 +450,12 @@ std::string findConfigFolder()
 	// Get config folders
 	if (char const *const xdg_config_home = getenv("XDG_CONFIG_HOME"))
 	{
-		snprintf(path, MAXPATHLEN, "%s/openxcom/", xdg_config_home);
+		snprintf(path, MAXPATHLEN, "%s/" OXC_BASENAME "/", xdg_config_home);
 		return path;
 	}
 	else
 	{
-		snprintf(path, MAXPATHLEN, "%s/.config/openxcom/", home);
+		snprintf(path, MAXPATHLEN, "%s/.config/" OXC_BASENAME "/", home);
 		return path;
 	}
 #endif
@@ -1489,7 +1495,7 @@ void crashDump(void *ex, const std::string &err)
 	stackTrace(0);
 #endif
 	std::ostringstream msg;
-	msg << "OpenXcom has crashed: " << error.str() << std::endl;
+	msg << OXC_BASENAME " has crashed: " << error.str() << std::endl;
 	msg << "Log file: " << getLogFileName() << std::endl;
 	msg << "If this error was unexpected, please report it on the OpenXcom forum (OXCE board)." << std::endl;
 	msg << "The following can help us solve the problem:" << std::endl;

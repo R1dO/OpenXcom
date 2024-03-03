@@ -68,6 +68,8 @@ bin/TFTD
 deps/
 docs/html/
 build/
+_build.*
+_vscode.build.*
 Dependencies/
 translations/
 *.*.user

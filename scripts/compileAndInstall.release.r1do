@@ -1,0 +1,38 @@
+#!/usr/bin/env dash
+
+# Define fork (renames executable and installation folders)
+#
+# The executable is still defined by git's current HEAD, this is just naming.
+#############################################################################
+FORK_ID="Openxcom Extended"
+FORK_BASENAME="openxcom.extended"
+#FORK_ID="Openxcom Brutal AI"
+#FORK_BASENAME="openxcom.brutal-ai"
+#FORK_ID="Openxcom From the Ashes"
+#FORK_BASENAME="openxcom.fta"
+
+# Just because I can.
+# Mod based "forks", actual engine depends on git's current HEAD
+################################################################
+#FORK_ID="Xpiratez"
+#FORK_BASENAME="openxcom.xpiratez"
+#FORK_ID="The X-COM Files"
+#FORK_BASENAME="openxcom.xcom-files"
+#FORK_ID="Warhammer 40k"
+#FORK_BASENAME="openxcom.40k"
+
+# Housekeeping
+##############
+SCRIPT_DIR_ABSOLUTE=$(dirname "$(realpath "$0")")
+REPOSITORY_ROOT_ABSOLUTE=$(dirname "${SCRIPT_DIR_ABSOLUTE}")
+BUILD_DIR_ABSOLUTE="${REPOSITORY_ROOT_ABSOLUTE}"/_build.release."${FORK_BASENAME}"
+
+# Compile and install
+#####################
+cmake -B "${BUILD_DIR_ABSOLUTE}" \
+	-DCMAKE_INSTALL_PREFIX="~/.local" \
+	-DCMAKE_BUILD_TYPE="Release" \
+	-DOXC_PROJECT_NAME="${FORK_ID}" \
+	-DOXC_BASENAME="${FORK_BASENAME}"
+cmake --build "${BUILD_DIR_ABSOLUTE}" -j$(nproc)
+cmake --build "${BUILD_DIR_ABSOLUTE}" --target install > "${BUILD_DIR_ABSOLUTE}"/oxce_install.$(date +%y%m%d_%H%M).log 2>&1

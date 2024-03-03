@@ -459,6 +459,12 @@ if ( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES 
     set_property ( SOURCE ${cxx_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wsuggest-override\ )
     set_property ( SOURCE ${cxx_src} ${c_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wclobbered\ )
     set_property ( SOURCE ${cxx_src} ${c_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wlogical-op\ )
+    # Just assume Yankes knows he's c++, disable any overzealous warnings.
+    # I am not qualified enough to determine if there are actual problems with Y-code.
+    # Might be a good idea to periodically enable them again for my own code though.
+    set_property ( SOURCE ${cxx_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wno-dangling-reference\ )
+    set_property ( SOURCE ${cxx_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wno-unused-function\ )
+    set_property ( SOURCE ${cxx_src} APPEND_STRING PROPERTY COMPILE_FLAGS -Wno-maybe-uninitialized\ )
   elseif ( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
     # add warning flags recognized by clang but not by g++
   endif ()
@@ -518,7 +524,7 @@ set ( install_dest RUNTIME )
 set ( set_exec_path ON )
 set ( install_dest_dir bin )
 if ( UNIX AND NOT APPLE )
-  set ( data_install_dir "${CMAKE_INSTALL_FULL_DATADIR}/openxcom" )
+  set ( data_install_dir "${CMAKE_INSTALL_FULL_DATADIR}/${OXC_BASENAME}" )
   set_property ( SOURCE main.cpp APPEND PROPERTY COMPILE_DEFINITIONS DATADIR="${data_install_dir}/" )
 endif ()
 if ( APPLE )
@@ -540,12 +546,12 @@ if ( APPLE )
     set ( install_dest_dir "" )
     set ( data_install_dir bin )
     if ( "${CMAKE_GENERATOR}" STREQUAL "Xcode" )
-      set ( bundle_path "${EXECUTABLE_OUTPUT_PATH}/${CMAKE_BUILD_TYPE}/openxcom.app" )
+      set ( bundle_path "${EXECUTABLE_OUTPUT_PATH}/${CMAKE_BUILD_TYPE}/${OXC_BASENAME}.app" )
     else ()
-      set ( bundle_path "${EXECUTABLE_OUTPUT_PATH}/openxcom.app" )
+      set ( bundle_path "${EXECUTABLE_OUTPUT_PATH}/${OXC_BASENAME}.app" )
     endif ()
   else ()
-    set ( data_install_dir "${CMAKE_INSTALL_FULL_DATADIR}/openxcom" )
+    set ( data_install_dir "${CMAKE_INSTALL_FULL_DATADIR}/${OXC_BASENAME}" )
     add_definitions( -DDATADIR="${data_install_dir}/" )
   endif ()
 endif ()
@@ -561,13 +567,13 @@ if (( APPLE AND CREATE_BUNDLE ) OR CPACK_GENERATOR STREQUAL "7Z" )
   set ( CMAKE_INSTALL_BINDIR "." )
 endif ()
 
-add_executable ( openxcom  ${application_type} ${openxcom_src} ${openxcom_icon} )
+add_executable ( ${OXC_BASENAME}  ${application_type} ${openxcom_src} ${openxcom_icon} )
 
 if ( EMBED_ASSETS )
-  add_dependencies(openxcom zips)
+  add_dependencies(${OXC_BASENAME} zips)
 endif ()
 
-install ( TARGETS openxcom ${install_dest} DESTINATION ${CMAKE_INSTALL_BINDIR} )
+install ( TARGETS ${OXC_BASENAME} ${install_dest} DESTINATION ${CMAKE_INSTALL_BINDIR} )
 # Extra link flags for Windows. They need to be set before the SDL/YAML link flags, otherwise you will get strange link errors ('Undefined reference to WinMain@16')
 if ( WIN32 )
   set ( basic_windows_libs advapi32.lib shell32.lib shlwapi.lib wininet.lib urlmon.lib )
@@ -589,24 +595,24 @@ if (WIN32)
   set(WIN32_LIBS imagehlp dbghelp)
 endif(WIN32)
 
-target_link_libraries ( openxcom ${system_libs} ${PKG_DEPS_LDFLAGS} ${WIN32_LIBS} )
+target_link_libraries ( ${OXC_BASENAME} ${system_libs} ${PKG_DEPS_LDFLAGS} ${WIN32_LIBS} )
 
 # Pack libraries into bundle and link executable appropriately
 if ( APPLE AND CREATE_BUNDLE )
   include ( PostprocessBundle )
-  postprocess_bundle ( openxcom ${bundle_path} )
+  postprocess_bundle ( ${OXC_BASENAME} ${bundle_path} )
 endif ()
 
 if ( NOT EMBED_ASSETS )
   set ( bin_data_dirs TFTD UFO common standard )
   foreach ( binpath ${bin_data_dirs} )
     if ( APPLE AND CREATE_BUNDLE )
-      add_custom_command ( TARGET openxcom
+      add_custom_command ( TARGET ${OXC_BASENAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bin/${binpath} ${bundle_path}/Contents/Resources/${binpath}
 	    VERBATIM )
     else ()
-      add_custom_command ( TARGET openxcom
+      add_custom_command ( TARGET ${OXC_BASENAME}
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bin/${binpath} ${EXECUTABLE_OUTPUT_PATH}/${binpath}
 	    VERBATIM )
@@ -623,7 +629,7 @@ if ( WIN32 )
     file ( GLOB Windows_dll "${DEPS_DIR}/lib/Win32/*.dll" )
   endif()
   foreach ( dll ${Windows_dll} )
-    add_custom_command ( TARGET openxcom
+    add_custom_command ( TARGET ${OXC_BASENAME}
       POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy ${dll} ${EXECUTABLE_OUTPUT_PATH}
 	  VERBATIM )
