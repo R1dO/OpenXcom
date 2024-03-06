@@ -526,6 +526,7 @@ void createAdvancedOptionsOTHER()
 {
 	// OTHER options general
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1doReservedAmountBehavior", &r1doReservedAmountBehavior, 0, "R1DO_RESERVED_BEHAVIOR", "STR_GENERAL"));
+	_info.push_back(OptionInfo(OPTION_OTHER, "r1doEnableReverseStatsSearch", &r1doEnableReverseStatsSearch, false, "R1DO_REVERSE_STATS_SEARCH", "STR_GENERAL"));
 }
 
 void createControlsOTHER()

@@ -37,6 +37,7 @@ class SavedBattleGame;
 struct RuleItemAction;
 
 enum BattleActionType : Uint8;
+enum TriState {TS_UNDEFINED = -1, TS_FALSE = 0, TS_TRUE = 1};
 
 /**
  * Represents a single item in the battlescape.
@@ -66,6 +67,8 @@ private:
 	const RuleItemAction *_confMelee = nullptr;
 	ScriptValues<BattleItem> _scriptValues;
 
+	mutable TriState _isStatsKnownCache;
+	bool _isStatsKnownCached(SavedGame *save, const Mod *mod) const;
 public:
 
 	/// Name of class used in script.
@@ -233,6 +236,8 @@ public:
 	void setIsAmmo(bool ammo);
 	/// Checks a flag on the item to see if it's a clip in a weapon or not.
 	bool isAmmo() const;
+
+	bool isStatsKnown(SavedGame *save, const Mod *mod) const;
 };
 
 }

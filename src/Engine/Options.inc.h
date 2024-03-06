@@ -150,5 +150,7 @@ OPT SoundFormat currentSound;
 
 // Options for OTHER category
 /////////////////////////////
+// Engine Battlescape
+OPT bool r1doEnableReverseStatsSearch;
 // GUI general
 OPT int r1doReservedAmountBehavior;
