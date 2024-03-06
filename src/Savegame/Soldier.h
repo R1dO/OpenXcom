@@ -300,6 +300,7 @@ public:
 	/// Resets the daily dogfight experience cache.
 	void resetDailyDogfightExperienceCache();
 
+	int getItemCountAssignedToSoldier(const RuleItem* item, bool countArmor = false) const;
 private:
 	std::string generateCallsign(const std::vector<SoldierNamePool*> &names);
 	/// Automatically move equipment between the craft and the base when assigning/deassigning/reassigning soldiers.

@@ -1,0 +1,17 @@
+en-GB:
+  #=================== Basescape ===================
+  #=================== Battlescape ===================
+  #=================== Engine ===================
+# GUI-element: Combo boxes
+  STR_INVERSE_FILTER_INDICATOR: "Not {0}" # {0} = translated filter name
+  #=================== Geoscape ===================
+  #=================== Menu ===================
+# Options.cpp
+  R1DO_RESERVED_BEHAVIOR: "DEMO: Reserved items columns behavior"
+  R1DO_RESERVED_BEHAVIOR_DESC: |
+    Behavior of reserved items column for buy/sell/transfer screens:
+    0: Do not use, 1: Claimed by soldiers, 2: Claimed by crafts/engineering/research, 3: Greedy (max of 1 and 2).
+  R1DO_REVERSE_STATS_SEARCH: "TEST: Ammo statistics reverse search"
+  R1DO_REVERSE_STATS_SEARCH_DESC: "Enables expensive reverse search for ammo statistics, which might not even be needed."
+  #=================== Savegame ===================
+  #=================== Ufopaedia ===================

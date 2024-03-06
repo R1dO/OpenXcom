@@ -1323,7 +1323,63 @@ int Soldier::getNeededRecoveryTime(const BaseSumDailyRecovery& recovery) const
 	return time + bonusTime;
 }
 
+/**
+ * Returns the amount of a specific storage item equipped by this soldier.
+ *
+ * @remark
+ * In this context assigned means:
+ * That what is stored in the game managed layout.
+ * Personal equipment templates are not considered,
+ * those become assigned once a template is applied to a soldier.
+ *
+ * @note
+ * Assigned armor should only be used for display purposes.
+ * It does not count towards base storage (@2024-02).
+ *
+ * @param item       Pointer to item ruleset.
+ * @param countArmor Are we allowed to count armor?
+ * @return Amount of specific item equipped by this soldier.
+ */
+int Soldier::getItemCountAssignedToSoldier(const RuleItem* item, bool countArmor) const
+{
+	if (!item)
+		return 0;
 
+	int qty = 0;
+	for (auto* equippedItem : _equipmentLayout)
+	{
+		if (!equippedItem || !equippedItem->getItemType())
+			continue;
+
+		if (equippedItem->getItemType() == item)
+		{
+			qty++;
+		}
+		else if (equippedItem->getItemType()->getSlotForAmmo(item) != -1)
+		{
+			qty++;
+		}
+		// Decided against extra condition checks for the `else if` on:
+		// item->getBattleType() == BT_AMMO &&
+		// (equippedItem->getItemType()->getBattleType() == BT_FIREARM ||
+		//  equippedItem->getItemType()->getBattleType() == BT_MELEE))
+		//
+		// Reasons:
+		// + Search function `getSlotForAmmo()` need only to consider
+		//   4 map entries, should be fast (enough).
+		// + To prevent 'breakage' in case future changes allow:
+		//   * Other BattleType items to start supporting ammo slots.
+		//   * Other types beside ammo to be inserted in an ammoslot.
+		//   (for whatever reason).
+	}
+
+	if (countArmor && _armor && _armor->getStoreItem() == item)
+	{
+		qty++;
+	}
+
+	return qty;
+}
 
 /**
  * Returns the list of EquipmentLayoutItems of a soldier.

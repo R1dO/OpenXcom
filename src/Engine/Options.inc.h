@@ -147,3 +147,10 @@ OPT int newDisplayWidth, newDisplayHeight, newBattlescapeScale, newGeoscapeScale
 OPT std::string newOpenGLShader;
 OPT std::vector< std::pair<std::string, bool> > mods; // ordered list of available mods (lowest priority to highest) and whether they are active
 OPT SoundFormat currentSound;
+
+// Options for OTHER category
+/////////////////////////////
+// Engine Battlescape
+OPT bool r1doEnableReverseStatsSearch;
+// GUI general
+OPT int r1doReservedAmountBehavior;
