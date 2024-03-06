@@ -37,7 +37,7 @@ class SavedBattleGame;
 struct RuleItemAction;
 
 enum BattleActionType : Uint8;
-enum TriState {TS_UNDEFINED = -1, TS_FALSE = 0, TS_TRUE = 1};
+enum class TriState : int_fast8_t {UNDEFINED = -1, FALSE = 0, TRUE = 1};
 
 /**
  * Represents a single item in the battlescape.
@@ -69,6 +69,9 @@ private:
 
 	mutable TriState _isStatsKnownCache;
 	bool _isStatsKnownCached(SavedGame *save, const Mod *mod) const;
+
+	mutable TriState _isStatsKnownCache_alternative = TriState::UNDEFINED;
+	void calculateAndSetStatsKnownCache_alternative(SavedGame *save, const Mod *mod) const;
 public:
 
 	/// Name of class used in script.
@@ -238,6 +241,7 @@ public:
 	bool isAmmo() const;
 
 	bool isStatsKnown(SavedGame *save, const Mod *mod) const;
+	bool isStatsKnown_alternative(SavedGame *save, const Mod *mod) const;
 };
 
 }

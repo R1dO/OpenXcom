@@ -43,7 +43,7 @@ namespace OpenXcom
  * @param rules Pointer to ruleset.
  * @param id The id of the item.
  */
-BattleItem::BattleItem(const RuleItem *rules, int *id) : _id(*id), _rules(rules), _owner(0), _previousOwner(0), _unit(0), _tile(0), _inventorySlot(0), _inventoryX(0), _inventoryY(0), _ammoItem{ }, _fuseTimer(-1), _ammoQuantity(0), _painKiller(0), _heal(0), _stimulant(0), _XCOMProperty(false), _droppedOnAlienTurn(false), _isAmmo(false), _isWeaponWithAmmo(false), _fuseEnabled(false), _isStatsKnownCache(TS_UNDEFINED)
+BattleItem::BattleItem(const RuleItem *rules, int *id) : _id(*id), _rules(rules), _owner(0), _previousOwner(0), _unit(0), _tile(0), _inventorySlot(0), _inventoryX(0), _inventoryY(0), _ammoItem{ }, _fuseTimer(-1), _ammoQuantity(0), _painKiller(0), _heal(0), _stimulant(0), _XCOMProperty(false), _droppedOnAlienTurn(false), _isAmmo(false), _isWeaponWithAmmo(false), _fuseEnabled(false), _isStatsKnownCache(TriState::UNDEFINED)
 {
 	(*id)++;
 	if (_rules)
@@ -1301,8 +1301,8 @@ bool BattleItem::_isStatsKnownCached(SavedGame *save, const Mod *mod) const
 		return false;
 
 	// Return cached value.
-	if (_isStatsKnownCache != TS_UNDEFINED)
-		return _isStatsKnownCache;
+	if (_isStatsKnownCache != TriState::UNDEFINED)
+		return _isStatsKnownCache == TriState::TRUE;
 
 	ArticleDefinition *article = mod->getUfopaediaArticle(_rules->getType(), false);
 	if (!article)
@@ -1310,15 +1310,15 @@ bool BattleItem::_isStatsKnownCached(SavedGame *save, const Mod *mod) const
 		// If no article exist assume stats are known.
 		// Allows usage of this functionality without forcing
 		// the creation of ufopedia articles for all battleItems.
-		_isStatsKnownCache = TS_TRUE;
+		_isStatsKnownCache = TriState::TRUE;
 	}
 	else if (Ufopaedia::isArticleAvailable(save, article))
 	{
-		_isStatsKnownCache = TS_TRUE;
+		_isStatsKnownCache = TriState::TRUE;
 	}
 	else
 	{
-		_isStatsKnownCache = TS_FALSE;
+		_isStatsKnownCache = TriState::FALSE;
 	}
 
 	// It is common practice for ammo items to have their ufopedia requirements
@@ -1333,9 +1333,9 @@ bool BattleItem::_isStatsKnownCached(SavedGame *save, const Mod *mod) const
 	//   That should be a mod choice!
 	// * It is the mod's responsibility to define correct research/item dependencies.
 	//   Shortcuts always run the risk of unintended behavior when new capabilities arise.
-	if (Options::r1doEnableReverseStatsSearch && _rules->getBattleType() == BT_AMMO && _isStatsKnownCache == TS_TRUE)
+	if (Options::r1doEnableReverseStatsSearch && _rules->getBattleType() == BT_AMMO && _isStatsKnownCache == TriState::TRUE)
 	{
-		_isStatsKnownCache = TS_UNDEFINED; // We are not sure yet.
+		_isStatsKnownCache = TriState::UNDEFINED; // We are not sure yet.
 		bool foundMatchingWeapon = false;
 		const std::vector<std::string> &modItems = mod->getItemsList();
 		for (std::vector<std::string>::const_iterator i = modItems.begin(); i != modItems.end(); ++i)
@@ -1349,18 +1349,18 @@ bool BattleItem::_isStatsKnownCached(SavedGame *save, const Mod *mod) const
 			// Prevent false positives: Ammo can only be matched to weapons for which an article exist.
 			if (weaponArticle && Ufopaedia::isArticleAvailable(save, weaponArticle))
 			{
-				_isStatsKnownCache = TS_TRUE;
+				_isStatsKnownCache = TriState::TRUE;
 				break;
 			}
 		}
 
-		if (foundMatchingWeapon && _isStatsKnownCache == TS_UNDEFINED)
+		if (foundMatchingWeapon && _isStatsKnownCache == TriState::UNDEFINED)
 		{
-			_isStatsKnownCache = TS_FALSE;
+			_isStatsKnownCache = TriState::FALSE;
 		}
 	}
 
-	return _isStatsKnownCache;
+	return _isStatsKnownCache == TriState::TRUE;
 
 	// Alternative scheme:
 	//  Is item buyable (salesperson convinced us using a fancy leaflet)  ||
@@ -1381,6 +1381,89 @@ bool BattleItem::_isStatsKnownCached(SavedGame *save, const Mod *mod) const
 }
 
 /**
+ * Calculate and set the value of the `_isStatsKnownCache_alternative` variable.
+ *
+ * This variable tells if statistics (accuracy/power, etc) are known for this item
+ *
+ * @remark
+ * A cached approach prevents calculations during battlescape initialization.
+ * Since that involves lots of items and this method is kinda expensive.
+ *
+ * @note
+ * Sets `_isStatsKnownCache` upon first user interaction with an item.
+ *
+ * @param save Pointer to saved game.
+ * @param mod  Pointer to the mod.
+ * @return Whether the stats of this item are known.
+ */
+void BattleItem::calculateAndSetStatsKnownCache_alternative(SavedGame *save, const Mod *mod) const
+{
+	// We are only allowed to change the cache if it was undefined (weak const correctness).
+	if (_isStatsKnownCache_alternative != TriState::UNDEFINED)
+		return;
+
+	// Cannot compute.
+	if (!_rules || !save || !mod)
+	{
+		// Prevent errors down the line (implies: do NOT access stats).
+		_isStatsKnownCache_alternative = TriState::FALSE;
+		return;
+	}
+
+	// If no article exist assume stats are known.
+	// Allows usage of this functionality without forcing the creation
+	// of ufopedia articles for all battleItems.
+	ArticleDefinition *article = mod->getUfopaediaArticle(_rules->getType(), false);
+	if (!article || Ufopaedia::isArticleAvailable(save, article))
+	{
+		_isStatsKnownCache_alternative = TriState::TRUE;
+	}
+	else
+	{
+		_isStatsKnownCache_alternative = TriState::FALSE;
+	}
+
+	// It is common practice for ammo items to have their ufopedia requirements
+	// unlocked from the start depending on a related weapon article requirement
+	// to hide it's contents.
+	//
+	// This means one has to check if related weapons are considered known
+	// in order to safely assume ammo statistics should be known to the player.
+	//
+	// Debatable though:
+	// * Why should we enforce visibility of ammo statistics should always
+	//   depend on weapons, that should be a mod choice!
+	// * It is the mod's responsibility to define correct research/item dependencies.
+	//   Shortcuts always run the risk of unintended behavior when new capabilities arise.
+	if (Options::r1doEnableReverseStatsSearch && _rules->getBattleType() == BT_AMMO && _isStatsKnownCache_alternative == TriState::TRUE)
+	{
+		_isStatsKnownCache_alternative = TriState::UNDEFINED; // We are not sure yet.
+		bool foundMatchingWeapon = false;
+		const std::vector<std::string> &modItems = mod->getItemsList();
+		for (std::vector<std::string>::const_iterator i = modItems.begin(); i != modItems.end(); ++i)
+		{
+			RuleItem *rule = mod->getItem(*i);
+			if (rule->getSlotForAmmo(_rules) == -1)
+				continue;
+
+			foundMatchingWeapon = true;
+			ArticleDefinition *weaponArticle = mod->getUfopaediaArticle(rule->getType(), false);
+			// Prevent false positives: Ammo can only be matched to weapons for which an article exist.
+			if (weaponArticle && Ufopaedia::isArticleAvailable(save, weaponArticle))
+			{
+				_isStatsKnownCache_alternative = TriState::TRUE;
+				break;
+			}
+		}
+
+		if (foundMatchingWeapon && _isStatsKnownCache_alternative == TriState::UNDEFINED)
+		{
+			_isStatsKnownCache_alternative = TriState::FALSE;
+		}
+	}
+}
+
+/**
  * Are statistics (accuracy/power, etc) known for this item?
  *
  * @param save Pointer to saved game.
@@ -1390,6 +1473,24 @@ bool BattleItem::_isStatsKnownCached(SavedGame *save, const Mod *mod) const
 bool BattleItem::isStatsKnown(SavedGame *save, const Mod *mod) const
 {
 	return _isStatsKnownCached(save, mod);
+}
+
+/**
+ * Are statistics (accuracy/power, etc) known for this item?
+ *
+ * @param save Pointer to saved game.
+ * @param mod  Pointer to the mod.
+ * @return If we are allowed to use item statistics.
+ */
+bool BattleItem::isStatsKnown_alternative(SavedGame *save, const Mod *mod) const
+{
+	// First call for this battleItem.
+	if (_isStatsKnownCache_alternative == TriState::UNDEFINED)
+	{
+		calculateAndSetStatsKnownCache_alternative(save, mod);
+	}
+
+	return _isStatsKnownCache_alternative == TriState::TRUE;
 }
 
 ////////////////////////////////////////////////////////////
