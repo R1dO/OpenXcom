@@ -1,5 +1,9 @@
 en-GB:
   #=================== Basescape ===================
+# Generic screens
+  STR_IS_BIGGER_THAN_CLAIMED_NUMBER: "> {0}"  # {0} is claimed/reserved amount.
+  STR_IS_EQUAL_TO_CLAIMED_NUMBER: "= {0}"     # {0} is claimed/reserved amount.
+  STR_IS_SMALLER_THAN_CLAIMED_NUMBER: "< {0}" # {0} is claimed/reserved amount.
   #=================== Battlescape ===================
   #=================== Engine ===================
 # GUI-element: Combo boxes
