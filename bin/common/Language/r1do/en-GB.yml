@@ -7,6 +7,9 @@ en-GB:
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"
+  STR_CLAIMED_BY_SOLDIERS: "Claimed by Soldiers"
+  STR_OK_BUTTON_WARNING: "!!!"  # Yup ... screaming is allowed.
+  STR_INVENTORY_BUTTON_WARNING: "!!! Inventory !!!"
   #=================== Battlescape ===================
   #=================== Engine ===================
 # GUI-element: Combo boxes

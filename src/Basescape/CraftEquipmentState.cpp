@@ -56,6 +56,7 @@
 #include "../Savegame/SavedBattleGame.h"
 #include "../Mod/RuleInterface.h"
 #include "../Ufopaedia/Ufopaedia.h"
+#include "../Interface/ArrowButton.h"
 
 namespace OpenXcom
 {
@@ -94,6 +95,9 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 		_txtCraftSpaceUSage = new Text(76, 9, 84, 24);
 		_txtItemLimitAmount = new Text(76, 9, 160, 24);
 		_txtItemLimitSize = new Text(76, 9, 236, 24);
+		// {11,9} is maximum size for left/right buttons before they become ugly.
+		_arrowEachItemLeft = new ArrowButton(ARROW_SMALL_LEFT, 11, 9, 205, 33);
+		_arrowEachItemRight = new ArrowButton(ARROW_SMALL_RIGHT, 11, 9, 217, 33);
 	}
 
 	// Set palette
@@ -119,6 +123,8 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 		add(_txtCraftSpaceUSage, "text", "craftEquipment");
 		add(_txtItemLimitSize, "text", "craftEquipment");
 		add(_txtItemLimitAmount, "text", "craftEquipment");
+		add(_arrowEachItemLeft, "button", "craftEquipment");
+		add(_arrowEachItemRight, "button", "craftEquipment");
 
 		// Increase visual spacing between 'subtitle' area and spreadsheet header.
 		_txtItem->setY(_txtItem->getY() + 2);
@@ -264,6 +270,20 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_timerLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeft);
 	_timerRight = new Timer(250);
 	_timerRight->onTimer((StateHandler)&CraftEquipmentState::moveRight);
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		_arrowEachItemLeft->onMousePress((ActionHandler)&CraftEquipmentState::arrowEachItemLeftPress);
+		_arrowEachItemLeft->onMouseRelease((ActionHandler)&CraftEquipmentState::arrowEachItemLeftRelease);
+		_arrowEachItemLeft->onMouseClick((ActionHandler)&CraftEquipmentState::arrowEachItemLeftClick, 0);
+		_arrowEachItemRight->onMousePress((ActionHandler)&CraftEquipmentState::arrowEachItemRightPress);
+		_arrowEachItemRight->onMouseRelease((ActionHandler)&CraftEquipmentState::arrowEachItemRightRelease);
+		_arrowEachItemRight->onMouseClick((ActionHandler)&CraftEquipmentState::arrowEachItemRightClick, 0);
+
+		_timerEachItemLeft = new Timer(250);
+		_timerEachItemLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeftEachItem);
+		_timerEachItemRight = new Timer(250);
+		_timerEachItemRight->onTimer((StateHandler)&CraftEquipmentState::moveRightEachItem);
+	}
 }
 
 /**
@@ -273,6 +293,12 @@ CraftEquipmentState::~CraftEquipmentState()
 {
 	delete _timerLeft;
 	delete _timerRight;
+
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		delete _timerEachItemLeft;
+		delete _timerEachItemRight;
+	}
 }
 
 /**
@@ -512,6 +538,21 @@ void CraftEquipmentState::initList()
 	_sel = 0; // During the loop it was reset to end of list, time to undo.
 	updateSubtitleArea();
 
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		if (_totalItems > c->getMaxItemsClamped())
+		{
+			std::string msg = tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getMaxItemsClamped());
+			_errorQueue.insert(msg);
+		}
+		if (_totalItemStorageSize > c->getMaxStorageSpaceClamped())
+		{
+			std::string msg = tr("STR_NO_MORE_EQUIPMENT_ALLOWED_BY_SIZE").arg(c->getMaxStorageSpaceClamped());
+			_errorQueue.insert(msg);
+		}
+	}
+	updateOkButtonText();
+
 	_lstEquipment->draw();
 	if (_lstScroll > 0)
 	{
@@ -529,16 +570,52 @@ void CraftEquipmentState::think()
 
 	_timerLeft->think(this, 0);
 	_timerRight->think(this, 0);
+
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		_timerEachItemLeft->think(this, 0);
+		_timerEachItemRight->think(this, 0);
+	}
 }
 
 
 /**
- * Returns to the previous screen.
+ * Handler for clicking the OK button.
+ *
+ * Returns to the previous screen or shows error messages.
  * @param action Pointer to an action.
  */
 void CraftEquipmentState::btnOkClick(Action *)
 {
-	_game->popState();
+	if (isScreenExitAllowed())
+	{
+		_game->popState();
+		return;
+	}
+
+	auto* errorInterface = _game->getMod()->getInterface("craftEquipment");
+	int colorUI = errorInterface->getElement("errorMessage")->color;
+	int colorBackground = errorInterface->getElement("errorPalette")->color;
+	for (const auto& message : _errorQueue)
+	{
+		_game->pushState(new ErrorMessageState(message, _palette, colorUI, "BACK04.SCR", colorBackground));
+		_reload = false;
+	}
+}
+
+/**
+ * Change appearance of OK button based on error queue.
+ */
+void CraftEquipmentState::updateOkButtonText()
+{
+	if (_errorQueue.empty())
+	{
+		_btnOk->setText(tr("STR_OK"));
+	}
+	else
+	{
+		_btnOk->setText(tr("STR_OK_BUTTON_WARNING"));
+	}
 }
 
 /**
@@ -648,6 +725,127 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
 		RuleItem *rule = _game->getMod()->getItem(_items[_sel]);
 		std::string articleId = rule->getUfopediaType();
 		Ufopaedia::openArticle(_game, articleId);
+	}
+}
+
+/**
+ * Handler for pressing the Move Left arrow button (includes mouse wheel).
+ *
+ * Starts moving each visible by filter item to the base.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemLeftPress(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT && !_timerEachItemLeft->isRunning())
+	{
+		_timerEachItemLeft->start();
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
+	{
+		_timerEachItemRight->stop();
+		_timerEachItemLeft->stop();
+		moveRightByValueEachItem(Options::changeValueByMouseWheel);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
+	{
+		_timerEachItemRight->stop();
+		_timerEachItemLeft->stop();
+		moveLeftByValueEachItem(Options::changeValueByMouseWheel);
+	}
+}
+
+/**
+ * Handler for releasing the Move Left arrow button.
+ *
+ * Stops moving each visible by filter item to the base.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemLeftRelease(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		_timerEachItemLeft->stop();
+	}
+}
+
+/**
+ * Handler for clicking the Move Left arrow button.
+ *
+ * Moves each visible by filter item to the base on right-click.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemLeftClick(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		moveLeftByValueEachItem(INT_MAX);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		moveLeftByValueEachItem(1);
+		_timerEachItemRight->setInterval(250);
+		_timerEachItemLeft->setInterval(250);
+	}
+}
+
+/**
+ * Handler for pressing the Move Right arrow button (includes mouse wheel).
+ *
+ * Starts moving each visible by filter item to the craft.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemRightPress(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT && !_timerEachItemRight->isRunning())
+	{
+		_timerEachItemRight->start();
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
+	{
+		_timerEachItemRight->stop();
+		_timerEachItemLeft->stop();
+		moveRightByValueEachItem(Options::changeValueByMouseWheel);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
+	{
+		_timerEachItemRight->stop();
+		_timerEachItemLeft->stop();
+		moveLeftByValueEachItem(Options::changeValueByMouseWheel);
+	}
+}
+
+/**
+ * Handler for releasing the Move Right arrow button.
+ *
+ * Stops moving each visible by filter item to the craft.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemRightRelease(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		_timerEachItemRight->stop();
+	}
+}
+
+/**
+ * Handler for clicking the Move Right arrow button.
+ *
+ * Moves each visible by filter item to the craft on right-click.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemRightClick(Action *action)
+{
+
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		moveRightByValueEachItem(INT_MAX);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		moveRightByValueEachItem(1);
+		_timerEachItemRight->setInterval(250);
+		_timerEachItemLeft->setInterval(250);
 	}
 }
 
@@ -773,6 +971,33 @@ void CraftEquipmentState::moveLeft()
 }
 
 /**
+ * Moves each visible by filter item to the base.
+ */
+void CraftEquipmentState::moveLeftEachItem()
+{
+	_timerEachItemLeft->setInterval(50);
+	_timerEachItemRight->setInterval(50);
+	moveLeftByValueEachItem(1);
+}
+
+/**
+ * Moves the given number of each visible by filter item to the base.
+ * @param change Amount of each item to move.
+ */
+void CraftEquipmentState::moveLeftByValueEachItem(int change)
+{
+	// `moveLeftByValue()` depends on `_sel` to identify items.
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	{
+		if (_game->getMod()->getItem(_items[_sel])->getVehicleUnit())
+			continue;
+
+		moveLeftByValue(change);
+	}
+	_sel = 0;
+}
+
+/**
  * Moves the given number of items (selected) to the base.
  * @param change Item difference.
  */
@@ -847,9 +1072,24 @@ void CraftEquipmentState::moveLeftByValue(int change)
 		{
 			_base->getStorageItems()->addItem(item, change);
 		}
+
+		if(Options::r1doStyle_craftEquipmentState && !_errorQueue.empty())
+		{
+			if (_totalItems <= c->getMaxItemsClamped())
+			{
+				std::string msg = tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getMaxItemsClamped());
+				_errorQueue.erase(msg);
+			}
+			if (_totalItemStorageSize <= c->getMaxStorageSpaceClamped())
+			{
+				std::string msg = tr("STR_NO_MORE_EQUIPMENT_ALLOWED_BY_SIZE").arg(c->getMaxStorageSpaceClamped());
+				_errorQueue.erase(msg);
+			}
+		}
 	}
 	updateQuantity();
 	updateSubtitleArea();
+	updateOkButtonText();
 }
 
 /**
@@ -860,6 +1100,33 @@ void CraftEquipmentState::moveRight()
 	_timerLeft->setInterval(50);
 	_timerRight->setInterval(50);
 	moveRightByValue(1);
+}
+
+/**
+ * Moves each visible by filter item to the craft.
+ */
+void CraftEquipmentState::moveRightEachItem()
+{
+	_timerEachItemLeft->setInterval(50);
+	_timerEachItemRight->setInterval(50);
+	moveRightByValueEachItem(1);
+}
+
+/**
+ * Moves the given number of each visible by filter item to the craft.
+ * @param change Amount of each item to move.
+ */
+void CraftEquipmentState::moveRightByValueEachItem(int change)
+{
+	// `moveRightByValue()` depends on `_sel` to identify items.
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	{
+		if (_game->getMod()->getItem(_items[_sel])->getVehicleUnit())
+			continue;
+
+		moveRightByValue(change, true);
+	}
+	_sel = 0;
 }
 
 /**
@@ -924,6 +1191,8 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 						_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
 						_reload = false;
 					}
+					// Not using 'Options::r1doStyle_craftEquipmentState' error queue for this message.
+					// Vehicles need special care and are not allowed to overflow (unlike normal items).
 				}
 			}
 			else
@@ -942,37 +1211,41 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 	{
 		if (_totalItems + change > c->getMaxItemsClamped())
 		{
+			std::string msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getMaxItemsClamped()));
 			if (!suppressErrors)
 			{
 				_timerRight->stop();
-				LocalizedText msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getMaxItemsClamped()));
 				_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
 				_reload = false;
 			}
-			change = c->getMaxItemsClamped() - _totalItems;
-			if (change < 0)
+
+			if (Options::r1doStyle_craftEquipmentState)
 			{
-				// if the player is already over the maximum (e.g. after a mod update), don't go into some ridiculous minus values
-				change = 0;
+				_errorQueue.insert(msg);
+			}
+			else
+			{
+				change = c->getMaxItemsClamped() - _totalItems;
 			}
 		}
 		if (_totalItemStorageSize + (change * item->getSize()) > c->getMaxStorageSpaceClamped() + 0.05)
 		{
-			if (item->getSize() > 0.0)
-			{
-				change = (int)floor((c->getMaxStorageSpaceClamped() + 0.05 - _totalItemStorageSize) / item->getSize());
-			}
-			if (change < 0)
-			{
-				// if the player is already over the maximum (e.g. after a mod update), don't go into some ridiculous minus values
-				change = 0;
-			}
+			std::string msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED_BY_SIZE").arg(c->getMaxStorageSpaceClamped()));
 			if (!suppressErrors)
 			{
 				_timerRight->stop();
-				LocalizedText msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED_BY_SIZE").arg(c->getMaxStorageSpaceClamped()));
 				_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
 				_reload = false;
+			}
+			if (Options::r1doStyle_craftEquipmentState)
+			{
+				_errorQueue.insert(msg);
+			}
+			else if (item->getSize() > 0.0)
+			{
+				change = (int)floor((c->getMaxStorageSpaceClamped() + 0.05 - _totalItemStorageSize) / item->getSize());
+				// if the player is already over the maximum (e.g. after a mod update), don't go into some ridiculous minus values
+				change = std::max(0, change);
 			}
 		}
 		c->getItems()->addItem(item, change);
@@ -985,6 +1258,7 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 	}
 	updateQuantity();
 	updateSubtitleArea();
+	updateOkButtonText();
 }
 
 /**
@@ -1258,6 +1532,44 @@ void CraftEquipmentState::btnSaveClick(Action *)
 		_game->pushState(new CraftEquipmentSaveState(this));
 		_returningFromGlobalTemplates = true;
 	}
+}
+
+/**
+ * Determine if we are allowed to exit this screen.
+ *
+ * To protect against mod changes exit is allowed for those cases where
+ * a player cannot reasonably meet the requirements:
+ * + No unclaimed items on craft left but still something in error queue.
+ *
+ * @note Includes a manual override (`CTRL + ALT`) as last resort to
+ *       prevent player getting stuck on this screen, this will be logged.
+ * @return Whether we are allowed to exit screen.
+ */
+bool CraftEquipmentState::isScreenExitAllowed()
+{
+	if (_errorQueue.empty())
+		return true;
+
+	if (_game->isCtrlPressed() && _game->isAltPressed())
+	{
+		// Craft state might be broken due to this exit.
+		Log(LOG_WARNING) << "Player forcefully exited craft equipment screen.";
+		return true;
+	}
+
+	// We have too much items either by size or by number.
+	Craft *c = _base->getCrafts()->at(_craft);
+	for (const auto& craftItem : *c->getItems()->getContents())
+	{
+		if (craftItem.second <= 0)
+			continue;
+
+		// There are more of this item in cargo bay than strictly necessary.
+		if (craftItem.second > c->getSoldierItems()->getItem(craftItem.first))
+			return false;
+	}
+	Log(LOG_WARNING) << "Allowed exit of craft equipment screen, due to broken item limits. Most likely case: Mod recently changed those limits.";
+	return true;
 }
 
 }

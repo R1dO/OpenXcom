@@ -21,6 +21,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <set>
 
 namespace OpenXcom
 {
@@ -33,6 +34,7 @@ class TextList;
 class ComboBox;
 class Timer;
 class Base;
+class ArrowButton;
 
 /**
  * Equipment screen that lets the player
@@ -50,7 +52,7 @@ private:
 	ComboBox *_cbxFilterBy;
 	TextList *_lstEquipment;
 	size_t _lstScroll;
-	Timer *_timerLeft, *_timerRight;
+	Timer *_timerLeft, *_timerRight, *_timerEachItemLeft, *_timerEachItemRight;
 	size_t _sel, _craft;
 	Base *_base;
 	std::vector<std::string> _items;
@@ -69,6 +71,10 @@ private:
 
 	bool _showSpaceLimit, _showItemLimit, _showItemSizeLimit;
 	void updateSubtitleArea();
+	void updateOkButtonText();
+	bool isScreenExitAllowed();
+	ArrowButton *_arrowEachItemLeft, *_arrowEachItemRight;
+	std::set<std::string> _errorQueue;
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);
@@ -107,6 +113,18 @@ public:
 	void moveRight();
 	/// Moves the given number of items to the craft.
 	void moveRightByValue(int change, bool suppressErrors = false);
+
+	void arrowEachItemLeftPress(Action *action);
+	void arrowEachItemLeftRelease(Action *action);
+	void arrowEachItemLeftClick(Action *action);
+	void arrowEachItemRightPress(Action *action);
+	void arrowEachItemRightRelease(Action *action);
+	void arrowEachItemRightClick(Action *action);
+	void moveLeftEachItem();
+	void moveLeftByValueEachItem(int change);
+	void moveRightEachItem();
+	void moveRightByValueEachItem(int change);
+
 	/// Empties the contents of the craft, moving all of the items back to the base.
 	void btnClearClick(Action *action);
 	/// Handler for clicking the Inventory button.
