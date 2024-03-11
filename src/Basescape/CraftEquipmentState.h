@@ -44,7 +44,7 @@ private:
 	TextButton *_btnOk, *_btnClear, *_btnInventory;
 	TextEdit *_btnQuickSearch;
 	Window *_window;
-	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew;
+	Text *_txtTitle, *_txtItem, *_txtStores, *_txtAvailable, *_txtUsed, *_txtCrew, *_txtCraftSpaceUSage, *_txtItemLimitAmount, *_txtItemLimitSize;
 	std::vector<std::string> _categoryStrings;
 	std::map<std::string, bool> _usedCategoryStrings;
 	ComboBox *_cbxFilterBy;
@@ -66,6 +66,9 @@ private:
 	void updateQuantity();
 	/// initializes the displayed list
 	void initList();
+
+	bool _showSpaceLimit, _showItemLimit, _showItemSizeLimit;
+	void updateSubtitleArea();
 public:
 	/// Creates the Craft Equipment state.
 	CraftEquipmentState(Base *base, size_t craft);

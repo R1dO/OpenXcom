@@ -23,6 +23,7 @@
 #include <sstream>
 #include <algorithm>
 #include <locale>
+#include <iomanip>
 #include "../Engine/CrossPlatform.h"
 #include "../Engine/Screen.h"
 #include "../Engine/Action.h"
@@ -67,7 +68,8 @@ namespace OpenXcom
  */
 CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_lstScroll(0), _sel(0), _craft(craft), _base(base), _totalItems(0), _totalItemStorageSize(0.0), _ammoColor(0),
-	_reload(true), _returningFromGlobalTemplates(false), _returningFromInventory(false), _firstInit(true), _isNewBattle(false)
+	_reload(true), _returningFromGlobalTemplates(false), _returningFromInventory(false), _firstInit(true), _isNewBattle(false),
+	_showSpaceLimit(false), _showItemLimit(false), _showItemSizeLimit(false)
 {
 	Craft *c = _base->getCrafts()->at(_craft);
 	bool craftHasACrew = c->getNumTotalSoldiers() > 0;
@@ -87,6 +89,12 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_txtCrew = new Text(71, 9, 244, 24);
 	_lstEquipment = new TextList(288, 128, 8, 40);
 	_cbxFilterBy = new ComboBox(this, 140, 16, 16, 176, true);
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		_txtCraftSpaceUSage = new Text(76, 9, 84, 24);
+		_txtItemLimitAmount = new Text(76, 9, 160, 24);
+		_txtItemLimitSize = new Text(76, 9, 236, 24);
+	}
 
 	// Set palette
 	setInterface("craftEquipment");
@@ -106,6 +114,31 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	add(_txtCrew, "text", "craftEquipment");
 	add(_lstEquipment, "list", "craftEquipment");
 	add(_cbxFilterBy, "button", "craftEquipment");
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		add(_txtCraftSpaceUSage, "text", "craftEquipment");
+		add(_txtItemLimitSize, "text", "craftEquipment");
+		add(_txtItemLimitAmount, "text", "craftEquipment");
+
+		// Increase visual spacing between 'subtitle' area and spreadsheet header.
+		_txtItem->setY(_txtItem->getY() + 2);
+		_txtStores->setY(_txtStores->getY() + 2);
+		// Prefer a 1 pixel spacing between spreadsheet header and list (visual pleasing).
+		_lstEquipment->setY(_lstEquipment->getY() + 3);
+
+		// Only recognize (and show) item limits if bigger than 0 and non-default.
+		// Defaults from: `RuleCraft::RuleCraft()`
+		_showSpaceLimit = c->getMaxUnitsClamped() > 0;
+		_showItemLimit = c->getMaxItemsClamped() > 0 && c->getMaxItemsClamped() < 999999;
+		_showItemSizeLimit = c->getMaxStorageSpaceClamped() > 0.0 && c->getMaxStorageSpaceClamped() < 99999.0;
+
+		// Move Soldiers to left side (static part) in order to create space.
+		_txtCrew->setX(_txtAvailable->getX() - 8);
+		_txtCrew->setWidth(76);
+
+		_txtAvailable->setVisible(false);
+		_txtUsed->setVisible(false);
+	}
 
 	centerAllSurfaces();
 
@@ -134,10 +167,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_txtItem->setText(tr("STR_ITEM"));
 
 	_txtStores->setText(tr("STR_STORES"));
-
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
 
 	std::ostringstream ss3;
 	ss3 << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << c->getNumTotalSoldiers();
@@ -489,6 +518,7 @@ void CraftEquipmentState::initList()
 			++row;
 		}
 	}
+	updateSubtitleArea();
 
 	_lstEquipment->draw();
 	if (_lstScroll > 0)
@@ -692,8 +722,7 @@ void CraftEquipmentState::updateQuantity()
 	_lstEquipment->setCellText(_sel, 1, ss.str());
 	_lstEquipment->setCellText(_sel, 2, ss2.str());
 
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+	updateSubtitleArea();
 }
 
 /**
@@ -917,6 +946,53 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 		}
 	}
 	updateQuantity();
+}
+
+/**
+ * Updates dynamic texts between screen title and spreadsheet.
+ *
+ * When craft has limits, and `r1doStyle_craftEquipmentState` is active, it will:
+ * + Merge "Space Available" and "Space Used" into a single text.
+ * + Add 2 texts for running numbers of item size and item amount.
+ */
+void CraftEquipmentState::updateSubtitleArea()
+{
+	Craft *c = _base->getCrafts()->at(_craft);
+
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		std::ostringstream ssSpaceUsage, ssItemAmount, ssItemSize;
+		ssSpaceUsage << tr("STR_SPACE_UC") << ">" << Unicode::TOK_COLOR_FLIP << c->getSpaceUsed();
+		if (_showSpaceLimit)
+		{
+			ssSpaceUsage << ":" << c->getMaxUnitsClamped();
+		}
+		ssItemAmount << tr("STR_ITEMS_UC") << ">" << Unicode::TOK_COLOR_FLIP << _totalItems;
+		if (_showItemLimit)
+		{
+			ssItemAmount << ":" << c->getMaxItemsClamped();
+		}
+		// Dealing with floating point
+		// - std::setprecision(1) : Save space, 1 digit is enough to inform player.
+		// - std::fixed           : Prevent scientific notation (1.4524e-16, 2e+2).
+		// - std::max()           : Prevent negative numbers due to round-off errors.
+		ssItemSize << std::fixed << std::setprecision(1);
+		ssItemSize << tr("STR_SIZE_UC") << ">" << Unicode::TOK_COLOR_FLIP;
+		ssItemSize << std::max(_totalItemStorageSize, 0.0);
+		if (_showItemSizeLimit)
+		{
+			ssItemSize << ":" << c->getMaxStorageSpaceClamped();
+		}
+
+		_txtCraftSpaceUSage->setText(ssSpaceUsage.str().c_str());
+		_txtItemLimitAmount->setText(ssItemAmount.str().c_str());
+		_txtItemLimitSize->setText(ssItemSize.str().c_str());
+	}
+	else
+	{
+		_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
+		_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+	}
 }
 
 /**
