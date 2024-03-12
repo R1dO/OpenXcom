@@ -220,8 +220,29 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_cbxFilterBy->setSelected(0);
 	_cbxFilterBy->onChange((ActionHandler)&CraftEquipmentState::cbxFilterByChange);
 
-	_lstEquipment->setArrowColumn(203, ARROW_HORIZONTAL);
-	_lstEquipment->setColumns(3, 156, 83, 41);
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		// Spacing based on placeholders, using following rules.
+		// * Items on base allow for "9 999" + what is needed for arrow buttons.
+		// * Items on craft allow for "9 999"
+		// * Items reserved allow for "999" + what is needed for the (`= `/`< `/`> `) indicators.
+		// * Have a 3px 'spacing' between columns (based on numbers above).
+		// This still leaves plenty of pixels left for 'adjustment'.
+		// Rules above however keeps it reasonably close to original locations.
+		_lstEquipment->setArrowColumn(203-6, ARROW_HORIZONTAL);
+		int arrowColumnReservation = 23; // 23 = _lstEquipment->getArrowsRightEdge() - _lstEquipment->getArrowsLeftEdge()
+		_lstEquipment->setColumns(4, 156, 26 + arrowColumnReservation + 15, 26, 26);
+	}
+	else
+	{
+		_lstEquipment->setArrowColumn(203, ARROW_HORIZONTAL);
+		_lstEquipment->setColumns(3, 156, 83, 41);
+
+		// Possible improvement for `oxceAlternateCraftEquipmentManagement`.
+		// In order to allow for same limits as block above.
+		//_lstEquipment->setArrowColumn(203-3, ARROW_HORIZONTAL);
+		//_lstEquipment->setColumns(3, 156, 26 + 23 + 25, 50);
+	}
 	_lstEquipment->setSelectable(true);
 	_lstEquipment->setBackground(_window);
 	_lstEquipment->setMargin(8);
@@ -278,21 +299,21 @@ void CraftEquipmentState::init()
 	// don't reload after closing error popups
 	if (_reload)
 	{
-		if (Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
+		if ((Options::r1doStyle_craftEquipmentState || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 		{
 			// skip when returning from craft equipment template load/save
 			if (!_returningFromGlobalTemplates)
 			{
 				c->calculateTotalSoldierEquipment();
 			}
-			if (_returningFromInventory)
+		}
+		if (_returningFromInventory && Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
+		{
+			// now that we're back from the inventory screen, we need to remove all the excess base gear
+			for (_sel = 0; _sel != _items.size(); ++_sel)
 			{
-				// now that we're back from the inventory screen, we need to remove all the excess base gear
-				for (_sel = 0; _sel != _items.size(); ++_sel)
-				{
-					int excessQty = c->getItems()->getItem(_items[_sel]) - (c->getExtraItems()->getItem(_items[_sel]) + c->getSoldierItems()->getItem(_items[_sel]));
-					moveLeftByValue(excessQty);
-				}
+				int excessQty = c->getItems()->getItem(_items[_sel]) - (c->getExtraItems()->getItem(_items[_sel]) + c->getSoldierItems()->getItem(_items[_sel]));
+				moveLeftByValue(excessQty);
 			}
 		}
 		initList();
@@ -378,7 +399,7 @@ void CraftEquipmentState::initList()
 
 		int bQty = _base->getStorageItems()->getItem(rule);
 		int reserved = 0;
-		if (Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
+		if ((Options::r1doStyle_craftEquipmentState || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 		{
 			reserved = c->getSoldierItems()->getItem(rule);
 		}
@@ -473,7 +494,15 @@ void CraftEquipmentState::initList()
 			{
 				s.insert(0, "  ");
 			}
-			_lstEquipment->addRow(3, s.c_str(), "", "");
+
+			if (Options::r1doStyle_craftEquipmentState)
+			{
+				_lstEquipment->addRow(4, s.c_str(), "", "", "");
+			}
+			else
+			{
+				_lstEquipment->addRow(3, s.c_str(), "", "");
+			}
 
 			// Apply amounts and correct row color.
 			_sel = _lstEquipment->getLastRowIndex();
@@ -639,30 +668,72 @@ void CraftEquipmentState::updateQuantity()
 	{
 		cQty = c->getItems()->getItem(item);
 	}
-	std::ostringstream ss, ss2;
-	if (!_isNewBattle)
+
+	int reserved = 0;
+	if ((Options::r1doStyle_craftEquipmentState || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 	{
-		ss << _base->getStorageItems()->getItem(item);
+		reserved = c->getSoldierItems()->getItem(item);
+	}
+
+	std::string onBaseString, onCraftString, reservedString;
+	if (_isNewBattle)
+	{
+		onBaseString = "-";
+	}
+	else if (Options::r1doStyle_craftEquipmentState)
+	{
+		onBaseString = Unicode::formatNumber(_base->getStorageItems()->getItem(item));
 	}
 	else
 	{
-		ss << "-";
+		onBaseString = std::to_string(_base->getStorageItems()->getItem(item));
 	}
-	if (Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
+
+	// Temporal overrides for column alignment
+	//onBaseString = Unicode::formatNumber(9'999);
+	//cQty = 9'999;
+	//reserved = 999;
+	if (Options::r1doStyle_craftEquipmentState)
 	{
-		int reserved = c->getSoldierItems()->getItem(item);
-		if (item->getVehicleUnit())
-			ss2 << cQty;
-		else if (cQty - reserved > 0)
-			ss2 << reserved << "/+" << cQty - reserved;
-		else if (cQty - reserved == 0)
-			ss2 << cQty;
+		if (reserved == 0)
+		{
+			reservedString = "";
+		}
+		else if (cQty > reserved)
+		{
+			reservedString = tr("STR_IS_BIGGER_THAN_CLAIMED_NUMBER").arg(Unicode::formatNumber(reserved));
+		}
+		else if (cQty < reserved)
+		{
+			reservedString = tr("STR_IS_SMALLER_THAN_CLAIMED_NUMBER").arg(Unicode::formatNumber(reserved));
+		}
 		else
+		{
+			reservedString = tr("STR_IS_EQUAL_TO_CLAIMED_NUMBER").arg(Unicode::formatNumber(reserved));
+		}
+
+		onCraftString = Unicode::formatNumber(cQty);
+	}
+	else if (Options::oxceAlternateCraftEquipmentManagement)
+	{
+		std::ostringstream ss2;
+		if (cQty > reserved)
+		{
+			ss2 << reserved << "/+" << cQty - reserved;
+		}
+		else if (cQty < reserved)
+		{
 			ss2 << cQty << "/" << cQty - reserved;
+		}
+		else
+		{
+			ss2 << cQty;
+		}
+		onCraftString = ss2.str();
 	}
 	else
 	{
-		ss2 << cQty;
+		onCraftString = std::to_string(cQty);
 	}
 
 	Uint8 color;
@@ -681,9 +752,14 @@ void CraftEquipmentState::updateQuantity()
 	{
 		color = _lstEquipment->getSecondaryColor();
 	}
+
 	_lstEquipment->setRowColor(_sel, color);
-	_lstEquipment->setCellText(_sel, 1, ss.str());
-	_lstEquipment->setCellText(_sel, 2, ss2.str());
+	_lstEquipment->setCellText(_sel, 1, onBaseString);
+	_lstEquipment->setCellText(_sel, 2, onCraftString);
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		_lstEquipment->setCellText(_sel, 3, reservedString);
+	}
 }
 
 /**
