@@ -532,22 +532,16 @@ void SellState::updateList()
 				name.insert(0, "  ");
 			}
 		}
-		std::ostringstream ssQty, ssAmount;
-		ssQty << _items[i].qtySrc - _items[i].amount;
-		ssAmount << _items[i].amount;
+
 		int64_t adjustedCost = _items[i].cost;
 		adjustedCost = adjustedCost * sellPriceCoefficient / 100;
-		_lstItems->addRow(4, name.c_str(), ssQty.str().c_str(), ssAmount.str().c_str(), Unicode::formatFunding(adjustedCost).c_str());
+		_lstItems->addRow(4, name.c_str(), "", "", Unicode::formatFunding(adjustedCost).c_str());
 		_rows.push_back(i);
-		if (_items[i].amount > 0)
-		{
-			_lstItems->setRowColor(_rows.size() - 1, _lstItems->getSecondaryColor());
-		}
-		else if (ammo)
-		{
-			_lstItems->setRowColor(_rows.size() - 1, _ammoColor);
-		}
+		// Apply amounts and correct row color.
+		_sel = _lstItems->getLastRowIndex();
+		updateItemStrings();
 	}
+	_sel = 0; // During the loop it was reset to end of list, time to undo.
 }
 
 /**
