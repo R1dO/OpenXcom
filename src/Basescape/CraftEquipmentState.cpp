@@ -23,6 +23,7 @@
 #include <sstream>
 #include <algorithm>
 #include <locale>
+#include <iomanip>
 #include "../Engine/CrossPlatform.h"
 #include "../Engine/Screen.h"
 #include "../Engine/Action.h"
@@ -55,6 +56,7 @@
 #include "../Savegame/SavedBattleGame.h"
 #include "../Mod/RuleInterface.h"
 #include "../Ufopaedia/Ufopaedia.h"
+#include "../Interface/ArrowButton.h"
 
 namespace OpenXcom
 {
@@ -67,11 +69,13 @@ namespace OpenXcom
  */
 CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_lstScroll(0), _sel(0), _craft(craft), _base(base), _totalItems(0), _totalItemStorageSize(0.0), _ammoColor(0),
-	_reload(true), _returningFromGlobalTemplates(false), _returningFromInventory(false), _firstInit(true), _isNewBattle(false)
+	_reload(true), _returningFromGlobalTemplates(false), _returningFromInventory(false), _firstInit(true), _isNewBattle(false),
+	_showSpaceLimit(false), _showItemLimit(false), _showItemSizeLimit(false)
 {
 	Craft *c = _base->getCrafts()->at(_craft);
 	bool craftHasACrew = c->getNumTotalSoldiers() > 0;
 	_isNewBattle = _game->getSavedGame()->getMonthsPassed() == -1;
+	_invertFilter = false;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -87,6 +91,15 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_txtCrew = new Text(71, 9, 244, 24);
 	_lstEquipment = new TextList(288, 128, 8, 40);
 	_cbxFilterBy = new ComboBox(this, 140, 16, 16, 176, true);
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		_txtCraftSpaceUSage = new Text(76, 9, 84, 24);
+		_txtItemLimitAmount = new Text(76, 9, 160, 24);
+		_txtItemLimitSize = new Text(76, 9, 236, 24);
+		// {11,9} is maximum size for left/right buttons before they become ugly.
+		_arrowEachItemLeft = new ArrowButton(ARROW_SMALL_LEFT, 11, 9, 205, 33);
+		_arrowEachItemRight = new ArrowButton(ARROW_SMALL_RIGHT, 11, 9, 217, 33);
+	}
 
 	// Set palette
 	setInterface("craftEquipment");
@@ -106,6 +119,33 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	add(_txtCrew, "text", "craftEquipment");
 	add(_lstEquipment, "list", "craftEquipment");
 	add(_cbxFilterBy, "button", "craftEquipment");
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		add(_txtCraftSpaceUSage, "text", "craftEquipment");
+		add(_txtItemLimitSize, "text", "craftEquipment");
+		add(_txtItemLimitAmount, "text", "craftEquipment");
+		add(_arrowEachItemLeft, "button", "craftEquipment");
+		add(_arrowEachItemRight, "button", "craftEquipment");
+
+		// Increase visual spacing between 'subtitle' area and spreadsheet header.
+		_txtItem->setY(_txtItem->getY() + 2);
+		_txtStores->setY(_txtStores->getY() + 2);
+		// Prefer a 1 pixel spacing between spreadsheet header and list (visual pleasing).
+		_lstEquipment->setY(_lstEquipment->getY() + 3);
+
+		// Only recognize (and show) item limits if bigger than 0 and non-default.
+		// Defaults from: `RuleCraft::RuleCraft()`
+		_showSpaceLimit = c->getMaxUnitsClamped() > 0;
+		_showItemLimit = c->getMaxItemsClamped() > 0 && c->getMaxItemsClamped() < 999999;
+		_showItemSizeLimit = c->getMaxStorageSpaceClamped() > 0.0 && c->getMaxStorageSpaceClamped() < 99999.0;
+
+		// Move Soldiers to left side (static part) in order to create space.
+		_txtCrew->setX(_txtAvailable->getX() - 8);
+		_txtCrew->setWidth(76);
+
+		_txtAvailable->setVisible(false);
+		_txtUsed->setVisible(false);
+	}
 
 	centerAllSurfaces();
 
@@ -124,7 +164,7 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_btnClear->setVisible(_isNewBattle);
 
 	_btnInventory->setText(tr("STR_INVENTORY"));
-	_btnInventory->onMouseClick((ActionHandler)&CraftEquipmentState::btnInventoryClick);
+	_btnInventory->onMouseClick((ActionHandler)&CraftEquipmentState::btnInventoryClick, 0);
 	_btnInventory->setVisible(craftHasACrew && !_isNewBattle);
 	_btnInventory->onKeyboardPress((ActionHandler)&CraftEquipmentState::btnInventoryClick, Options::keyBattleInventory);
 
@@ -135,10 +175,6 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 
 	_txtStores->setText(tr("STR_STORES"));
 
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
-
 	std::ostringstream ss3;
 	ss3 << tr("STR_SOLDIERS_UC") << ">" << Unicode::TOK_COLOR_FLIP << c->getNumTotalSoldiers();
 	_txtCrew->setText(ss3.str());
@@ -146,6 +182,10 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	// populate sort options
 	_categoryStrings.push_back("STR_ALL");
 	_categoryStrings.push_back("STR_EQUIPPED");
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		_categoryStrings.push_back("STR_CLAIMED_BY_SOLDIERS");
+	}
 	bool hasUnassigned = false;
 	for (auto& itemType : _game->getMod()->getItemsList())
 	{
@@ -185,14 +225,34 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	{
 		_categoryStrings.push_back("STR_UNASSIGNED");
 	}
-	_categoryStrings.push_back("STR_NOT_EQUIPPED");
 
 	_cbxFilterBy->setOptions(_categoryStrings, true);
 	_cbxFilterBy->setSelected(0);
 	_cbxFilterBy->onChange((ActionHandler)&CraftEquipmentState::cbxFilterByChange);
 
-	_lstEquipment->setArrowColumn(203, ARROW_HORIZONTAL);
-	_lstEquipment->setColumns(3, 156, 83, 41);
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		// Spacing based on placeholders, using following rules.
+		// * Items on base allow for "9 999" + what is needed for arrow buttons.
+		// * Items on craft allow for "9 999"
+		// * Items reserved allow for "999" + what is needed for the (`= `/`< `/`> `) indicators.
+		// * Have a 3px 'spacing' between columns (based on numbers above).
+		// This still leaves plenty of pixels left for 'adjustment'.
+		// Rules above however keeps it reasonably close to original locations.
+		_lstEquipment->setArrowColumn(203-6, ARROW_HORIZONTAL);
+		int arrowColumnReservation = 23; // 23 = _lstEquipment->getArrowsRightEdge() - _lstEquipment->getArrowsLeftEdge()
+		_lstEquipment->setColumns(4, 156, 26 + arrowColumnReservation + 15, 26, 26);
+	}
+	else
+	{
+		_lstEquipment->setArrowColumn(203, ARROW_HORIZONTAL);
+		_lstEquipment->setColumns(3, 156, 83, 41);
+
+		// Possible improvement for `oxceAlternateCraftEquipmentManagement`.
+		// In order to allow for same limits as block above.
+		//_lstEquipment->setArrowColumn(203-3, ARROW_HORIZONTAL);
+		//_lstEquipment->setColumns(3, 156, 26 + 23 + 25, 50);
+	}
 	_lstEquipment->setSelectable(true);
 	_lstEquipment->setBackground(_window);
 	_lstEquipment->setMargin(8);
@@ -214,6 +274,20 @@ CraftEquipmentState::CraftEquipmentState(Base *base, size_t craft) :
 	_timerLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeft);
 	_timerRight = new Timer(250);
 	_timerRight->onTimer((StateHandler)&CraftEquipmentState::moveRight);
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		_arrowEachItemLeft->onMousePress((ActionHandler)&CraftEquipmentState::arrowEachItemLeftPress);
+		_arrowEachItemLeft->onMouseRelease((ActionHandler)&CraftEquipmentState::arrowEachItemLeftRelease);
+		_arrowEachItemLeft->onMouseClick((ActionHandler)&CraftEquipmentState::arrowEachItemLeftClick, 0);
+		_arrowEachItemRight->onMousePress((ActionHandler)&CraftEquipmentState::arrowEachItemRightPress);
+		_arrowEachItemRight->onMouseRelease((ActionHandler)&CraftEquipmentState::arrowEachItemRightRelease);
+		_arrowEachItemRight->onMouseClick((ActionHandler)&CraftEquipmentState::arrowEachItemRightClick, 0);
+
+		_timerEachItemLeft = new Timer(250);
+		_timerEachItemLeft->onTimer((StateHandler)&CraftEquipmentState::moveLeftEachItem);
+		_timerEachItemRight = new Timer(250);
+		_timerEachItemRight->onTimer((StateHandler)&CraftEquipmentState::moveRightEachItem);
+	}
 }
 
 /**
@@ -223,6 +297,12 @@ CraftEquipmentState::~CraftEquipmentState()
 {
 	delete _timerLeft;
 	delete _timerRight;
+
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		delete _timerEachItemLeft;
+		delete _timerEachItemRight;
+	}
 }
 
 /**
@@ -231,6 +311,7 @@ CraftEquipmentState::~CraftEquipmentState()
  */
 void CraftEquipmentState::cbxFilterByChange(Action *action)
 {
+	_invertFilter = action->getDetails()->button.button == SDL_BUTTON_RIGHT;
 	initList();
 }
 
@@ -249,21 +330,21 @@ void CraftEquipmentState::init()
 	// don't reload after closing error popups
 	if (_reload)
 	{
-		if (Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
+		if ((Options::r1doStyle_craftEquipmentState || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 		{
 			// skip when returning from craft equipment template load/save
 			if (!_returningFromGlobalTemplates)
 			{
 				c->calculateTotalSoldierEquipment();
 			}
-			if (_returningFromInventory)
+		}
+		if (_returningFromInventory && Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
+		{
+			// now that we're back from the inventory screen, we need to remove all the excess base gear
+			for (_sel = 0; _sel != _items.size(); ++_sel)
 			{
-				// now that we're back from the inventory screen, we need to remove all the excess base gear
-				for (_sel = 0; _sel != _items.size(); ++_sel)
-				{
-					int excessQty = c->getItems()->getItem(_items[_sel]) - (c->getExtraItems()->getItem(_items[_sel]) + c->getSoldierItems()->getItem(_items[_sel]));
-					moveLeftByValue(excessQty);
-				}
+				int excessQty = c->getItems()->getItem(_items[_sel]) - (c->getExtraItems()->getItem(_items[_sel]) + c->getSoldierItems()->getItem(_items[_sel]));
+				moveLeftByValue(excessQty);
 			}
 		}
 		initList();
@@ -317,9 +398,9 @@ void CraftEquipmentState::initList()
 	}
 	const std::string selectedCategory = _categoryStrings[selIdx];
 	bool categoryFilterEnabled = (selectedCategory != "STR_ALL");
+	bool categoryClaimedBySoldiers = (selectedCategory == "STR_CLAIMED_BY_SOLDIERS");
 	bool categoryUnassigned = (selectedCategory == "STR_UNASSIGNED");
 	bool categoryEquipped = (selectedCategory == "STR_EQUIPPED");
-	bool categoryNotEquipped = (selectedCategory == "STR_NOT_EQUIPPED");
 	bool shareAmmoCategories = _game->getMod()->getShareAmmoCategories();
 
 	Craft *c = _base->getCrafts()->at(_craft);
@@ -330,7 +411,6 @@ void CraftEquipmentState::initList()
 	_items.clear();
 	_lstEquipment->clearList();
 
-	int row = 0;
 	for (auto& itemType : _game->getMod()->getItemsList())
 	{
 		const RuleItem *rule = _game->getMod()->getItem(itemType);
@@ -350,7 +430,7 @@ void CraftEquipmentState::initList()
 
 		int bQty = _base->getStorageItems()->getItem(rule);
 		int reserved = 0;
-		if (Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
+		if ((Options::r1doStyle_craftEquipmentState || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 		{
 			reserved = c->getSoldierItems()->getItem(rule);
 		}
@@ -366,31 +446,23 @@ void CraftEquipmentState::initList()
 			// filter by category
 			if (categoryFilterEnabled)
 			{
+				bool showItem = false;
 				if (categoryUnassigned)
 				{
-					if (!rule->getCategories().empty())
-					{
-						continue;
-					}
+					showItem = rule->getCategories().empty();
 				}
 				else if (categoryEquipped)
 				{
-					if (!(cQty > 0))
-					{
-						continue;
-					}
+					showItem = cQty > 0;
 				}
-				else if (categoryNotEquipped)
+				else if (categoryClaimedBySoldiers)
 				{
-					if (cQty > 0)
-					{
-						continue;
-					}
+					showItem = c->getSoldierItems()->getItem(rule) > 0;
 				}
 				else
 				{
-					bool isOK = rule->belongsToCategory(selectedCategory);
-					if (shareAmmoCategories && !isOK && rule->getBattleType() == BT_FIREARM)
+					showItem = rule->belongsToCategory(selectedCategory);
+					if (shareAmmoCategories && !showItem && rule->getBattleType() == BT_FIREARM)
 					{
 						for (auto* ammoRule : *rule->getPrimaryCompatibleAmmo())
 						{
@@ -398,14 +470,16 @@ void CraftEquipmentState::initList()
 							{
 								if (ammoRule->isInventoryItem() && ammoRule->canBeEquippedToCraftInventory() && _game->getSavedGame()->isResearched(ammoRule->getRequirements()))
 								{
-									isOK = ammoRule->belongsToCategory(selectedCategory);
-									if (isOK) break;
+									showItem = ammoRule->belongsToCategory(selectedCategory);
+									if (showItem) break;
 								}
 							}
 						}
 					}
-					if (!isOK) continue;
 				}
+
+				showItem ^= _invertFilter;
+				if (!showItem) continue;
 			}
 
 			// quick search
@@ -420,7 +494,6 @@ void CraftEquipmentState::initList()
 			}
 
 			_items.push_back(itemType);
-			std::ostringstream ss, ss2;
 			if (Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
 			{
 				// doing this once (on opening the screen) is enough
@@ -439,26 +512,6 @@ void CraftEquipmentState::initList()
 						_totalItemStorageSize += itemsToAdd * rule->getSize();
 					}
 				}
-				if (isVehicle)
-					ss2 << cQty;
-				else if (cQty - reserved > 0)
-					ss2 << reserved << "/+" << cQty - reserved;
-				else if (cQty - reserved == 0)
-					ss2 << cQty;
-				else
-					ss2 << cQty << "/" << cQty - reserved;
-			}
-			else
-			{
-				ss2 << cQty;
-			}
-			if (!_isNewBattle)
-			{
-				ss << bQty;
-			}
-			else
-			{
-				ss << "-";
 			}
 
 			std::string s = tr(itemType);
@@ -466,35 +519,51 @@ void CraftEquipmentState::initList()
 			{
 				s.insert(0, "  ");
 			}
-			_lstEquipment->addRow(3, s.c_str(), ss.str().c_str(), ss2.str().c_str());
 
-			Uint8 color;
-			if (cQty == 0)
+			if (Options::r1doStyle_craftEquipmentState)
 			{
-				if (rule->getBattleType() == BT_AMMO)
-				{
-					color = _ammoColor;
-				}
-				else
-				{
-					color = _lstEquipment->getColor();
-				}
+				_lstEquipment->addRow(4, s.c_str(), "", "", "");
 			}
 			else
 			{
-					color = _lstEquipment->getSecondaryColor();
+				_lstEquipment->addRow(3, s.c_str(), "", "");
 			}
-			_lstEquipment->setRowColor(row, color);
 
-			++row;
+			// Apply amounts and correct row color.
+			_sel = _lstEquipment->getLastRowIndex();
+			updateQuantity();
 		}
 	}
+	_sel = 0; // During the loop it was reset to end of list, time to undo.
+	updateSubtitleArea();
+
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		if (_totalItems > c->getMaxItemsClamped())
+		{
+			std::string msg = tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getMaxItemsClamped());
+			_errorQueue.insert(msg);
+		}
+		if (_totalItemStorageSize > c->getMaxStorageSpaceClamped())
+		{
+			std::string msg = tr("STR_NO_MORE_EQUIPMENT_ALLOWED_BY_SIZE").arg(c->getMaxStorageSpaceClamped());
+			_errorQueue.insert(msg);
+		}
+	}
+	updateOkButtonText();
+	updateInventoryButtonText();
 
 	_lstEquipment->draw();
 	if (_lstScroll > 0)
 	{
 		_lstEquipment->scrollTo(_lstScroll);
 		_lstScroll = 0;
+	}
+
+	// Inform player inverse filter is in effect.
+	if (categoryFilterEnabled && _invertFilter)
+	{
+		_cbxFilterBy->setText(tr("STR_INVERSE_FILTER_INDICATOR").arg(tr(selectedCategory)));
 	}
 }
 
@@ -507,16 +576,85 @@ void CraftEquipmentState::think()
 
 	_timerLeft->think(this, 0);
 	_timerRight->think(this, 0);
+
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		_timerEachItemLeft->think(this, 0);
+		_timerEachItemRight->think(this, 0);
+	}
 }
 
-
 /**
- * Returns to the previous screen.
+ * Handler for clicking the OK button.
+ *
+ * Returns to the previous screen or shows error messages.
  * @param action Pointer to an action.
  */
 void CraftEquipmentState::btnOkClick(Action *)
 {
-	_game->popState();
+	if (isScreenExitAllowed())
+	{
+		_game->popState();
+		return;
+	}
+
+	auto* errorInterface = _game->getMod()->getInterface("craftEquipment");
+	int colorUI = errorInterface->getElement("errorMessage")->color;
+	int colorBackground = errorInterface->getElement("errorPalette")->color;
+	for (const auto& message : _errorQueue)
+	{
+		_game->pushState(new ErrorMessageState(message, _palette, colorUI, "BACK04.SCR", colorBackground));
+		_reload = false;
+	}
+}
+
+/**
+ * Change appearance of OK button based on error queue.
+ */
+void CraftEquipmentState::updateOkButtonText()
+{
+	if (_errorQueue.empty())
+	{
+		_btnOk->setText(tr("STR_OK"));
+	}
+	else
+	{
+		_btnOk->setText(tr("STR_OK_BUTTON_WARNING"));
+	}
+}
+
+/**
+ * Change appearance of inventory button.
+ *
+ * Based on difference between items assigned to craft and soldier claims.
+ */
+void CraftEquipmentState::updateInventoryButtonText()
+{
+	if (!Options::r1doStyle_craftEquipmentState)
+		return;
+
+	bool notEnoughClaimedItems = false;
+	Craft *c = _base->getCrafts()->at(_craft);
+	for (const auto& item : _items)
+	{
+		if (_game->getMod()->getItem(item)->getVehicleUnit())
+			continue;
+
+		if (c->getItems()->getItem(item) < c->getSoldierItems()->getItem(item))
+		{
+			notEnoughClaimedItems = true;
+			break;
+		}
+	}
+
+	if (notEnoughClaimedItems)
+	{
+		_btnInventory->setText(tr("STR_INVENTORY_BUTTON_WARNING"));
+	}
+	else
+	{
+		_btnInventory->setText(tr("STR_INVENTORY"));
+	}
 }
 
 /**
@@ -630,6 +768,127 @@ void CraftEquipmentState::lstEquipmentMousePress(Action *action)
 }
 
 /**
+ * Handler for pressing the Move Left arrow button (includes mouse wheel).
+ *
+ * Starts moving each visible by filter item to the base.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemLeftPress(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT && !_timerEachItemLeft->isRunning())
+	{
+		_timerEachItemLeft->start();
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
+	{
+		_timerEachItemRight->stop();
+		_timerEachItemLeft->stop();
+		moveRightByValueEachItem(Options::changeValueByMouseWheel);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
+	{
+		_timerEachItemRight->stop();
+		_timerEachItemLeft->stop();
+		moveLeftByValueEachItem(Options::changeValueByMouseWheel);
+	}
+}
+
+/**
+ * Handler for releasing the Move Left arrow button.
+ *
+ * Stops moving each visible by filter item to the base.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemLeftRelease(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		_timerEachItemLeft->stop();
+	}
+}
+
+/**
+ * Handler for clicking the Move Left arrow button.
+ *
+ * Moves each visible by filter item to the base on right-click.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemLeftClick(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		moveLeftByValueEachItem(INT_MAX);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		moveLeftByValueEachItem(1);
+		_timerEachItemRight->setInterval(250);
+		_timerEachItemLeft->setInterval(250);
+	}
+}
+
+/**
+ * Handler for pressing the Move Right arrow button (includes mouse wheel).
+ *
+ * Starts moving each visible by filter item to the craft.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemRightPress(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT && !_timerEachItemRight->isRunning())
+	{
+		_timerEachItemRight->start();
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
+	{
+		_timerEachItemRight->stop();
+		_timerEachItemLeft->stop();
+		moveRightByValueEachItem(Options::changeValueByMouseWheel);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
+	{
+		_timerEachItemRight->stop();
+		_timerEachItemLeft->stop();
+		moveLeftByValueEachItem(Options::changeValueByMouseWheel);
+	}
+}
+
+/**
+ * Handler for releasing the Move Right arrow button.
+ *
+ * Stops moving each visible by filter item to the craft.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemRightRelease(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		_timerEachItemRight->stop();
+	}
+}
+
+/**
+ * Handler for clicking the Move Right arrow button.
+ *
+ * Moves each visible by filter item to the craft on right-click.
+ * @param action Pointer to an action.
+ */
+void CraftEquipmentState::arrowEachItemRightClick(Action *action)
+{
+
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		moveRightByValueEachItem(INT_MAX);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		moveRightByValueEachItem(1);
+		_timerEachItemRight->setInterval(250);
+		_timerEachItemLeft->setInterval(250);
+	}
+}
+
+/**
  * Updates the displayed quantities of the
  * selected item on the list.
  */
@@ -646,30 +905,72 @@ void CraftEquipmentState::updateQuantity()
 	{
 		cQty = c->getItems()->getItem(item);
 	}
-	std::ostringstream ss, ss2;
-	if (!_isNewBattle)
+
+	int reserved = 0;
+	if ((Options::r1doStyle_craftEquipmentState || Options::oxceAlternateCraftEquipmentManagement) && !_isNewBattle)
 	{
-		ss << _base->getStorageItems()->getItem(item);
+		reserved = c->getSoldierItems()->getItem(item);
+	}
+
+	std::string onBaseString, onCraftString, reservedString;
+	if (_isNewBattle)
+	{
+		onBaseString = "-";
+	}
+	else if (Options::r1doStyle_craftEquipmentState)
+	{
+		onBaseString = Unicode::formatNumber(_base->getStorageItems()->getItem(item));
 	}
 	else
 	{
-		ss << "-";
+		onBaseString = std::to_string(_base->getStorageItems()->getItem(item));
 	}
-	if (Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
+
+	// Temporal overrides for column alignment
+	//onBaseString = Unicode::formatNumber(9'999);
+	//cQty = 9'999;
+	//reserved = 999;
+	if (Options::r1doStyle_craftEquipmentState)
 	{
-		int reserved = c->getSoldierItems()->getItem(item);
-		if (item->getVehicleUnit())
-			ss2 << cQty;
-		else if (cQty - reserved > 0)
-			ss2 << reserved << "/+" << cQty - reserved;
-		else if (cQty - reserved == 0)
-			ss2 << cQty;
+		if (reserved == 0)
+		{
+			reservedString = "";
+		}
+		else if (cQty > reserved)
+		{
+			reservedString = tr("STR_IS_BIGGER_THAN_CLAIMED_NUMBER").arg(Unicode::formatNumber(reserved));
+		}
+		else if (cQty < reserved)
+		{
+			reservedString = tr("STR_IS_SMALLER_THAN_CLAIMED_NUMBER").arg(Unicode::formatNumber(reserved));
+		}
 		else
+		{
+			reservedString = tr("STR_IS_EQUAL_TO_CLAIMED_NUMBER").arg(Unicode::formatNumber(reserved));
+		}
+
+		onCraftString = Unicode::formatNumber(cQty);
+	}
+	else if (Options::oxceAlternateCraftEquipmentManagement)
+	{
+		std::ostringstream ss2;
+		if (cQty > reserved)
+		{
+			ss2 << reserved << "/+" << cQty - reserved;
+		}
+		else if (cQty < reserved)
+		{
 			ss2 << cQty << "/" << cQty - reserved;
+		}
+		else
+		{
+			ss2 << cQty;
+		}
+		onCraftString = ss2.str();
 	}
 	else
 	{
-		ss2 << cQty;
+		onCraftString = std::to_string(cQty);
 	}
 
 	Uint8 color;
@@ -688,12 +989,14 @@ void CraftEquipmentState::updateQuantity()
 	{
 		color = _lstEquipment->getSecondaryColor();
 	}
-	_lstEquipment->setRowColor(_sel, color);
-	_lstEquipment->setCellText(_sel, 1, ss.str());
-	_lstEquipment->setCellText(_sel, 2, ss2.str());
 
-	_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
-	_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+	_lstEquipment->setRowColor(_sel, color);
+	_lstEquipment->setCellText(_sel, 1, onBaseString);
+	_lstEquipment->setCellText(_sel, 2, onCraftString);
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		_lstEquipment->setCellText(_sel, 3, reservedString);
+	}
 }
 
 /**
@@ -704,6 +1007,69 @@ void CraftEquipmentState::moveLeft()
 	_timerLeft->setInterval(50);
 	_timerRight->setInterval(50);
 	moveLeftByValue(1);
+}
+
+/**
+ * Moves each visible by filter item to the base.
+ */
+void CraftEquipmentState::moveLeftEachItem()
+{
+	_timerEachItemLeft->setInterval(50);
+	_timerEachItemRight->setInterval(50);
+	moveLeftByValueEachItem(1);
+}
+
+/**
+ * Moves the given number of each visible by filter item to the base.
+ *
+ * Uses a 2 step approach:
+ * 1st click: Balance claimed items (remove excess).
+ * 2nd click: Operate on all items.
+ *
+ * @note
+ * Protection for claims due to `oxceAlternateCraftEquipmentManagement`
+ * is provided by `moveLeftByValue()`.
+ * @param change Amount of each item to move.
+ */
+void CraftEquipmentState::moveLeftByValueEachItem(int change)
+{
+	Craft *c = _base->getCrafts()->at(_craft);
+
+	bool balancing = false;
+	for (const auto& item : _items)
+	{
+		if (_game->getMod()->getItem(item)->getVehicleUnit())
+			continue;
+
+		int craftQty = c->getItems()->getItem(item);
+		int claimQty = c->getSoldierItems()->getItem(item);
+		if (claimQty > 0 && craftQty > claimQty)
+		{
+			balancing = true;
+			break;
+		}
+	}
+
+	// `moveLeftByValue()` depends on `_sel` to identify items.
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	{
+		if (_game->getMod()->getItem(_items[_sel])->getVehicleUnit())
+			continue;
+
+		if (!balancing)
+		{
+			moveLeftByValue(change);
+			continue;
+		}
+
+		int craftQty = c->getItems()->getItem(_items[_sel]);
+		int claimQty = c->getSoldierItems()->getItem(_items[_sel]);
+		if (claimQty == 0 || claimQty >= craftQty)
+			continue;
+
+		moveLeftByValue(std::min(craftQty - claimQty, change));
+	}
+	_sel = 0;
 }
 
 /**
@@ -781,8 +1147,25 @@ void CraftEquipmentState::moveLeftByValue(int change)
 		{
 			_base->getStorageItems()->addItem(item, change);
 		}
+
+		if(Options::r1doStyle_craftEquipmentState && !_errorQueue.empty())
+		{
+			if (_totalItems <= c->getMaxItemsClamped())
+			{
+				std::string msg = tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getMaxItemsClamped());
+				_errorQueue.erase(msg);
+			}
+			if (_totalItemStorageSize <= c->getMaxStorageSpaceClamped())
+			{
+				std::string msg = tr("STR_NO_MORE_EQUIPMENT_ALLOWED_BY_SIZE").arg(c->getMaxStorageSpaceClamped());
+				_errorQueue.erase(msg);
+			}
+		}
 	}
 	updateQuantity();
+	updateSubtitleArea();
+	updateOkButtonText();
+	updateInventoryButtonText();
 }
 
 /**
@@ -793,6 +1176,68 @@ void CraftEquipmentState::moveRight()
 	_timerLeft->setInterval(50);
 	_timerRight->setInterval(50);
 	moveRightByValue(1);
+}
+
+/**
+ * Moves each visible by filter item to the craft.
+ */
+void CraftEquipmentState::moveRightEachItem()
+{
+	_timerEachItemLeft->setInterval(50);
+	_timerEachItemRight->setInterval(50);
+	moveRightByValueEachItem(1);
+}
+
+/**
+ * Moves the given number of each item to the craft.
+ *
+ * Uses a 2 step approach:
+ * 1st click: Balance claimed items (add missing).
+ * 2nd click: Operate on all items.
+ *
+ * @param change Amount of each item to move.
+ */
+void CraftEquipmentState::moveRightByValueEachItem(int change)
+{
+	Craft *c = _base->getCrafts()->at(_craft);
+
+	bool balancing = false;
+	for (const auto& item : _items)
+	{
+		if (_game->getMod()->getItem(item)->getVehicleUnit())
+			continue;
+
+		int baseQty = _base->getStorageItems()->getItem(item);
+		int craftQty = c->getItems()->getItem(item);
+		int claimQty = c->getSoldierItems()->getItem(item);
+		// Do not get stuck in balancing mode due to having to little of an item.
+		if (claimQty > 0 && craftQty < claimQty && baseQty + craftQty >= claimQty)
+		{
+			balancing = true;
+			break;
+		}
+	}
+
+	// `moveRightByValue()` depends on `_sel` to identify items.
+	for (_sel = 0; _sel != _items.size(); ++_sel)
+	{
+		if (_game->getMod()->getItem(_items[_sel])->getVehicleUnit())
+			continue;
+
+		if (!balancing)
+		{
+			moveRightByValue(change, true);
+			continue;
+		}
+
+		int craftQty = c->getItems()->getItem(_items[_sel]);
+		int claimQty = c->getSoldierItems()->getItem(_items[_sel]);
+		if (claimQty == 0 || craftQty >= claimQty)
+			continue;
+
+		moveRightByValue(std::min(claimQty - craftQty, change), true);
+	}
+	_sel = 0;
 }
 
 /**
@@ -857,6 +1302,8 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 						_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
 						_reload = false;
 					}
+					// Not using 'Options::r1doStyle_craftEquipmentState' error queue for this message.
+					// Vehicles need special care and are not allowed to overflow (unlike normal items).
 				}
 			}
 			else
@@ -875,37 +1322,41 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 	{
 		if (_totalItems + change > c->getMaxItemsClamped())
 		{
+			std::string msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getMaxItemsClamped()));
 			if (!suppressErrors)
 			{
 				_timerRight->stop();
-				LocalizedText msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED", c->getMaxItemsClamped()));
 				_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
 				_reload = false;
 			}
-			change = c->getMaxItemsClamped() - _totalItems;
-			if (change < 0)
+
+			if (Options::r1doStyle_craftEquipmentState)
 			{
-				// if the player is already over the maximum (e.g. after a mod update), don't go into some ridiculous minus values
-				change = 0;
+				_errorQueue.insert(msg);
+			}
+			else
+			{
+				change = c->getMaxItemsClamped() - _totalItems;
 			}
 		}
 		if (_totalItemStorageSize + (change * item->getSize()) > c->getMaxStorageSpaceClamped() + 0.05)
 		{
-			if (item->getSize() > 0.0)
-			{
-				change = (int)floor((c->getMaxStorageSpaceClamped() + 0.05 - _totalItemStorageSize) / item->getSize());
-			}
-			if (change < 0)
-			{
-				// if the player is already over the maximum (e.g. after a mod update), don't go into some ridiculous minus values
-				change = 0;
-			}
+			std::string msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED_BY_SIZE").arg(c->getMaxStorageSpaceClamped()));
 			if (!suppressErrors)
 			{
 				_timerRight->stop();
-				LocalizedText msg(tr("STR_NO_MORE_EQUIPMENT_ALLOWED_BY_SIZE").arg(c->getMaxStorageSpaceClamped()));
 				_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
 				_reload = false;
+			}
+			if (Options::r1doStyle_craftEquipmentState)
+			{
+				_errorQueue.insert(msg);
+			}
+			else if (item->getSize() > 0.0)
+			{
+				change = (int)floor((c->getMaxStorageSpaceClamped() + 0.05 - _totalItemStorageSize) / item->getSize());
+				// if the player is already over the maximum (e.g. after a mod update), don't go into some ridiculous minus values
+				change = std::max(0, change);
 			}
 		}
 		c->getItems()->addItem(item, change);
@@ -917,6 +1368,56 @@ void CraftEquipmentState::moveRightByValue(int change, bool suppressErrors)
 		}
 	}
 	updateQuantity();
+	updateSubtitleArea();
+	updateOkButtonText();
+	updateInventoryButtonText();
+}
+
+/**
+ * Updates dynamic texts between screen title and spreadsheet.
+ *
+ * When craft has limits, and `r1doStyle_craftEquipmentState` is active, it will:
+ * + Merge "Space Available" and "Space Used" into a single text.
+ * + Add 2 texts for running numbers of item size and item amount.
+ */
+void CraftEquipmentState::updateSubtitleArea()
+{
+	Craft *c = _base->getCrafts()->at(_craft);
+
+	if (Options::r1doStyle_craftEquipmentState)
+	{
+		std::ostringstream ssSpaceUsage, ssItemAmount, ssItemSize;
+		ssSpaceUsage << tr("STR_SPACE_UC") << ">" << Unicode::TOK_COLOR_FLIP << c->getSpaceUsed();
+		if (_showSpaceLimit)
+		{
+			ssSpaceUsage << ":" << c->getMaxUnitsClamped();
+		}
+		ssItemAmount << tr("STR_ITEMS_UC") << ">" << Unicode::TOK_COLOR_FLIP << _totalItems;
+		if (_showItemLimit)
+		{
+			ssItemAmount << ":" << c->getMaxItemsClamped();
+		}
+		// Dealing with floating point
+		// - std::setprecision(1) : Save space, 1 digit is enough to inform player.
+		// - std::fixed           : Prevent scientific notation (1.4524e-16, 2e+2).
+		// - std::max()           : Prevent negative numbers due to round-off errors.
+		ssItemSize << std::fixed << std::setprecision(1);
+		ssItemSize << tr("STR_SIZE_UC") << ">" << Unicode::TOK_COLOR_FLIP;
+		ssItemSize << std::max(_totalItemStorageSize, 0.0);
+		if (_showItemSizeLimit)
+		{
+			ssItemSize << ":" << c->getMaxStorageSpaceClamped();
+		}
+
+		_txtCraftSpaceUSage->setText(ssSpaceUsage.str().c_str());
+		_txtItemLimitAmount->setText(ssItemAmount.str().c_str());
+		_txtItemLimitSize->setText(ssItemSize.str().c_str());
+	}
+	else
+	{
+		_txtAvailable->setText(tr("STR_SPACE_AVAILABLE").arg(c->getSpaceAvailable()));
+		_txtUsed->setText(tr("STR_SPACE_USED").arg(c->getSpaceUsed()));
+	}
 }
 
 /**
@@ -942,11 +1443,22 @@ void CraftEquipmentState::btnClearClick(Action *)
  * inside the craft.
  * @param action Pointer to an action.
  */
-void CraftEquipmentState::btnInventoryClick(Action *)
+void CraftEquipmentState::btnInventoryClick(Action *action)
 {
+	bool skipWarning = _game->isCtrlPressed() || action->getDetails()->button.button == SDL_BUTTON_RIGHT;
+
+	if (!skipWarning && _btnInventory->getText() != tr("STR_INVENTORY").c_str())
+	{
+		std::string msg(tr("STR_WARNING_NOT_ENOUGH_FOR_SOLDIER_CLAIMS"));
+		_game->pushState(new ErrorMessageState(msg, _palette, _game->getMod()->getInterface("craftEquipment")->getElement("errorMessage")->color, "BACK04.SCR", _game->getMod()->getInterface("craftEquipment")->getElement("errorPalette")->color));
+		return;
+	}
+
 	Craft *craft = _base->getCrafts()->at(_craft);
 	if (craft->getNumTotalSoldiers() > 0)
 	{
+		_lstScroll = _lstEquipment->getScroll();
+
 		if (Options::oxceAlternateCraftEquipmentManagement && !_isNewBattle)
 		{
 			// This is a bit tricky... here's what we're doing:
@@ -1141,6 +1653,44 @@ void CraftEquipmentState::btnSaveClick(Action *)
 		_game->pushState(new CraftEquipmentSaveState(this));
 		_returningFromGlobalTemplates = true;
 	}
+}
+
+/**
+ * Determine if we are allowed to exit this screen.
+ *
+ * To protect against mod changes exit is allowed for those cases where
+ * a player cannot reasonably meet the requirements:
+ * + No unclaimed items on craft left but still something in error queue.
+ *
+ * @note Includes a manual override (`CTRL + ALT`) as last resort to
+ *       prevent player getting stuck on this screen, this will be logged.
+ * @return Whether we are allowed to exit screen.
+ */
+bool CraftEquipmentState::isScreenExitAllowed()
+{
+	if (_errorQueue.empty())
+		return true;
+
+	if (_game->isCtrlPressed() && _game->isAltPressed())
+	{
+		// Craft state might be broken due to this exit.
+		Log(LOG_WARNING) << "Player forcefully exited craft equipment screen.";
+		return true;
+	}
+
+	// We have too much items either by size or by number.
+	Craft *c = _base->getCrafts()->at(_craft);
+	for (const auto& craftItem : *c->getItems()->getContents())
+	{
+		if (craftItem.second <= 0)
+			continue;
+
+		// There are more of this item in cargo bay than strictly necessary.
+		if (craftItem.second > c->getSoldierItems()->getItem(craftItem.first))
+			return false;
+	}
+	Log(LOG_WARNING) << "Allowed exit of craft equipment screen, due to broken item limits. Most likely case: Mod recently changed those limits.";
+	return true;
 }
 
 }
