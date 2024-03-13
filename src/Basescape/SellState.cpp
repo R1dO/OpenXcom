@@ -156,8 +156,29 @@ void SellState::delayedInit()
 
 	_txtValue->setText(tr("STR_VALUE"));
 
-	_lstItems->setArrowColumn(182, ARROW_VERTICAL);
-	_lstItems->setColumns(4, 156, 54, 24, 53);
+	if (Options::r1doStyle_sellState)
+	{
+		_lstItems->setWidth(290);
+		_lstItems->setScrolling(true, 1); // default = 4
+		_lstItems->setWordWrap(true);
+		_lstItems->setArrowColumn(184, ARROW_VERTICAL);
+
+		// Column width limits:
+		// * Items on base allow for "9999"
+		// * Reserved amount allow for "999" + what is needed for arrow buttons and indicators.
+		// * Amount of sold items allow for "9999"
+		// * Costs allow for "$99 999 999"
+		// Column pixel separation = 3px.
+		//
+		// Leads to item descriptions having ~4-5 less characters (hence the word wrap).
+		int arrowColumnReservation = 23; // 23 = _lstEquipment->getArrowsRightEdge() - _lstEquipment->getArrowsLeftEdge()
+		_lstItems->setColumns(5, 129, 26, 26 + arrowColumnReservation + 4, 26, 54);
+	}
+	else
+	{
+		_lstItems->setArrowColumn(182, ARROW_VERTICAL);
+		_lstItems->setColumns(4, 156, 54, 24, 53);
+	}
 	_lstItems->setSelectable(true);
 	_lstItems->setBackground(_window);
 	_lstItems->setMargin(2);
@@ -535,8 +556,18 @@ void SellState::updateList()
 
 		int64_t adjustedCost = _items[i].cost;
 		adjustedCost = adjustedCost * sellPriceCoefficient / 100;
-		_lstItems->addRow(4, name.c_str(), "", "", Unicode::formatFunding(adjustedCost).c_str());
+		// Temporal override for column alignment
+		//adjustedCost = 99'999'999;
+		if (Options::r1doStyle_sellState)
+		{
+			_lstItems->addRow(5, name.c_str(), "", "", "", Unicode::formatFunding(adjustedCost).c_str());
+		}
+		else
+		{
+			_lstItems->addRow(4, name.c_str(), "", "", Unicode::formatFunding(adjustedCost).c_str());
+		}
 		_rows.push_back(i);
+
 		// Apply amounts and correct row color.
 		_sel = _lstItems->getLastRowIndex();
 		updateItemStrings();
@@ -1053,11 +1084,44 @@ void SellState::decrease()
  */
 void SellState::updateItemStrings()
 {
-	std::ostringstream ss, ss2, ss3;
-	ss << getRow().amount;
-	_lstItems->setCellText(_sel, 2, ss.str());
-	ss2 << getRow().qtySrc - getRow().amount;
-	_lstItems->setCellText(_sel, 1, ss2.str());
+	int qtyOnBase = getRow().qtySrc - getRow().amount;
+	int qtyAmount = getRow().amount;
+	int qtyAllocated = getRow().allocatedSrc;
+	// Temporal overrides for column alignment
+	//qtyOnBase = 9'999;
+	//qtyAmount = 9'999;
+	//qtyAllocated = 999;
+	if (Options::r1doStyle_sellState)
+	{
+		_lstItems->setCellText(_sel, 1, Unicode::formatNumber(qtyOnBase).c_str());
+		_lstItems->setCellText(_sel, 3, Unicode::formatNumber(qtyAmount).c_str());
+		std::string allocatedString;
+		if (qtyAllocated == 0)
+		{
+			allocatedString = "";
+		}
+		else if (qtyAllocated > qtyOnBase)
+		{
+			allocatedString = tr("STR_IS_BIGGER_THAN_ALLOCATED_NUMBER").arg(Unicode::formatNumber(qtyAllocated));
+		}
+		else if (qtyAllocated < qtyOnBase)
+		{
+			allocatedString = tr("STR_IS_SMALLER_THAN_ALLOCATED_NUMBER").arg(Unicode::formatNumber(qtyAllocated));
+		}
+		else
+		{
+			allocatedString = tr("STR_IS_EQUAL_TO_ALLOCATED_NUMBER").arg(Unicode::formatNumber(qtyAllocated));
+		}
+		_lstItems->setCellText(_sel, 2, allocatedString);
+	}
+	else
+	{
+		std::ostringstream ss, ss2;
+		ss << qtyAmount;
+		ss2 << qtyOnBase;
+		_lstItems->setCellText(_sel, 1, ss2.str());
+		_lstItems->setCellText(_sel, 2, ss.str());
+	}
 
 	if (getRow().amount > 0)
 	{

@@ -529,6 +529,7 @@ void createAdvancedOptionsOTHER()
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1doEnableReverseStatsSearch", &r1doEnableReverseStatsSearch, false, "R1DO_REVERSE_STATS_SEARCH", "STR_GENERAL"));
 	// OTHER options basescape
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1doStyle_craftEquipmentState", &r1doStyle_craftEquipmentState, false, "R1DO_STYLE_CRAFTEQUIPMENTSTATE", "STR_BASESCAPE"));
+	_info.push_back(OptionInfo(OPTION_OTHER, "r1doStyle_sellState", &r1doStyle_sellState, false, "R1DO_STYLE_SELLSTATE", "STR_BASESCAPE"));
 }
 
 void createControlsOTHER()
