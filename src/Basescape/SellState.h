@@ -76,6 +76,7 @@ private:
 
 	void updateSubtitleLine();
 	void updateOkButton();
+	std::pair<int, int> getAllocatedAndProtectedCountsSrc(const RuleItem* itemRule, bool overfullCritical = false) const;
 public:
 	/// Creates the Sell state.
 	SellState(Base *base, DebriefingState *debriefingState, OptionsOrigin origin = OPT_GEOSCAPE);

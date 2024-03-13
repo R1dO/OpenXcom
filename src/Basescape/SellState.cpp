@@ -21,7 +21,6 @@
 #include <algorithm>
 #include <locale>
 #include <sstream>
-#include <climits>
 #include <cmath>
 #include <iomanip>
 #include "../Engine/Action.h"
@@ -156,7 +155,7 @@ void SellState::delayedInit()
 
 	_txtValue->setText(tr("STR_VALUE"));
 
-	if (Options::r1doStyle_sellState)
+	if (Options::r1doStyle_sellState && Options::r1doReservedAmountBehavior > 0)
 	{
 		_lstItems->setWidth(290);
 		_lstItems->setScrolling(true, 1); // default = 4
@@ -192,6 +191,8 @@ void SellState::delayedInit()
 
 	_cats.push_back("STR_ALL_ITEMS");
 
+	// Original behavior makes sense: No display of named soldiers assigned to craft or in-transfer.
+	// Prevents display clutter. Wounded soldiers are fair game though.
 	for (auto* soldier : *_base->getSoldiers())
 	{
 		if (_debriefingState) break;
@@ -206,6 +207,9 @@ void SellState::delayedInit()
 			}
 		}
 	}
+
+	// Original behavior makes sense: No display of named aircraft currently on a mission or in-transfer.
+	// Prevents display clutter (and no need for reserved amounts).
 	for (auto* craft : *_base->getCrafts())
 	{
 		if (_debriefingState) break;
@@ -220,30 +224,70 @@ void SellState::delayedInit()
 			}
 		}
 	}
-	if (_base->getAvailableScientists() > 0 && _debriefingState == 0)
+
+	// Sell screen kinda acts like a storestate-lite view.
+	// Calculate/show even if no scientists are currently available
+	if (_debriefingState == 0)
 	{
 		TransferRow row = { TRANSFER_SCIENTIST, 0, tr("STR_SCIENTIST"), 0, _base->getAvailableScientists(), 0, 0, -2, 0, 0, 0 };
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+		if (Options::r1doStyle_sellState)
 		{
-			_cats.push_back(cat);
+			row.transferSrc = _base->getTotalScientists() - _base->getTotalScientists(true);
+		}
+		if (Options::r1doStyle_sellState && Options::r1doReservedAmountBehavior > 1) // Don't allow soldiers to claim scientists, that is a different kind of game.
+		{
+			row.allocatedSrc = _base->getAllocatedScientists();
+		}
+		// This screen does not support removing scientists from research projects.
+		row.protectedSrc = row.allocatedSrc;
+
+		if (row.qtySrc > 0 || row.transferSrc > 0 || row.allocatedSrc > 0)
+		{
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
 		}
 	}
-	if (_base->getAvailableEngineers() > 0 && _debriefingState == 0)
+
+	// Sell screen kinda acts like a storestate-lite view.
+	// Calculate/show even if no engineers are currently available.
+	if (_debriefingState == 0)
 	{
 		TransferRow row = { TRANSFER_ENGINEER, 0, tr("STR_ENGINEER"), 0, _base->getAvailableEngineers(), 0, 0, -1, 0, 0, 0 };
-		_items.push_back(row);
-		std::string cat = getCategory(_items.size() - 1);
-		if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+		if (Options::r1doStyle_sellState)
 		{
-			_cats.push_back(cat);
+			row.transferSrc = _base->getTotalEngineers() - _base->getTotalEngineers(true);
+		}
+		if (Options::r1doStyle_sellState && Options::r1doReservedAmountBehavior > 1) // Don't allow soldiers to claim engineers.
+		{
+			row.allocatedSrc = _base->getAllocatedEngineers();
+		}
+		// This screen does not support removing engineers from projects.
+		row.protectedSrc = row.allocatedSrc;
+
+		if (row.qtySrc > 0 || row.transferSrc > 0 || row.allocatedSrc > 0)
+		{
+			_items.push_back(row);
+			std::string cat = getCategory(_items.size() - 1);
+			if (std::find(_cats.begin(), _cats.end(), cat) == _cats.end())
+			{
+				_cats.push_back(cat);
+			}
 		}
 	}
+
 	for (auto& itemType : _game->getMod()->getItemsList())
 	{
 		const RuleItem *rule = _game->getMod()->getItem(itemType, true);
-		int qty = 0;
+		if (!rule)
+			continue;
+		if (rule->isAlien() == true && Options::canSellLiveAliens == false)
+			continue;
+
+		int qty = 0, transferSrc = 0;
 		if (_debriefingState != 0)
 		{
 			qty = _debriefingState->getRecoveredItemCount(rule);
@@ -257,11 +301,11 @@ void SellState::delayedInit()
 				{
 					if (transfer->getItems() == rule)
 					{
-						qty += transfer->getQuantity();
+						transferSrc += transfer->getQuantity();
 					}
 					else if (transfer->getCraft())
 					{
-						qty += overfullCritical ? transfer->getCraft()->getTotalItemCount(rule) : transfer->getCraft()->getItems()->getItem(rule);
+						transferSrc += overfullCritical ? transfer->getCraft()->getTotalItemCount(rule) : transfer->getCraft()->getItems()->getItem(rule);
 					}
 				}
 				for (auto* craft : *_base->getCrafts())
@@ -269,10 +313,26 @@ void SellState::delayedInit()
 					qty +=  overfullCritical ? craft->getTotalItemCount(rule) : craft->getItems()->getItem(rule);
 				}
 			}
+			else if (Options::r1doStyle_sellState)
+			{
+				transferSrc += _base->getItemCountTransfers(rule);
+			}
 		}
-		if (qty > 0 && (Options::canSellLiveAliens || !rule->isAlien()))
+
+		// Display only variables: `<allocated,protected>`.
+		std::pair<int, int> displayOnlySrc = std::make_pair(0,0);
+		if (Options::r1doStyle_sellState && Options::r1doReservedAmountBehavior > 0)
+		{
+			displayOnlySrc = getAllocatedAndProtectedCountsSrc(rule, overfullCritical);
+		}
+
+		// Recognize there might still be a claim on an item while stock is depleted.
+		if (qty > 0 || transferSrc > 0 || (displayOnlySrc.first > 0 && _debriefingState == 0))
 		{
 			TransferRow row = { TRANSFER_ITEM, rule, tr(itemType), rule->getSellCost(), qty, 0, 0, rule->getListOrder(), rule->getSize(), qty * rule->getSize(), (int64_t)qty * rule->getSellCost() };
+			row.allocatedSrc = displayOnlySrc.first;
+			row.protectedSrc = displayOnlySrc.second;
+
 			if ((_debriefingState != 0) && (_game->getSavedGame()->getAutosell(rule)))
 			{
 				row.amount = qty;
@@ -558,7 +618,7 @@ void SellState::updateList()
 		adjustedCost = adjustedCost * sellPriceCoefficient / 100;
 		// Temporal override for column alignment
 		//adjustedCost = 99'999'999;
-		if (Options::r1doStyle_sellState)
+		if (Options::r1doStyle_sellState && Options::r1doReservedAmountBehavior > 0)
 		{
 			_lstItems->addRow(5, name.c_str(), "", "", "", Unicode::formatFunding(adjustedCost).c_str());
 		}
@@ -674,13 +734,81 @@ void SellState::btnOkClick(Action *)
 		return toRemove;
 	};
 
+	auto cleanUpItemTransfers = [&](const RuleItem* rule, int toRemove, bool includeArmament = true) -> int
+	{
+		for (auto transferIt = _base->getTransfers()->begin(); transferIt != _base->getTransfers()->end() && toRemove;)
+		{
+			auto* transfer = (*transferIt);
+			if (transfer->getItems() == rule)
+			{
+				if (transfer->getQuantity() <= toRemove)
+				{
+					toRemove -= transfer->getQuantity();
+					delete transfer;
+					transferIt = _base->getTransfers()->erase(transferIt);
+				}
+				else
+				{
+					transfer->setItems(transfer->getItems(), transfer->getQuantity() - toRemove);
+					toRemove = 0;
+				}
+			}
+			else
+			{
+				if (transfer->getCraft())
+				{
+					toRemove = cleanUpContainer(transfer->getCraft()->getItems(), rule, toRemove);
+					if (toRemove > 0 && includeArmament)
+					{
+						toRemove = cleanUpCraft(transfer->getCraft(), rule, toRemove);
+					}
+				}
+				++transferIt;
+			}
+		}
+		return toRemove;
+	};
+
+	auto cleanUpPersonnelTransfers = [&](TransferType personType, int toRemove) -> int
+	{
+		if (personType != TRANSFER_SCIENTIST || personType != TRANSFER_ENGINEER)
+			return 0;
+
+		for (auto transferIt = _base->getTransfers()->begin(); transferIt != _base->getTransfers()->end() && toRemove;)
+		{
+			auto* transfer = (*transferIt);
+			if (transfer->getType() == personType)
+			{
+				if (transfer->getQuantity() <= toRemove)
+				{
+					toRemove -= transfer->getQuantity();
+					delete transfer;
+					transferIt = _base->getTransfers()->erase(transferIt);
+				}
+				else
+				{
+					transfer->setItems(transfer->getItems(), transfer->getQuantity() - toRemove);
+					toRemove = 0;
+				}
+			}
+			else
+			{
+				++transferIt;
+			}
+		}
+		return toRemove;
+	};
+
 	Soldier* tmpSoldier;
 	Craft* tmpCraft;
 
 	for (const auto& transferRow : _items)
 	{
+		// Note: Possible to reduce level of indentation by changing order.
+		// (transferRow.amount <= 0) {content of else block with a continue statement}.
 		if (transferRow.amount > 0)
 		{
+			int toRemove = transferRow.amount;
 			switch (transferRow.type)
 			{
 			case TRANSFER_SOLDIER:
@@ -705,16 +833,54 @@ void SellState::btnOkClick(Action *)
 				delete tmpCraft;
 				break;
 			case TRANSFER_SCIENTIST:
-				_base->setScientists(_base->getScientists() - transferRow.amount);
+				if (Options::r1doStyle_sellState && transferRow.transferSrc > 0)
+				{
+					// Well ... if the player is that bend on burning cash ...
+					toRemove = cleanUpPersonnelTransfers(transferRow.type, toRemove);
+				}
+				_base->setScientists(_base->getScientists() - toRemove);
 				break;
 			case TRANSFER_ENGINEER:
-				_base->setEngineers(_base->getEngineers() - transferRow.amount);
+				if (Options::r1doStyle_sellState && transferRow.transferSrc > 0)
+				{
+					// Well ... if the player is that bend on burning cash ...
+					toRemove = cleanUpPersonnelTransfers(transferRow.type, toRemove);
+				}
+				_base->setEngineers(_base->getEngineers() - toRemove);
 				break;
 			case TRANSFER_ITEM:
 				RuleItem *item = (RuleItem*)transferRow.rule;
 				{
+					// Our rookies are famous for their unrivalled ability
+					// to (accidentally?) kill high ranking officers,
+					// especially when shots are deemed impossible.
+					//
+					// Players can be considered *the* highest rank,
+					// perhaps only outranked by devs.
+					//
+					// This explains why I would go to great length as to not
+					// take away the toys of our (battle ready) soldiers.
+					//
+					// Luckily in transfer crafts cannot accommodate any troops,
+					// one only needs to protect craft that are on base.
+					//
+					// Soldiers also tend to not develop feelings towards
+					// HWP's and craft armament, making life easier.
+
+					// This scenario thus allows for the sale of inbound items
+					// before the normal routine.
+					// + It assumes direct items get a 'return to sender'
+					//   upon arrival / are rerouted by the postal office.
+					// + It assumes items on board of in-transer craft lose
+					//   their storage reservation and will be (re)packaged
+					//   for shipping upon arrival.
+					if (Options::r1doStyle_sellState && transferRow.transferSrc > 0)
+					{
+						toRemove = cleanUpItemTransfers(item, toRemove, false);
+					}
+
 					// remove all of said items from base
-					int toRemove = cleanUpContainer(_base->getStorageItems(), item, transferRow.amount);
+					toRemove = cleanUpContainer(_base->getStorageItems(), item, toRemove);
 
 					// if we still need to remove any, remove them from the crafts first, and keep a running tally
 					for (auto* craft : *_base->getCrafts())
@@ -728,35 +894,16 @@ void SellState::btnOkClick(Action *)
 					}
 
 					// if there are STILL any left to remove, take them from the transfers, and if necessary, delete it.
-					for (auto transferIt = _base->getTransfers()->begin(); transferIt != _base->getTransfers()->end() && toRemove;)
+					toRemove = cleanUpItemTransfers(item, toRemove);
+
+					if (toRemove != 0)
 					{
-						auto* transfer = (*transferIt);
-						if (transfer->getItems() == item)
-						{
-							if (transfer->getQuantity() <= toRemove)
-							{
-								toRemove -= transfer->getQuantity();
-								delete transfer;
-								transferIt = _base->getTransfers()->erase(transferIt);
-							}
-							else
-							{
-								transfer->setItems(transfer->getItems(), transfer->getQuantity() - toRemove);
-								toRemove = 0;
-							}
-						}
-						else
-						{
-							if (transfer->getCraft())
-							{
-								toRemove = cleanUpContainer(transfer->getCraft()->getItems(), item, toRemove);
-								if (toRemove > 0)
-								{
-									toRemove = cleanUpCraft(transfer->getCraft(), item, toRemove);
-								}
-							}
-							++transferIt;
-						}
+						std::string warning = "Tried to sell: " +
+							std::to_string(transferRow.amount) +
+							" pieces of " + transferRow.name +
+							". Could not find the last: " +
+							std::to_string(toRemove) + " items.";
+						Log(LOG_WARNING) << warning;
 					}
 				}
 
@@ -769,7 +916,6 @@ void SellState::btnOkClick(Action *)
 					// set autosell status if we sold all of the item
 					_game->getSavedGame()->setAutosell(item, (transferRow.qtySrc == transferRow.amount));
 				}
-
 				break;
 			}
 		}
@@ -1025,8 +1171,8 @@ void SellState::changeByValue(int change, int dir)
 {
 	if (dir > 0)
 	{
-		if (0 >= change || getRow().qtySrc <= getRow().amount) return;
-		change = std::min(getRow().qtySrc - getRow().amount, change);
+		if (0 >= change || getRow().qtySrc + getRow().transferSrc <= getRow().amount) return;
+		change = std::min(getRow().qtySrc + getRow().transferSrc - getRow().amount, change);
 		if (_sellAllButOne && change > 0)
 		{
 			--change;
@@ -1084,14 +1230,14 @@ void SellState::decrease()
  */
 void SellState::updateItemStrings()
 {
-	int qtyOnBase = getRow().qtySrc - getRow().amount;
+	int qtyOnBase = getRow().qtySrc - getRow().amount + getRow().protectedSrc;
 	int qtyAmount = getRow().amount;
 	int qtyAllocated = getRow().allocatedSrc;
 	// Temporal overrides for column alignment
 	//qtyOnBase = 9'999;
 	//qtyAmount = 9'999;
 	//qtyAllocated = 999;
-	if (Options::r1doStyle_sellState)
+	if (Options::r1doStyle_sellState && Options::r1doReservedAmountBehavior > 0)
 	{
 		_lstItems->setCellText(_sel, 1, Unicode::formatNumber(qtyOnBase).c_str());
 		_lstItems->setCellText(_sel, 3, Unicode::formatNumber(qtyAmount).c_str());
@@ -1100,11 +1246,11 @@ void SellState::updateItemStrings()
 		{
 			allocatedString = "";
 		}
-		else if (qtyAllocated > qtyOnBase)
+		else if ( qtyOnBase > qtyAllocated)
 		{
 			allocatedString = tr("STR_IS_BIGGER_THAN_ALLOCATED_NUMBER").arg(Unicode::formatNumber(qtyAllocated));
 		}
-		else if (qtyAllocated < qtyOnBase)
+		else if ( qtyOnBase < qtyAllocated)
 		{
 			allocatedString = tr("STR_IS_SMALLER_THAN_ALLOCATED_NUMBER").arg(Unicode::formatNumber(qtyAllocated));
 		}
@@ -1201,6 +1347,123 @@ void SellState::updateOkButton()
 	{
 		_btnOk->setVisible(!_base->storesOverfull(_spaceChange));
 	}
+}
+
+/**
+ * Calculates the allocated and protected amounts based on user preference.
+ *
+ * @param itemRule Type of item.
+ * @param overfullCritical Do we recognize some items are now sellable, while normally not.
+ * @return How much of an item is considered allocated/protected in format: `<allocated,protected>`.
+ */
+std::pair<int, int> SellState::getAllocatedAndProtectedCountsSrc(const RuleItem* itemRule, bool overfullCritical) const
+{
+	if (!itemRule || Options::r1doReservedAmountBehavior == 0)
+		return std::make_pair(0,0);
+
+	int qtyA = 0, qtyP = 0;
+	if (Options::r1doReservedAmountBehavior != 2) // Claims by soldiers.
+	{
+		qtyA += _base->getItemCountSoldierEquipment(itemRule, true);
+		qtyA += _base->getItemCountTransfersSoldierEquipment(itemRule, true);
+
+		if (_debriefingState == 0)
+		{
+			// Unlike other soldier items, armor is taken from base stores.
+			// To paint a complete picture add armor to display of "on base" count.
+			qtyP += qtyA;
+			qtyP -= _base->getItemCountSoldierEquipment(itemRule);
+			qtyP -= _base->getItemCountTransfersSoldierEquipment(itemRule);
+		}
+	}
+	if (Options::r1doReservedAmountBehavior > 1)  // Claims by craft/manufacture/research/buildings.
+	{
+		// Show capacity and future requirements.
+		// 'protected' takes care of current allocation.
+		qtyA += _base->getItemCountCraftArmament(itemRule, true);
+		qtyA += _base->getItemCountCraftCargoBay(itemRule);
+		qtyA += _base->getItemCountCraftFuel(itemRule, true);
+		qtyA += _base->getItemCountDefenses(itemRule);
+		qtyA += _base->getItemCountDefensesWithOwnAmmo(itemRule, true);
+		qtyA += _base->getItemCountFacilities(itemRule, true);
+		qtyA += _base->getItemCountManufacture(itemRule, true);
+		qtyA += _base->getItemCountResearch(itemRule);
+		qtyA += _base->getItemCountTransfersCraftArmament(itemRule,true);
+		qtyA += _base->getItemCountTransfersCraftFuel(itemRule,true);
+		qtyA += _base->getItemCountTransfersCraftCargoBay(itemRule);
+
+		if (_debriefingState == 0) // Don't mess with loot screen 'on base' visual amounts.
+		{
+			// Show items one cannot get back via this screen's methods,
+			// by adding them as 'protected' value to the on base column.
+			qtyP += _base->getItemCountCraftFuel(itemRule); // Tells one if there is still enough elerium left to fuel craft (original driver for this screen's deviation).
+			qtyP += _base->getItemCountDefensesWithOwnAmmo(itemRule);
+			qtyP += _base->getItemCountFacilities(itemRule);
+			qtyP += _base->getItemCountManufacture(itemRule);
+			qtyP += _base->getItemCountResearch(itemRule);
+			qtyP += _base->getItemCountTransfersCraftFuel(itemRule);
+
+			// By default we are not allowed to take away craft armament.
+			// Those only count towards base stores if
+			// `overfullCritical == true`.
+			if (!Options::storageLimitsEnforced || !overfullCritical)
+			{
+				qtyP += _base->getItemCountCraftArmament(itemRule);
+				qtyP += _base->getItemCountTransfersCraftArmament(itemRule);
+			}
+			// By default we are not allowed to take items away from craft cargo bay.
+			// Those only count towards base stores if
+			// `overfullCritical == true` or `_origin == OPT_BATTLESCAPE`.
+			if (!Options::storageLimitsEnforced || _origin != OPT_BATTLESCAPE || !overfullCritical)
+			{
+				qtyP += _base->getItemCountCraftCargoBay(itemRule);
+				qtyP += _base->getItemCountTransfersCraftCargoBay(itemRule);
+			}
+		}
+	}
+	if (Options::r1doReservedAmountBehavior == 3) // Greedy claim (max of 1 and 2)
+	{
+		// Cargo hold and soldier items (for those soldiers on board)
+		// could lead to double counting.
+		//
+		// This must be corrected **per** craft.
+		int correction = 0;
+		for (auto* craft : *_base->getCrafts())
+		{
+			if (!craft)
+				continue;
+
+			auto soldierItems = craft->getSoldierItems();
+			if (soldierItems->empty())
+			{
+				craft->calculateTotalSoldierEquipment();
+				soldierItems = craft->getSoldierItems();
+			}
+			correction += std::min(craft->getItemCountCargoBay(itemRule), soldierItems->getItem(itemRule));
+		}
+		for (auto* transfer : *_base->getTransfers())
+		{
+			if (transfer->getCraft())
+			{
+				if (!transfer->getCraft())
+					continue;
+
+				auto soldierItems = transfer->getCraft()->getSoldierItems();
+				if (soldierItems->empty())
+				{
+					transfer->getCraft()->calculateTotalSoldierEquipment();
+					soldierItems = transfer->getCraft()->getSoldierItems();
+				}
+				correction += std::min(transfer->getCraft()->getItemCountCargoBay(itemRule), soldierItems->getItem(itemRule));
+			}
+		}
+		qtyA -= correction;
+
+		// No correction is needed for protected.
+		// Only soldier armor can enter protected,
+		// which is not stored in craft cargo bay.
+	}
+	return std::make_pair(qtyA, qtyP);
 }
 
 }
