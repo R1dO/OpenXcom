@@ -53,6 +53,7 @@
 #include "TransferBaseState.h"
 #include "TechTreeViewerState.h"
 #include "../Ufopaedia/Ufopaedia.h"
+#include "../Interface/ArrowButton.h"
 
 namespace OpenXcom
 {
@@ -70,6 +71,13 @@ SellState::SellState(Base *base, DebriefingState *debriefingState, OptionsOrigin
 	_timerInc->onTimer((StateHandler)&SellState::increase);
 	_timerDec = new Timer(250);
 	_timerDec->onTimer((StateHandler)&SellState::decrease);
+	if (Options::r1doStyle_sellState)
+	{
+		_timerDecreaseEachItem = new Timer(250);
+		_timerDecreaseEachItem->onTimer((StateHandler)&SellState::decreaseEachItem);
+		_timerIncreaseEachItem = new Timer(250);
+		_timerIncreaseEachItem->onTimer((StateHandler)&SellState::increaseEachItem);
+	}
 }
 
 /**
@@ -103,6 +111,12 @@ void SellState::delayedInit()
 	_txtValue = new Text(40, 9, 270, 44);
 	_cbxCategory = new ComboBox(this, 120, 16, 10, 36);
 	_lstItems = new TextList(287, 120, 8, 54);
+	if (Options::r1doStyle_sellState)
+	{
+		// {11,9} is maximum size for left/right buttons before they become ugly.
+		_arrowEachItemLeft = new ArrowButton(ARROW_SMALL_LEFT, 11, 9, 192, 43);
+		_arrowEachItemRight = new ArrowButton(ARROW_SMALL_RIGHT, 11, 9, 204, 43);
+	}
 
 	// Set palette
 	setInterface("sellMenu");
@@ -123,6 +137,11 @@ void SellState::delayedInit()
 	add(_txtValue, "text", "sellMenu");
 	add(_lstItems, "list", "sellMenu");
 	add(_cbxCategory, "text", "sellMenu");
+	if (Options::r1doStyle_sellState)
+	{
+		add(_arrowEachItemLeft, "button", "sellMenu");
+		add(_arrowEachItemRight, "button", "sellMenu");
+	}
 
 	centerAllSurfaces();
 
@@ -189,6 +208,18 @@ void SellState::delayedInit()
 	_lstItems->onRightArrowRelease((ActionHandler)&SellState::lstItemsRightArrowRelease);
 	_lstItems->onRightArrowClick((ActionHandler)&SellState::lstItemsRightArrowClick);
 	_lstItems->onMousePress((ActionHandler)&SellState::lstItemsMousePress);
+	if (Options::r1doStyle_sellState)
+	{
+		_txtSell->setVisible(false); // Make room for the listwide buttons, this text is already visible in screen title.
+		_txtValue->setX(_txtValue->getX() - 30);
+
+		_arrowEachItemRight->onMousePress((ActionHandler)&SellState::arrowIncreaseEachItemPress);
+		_arrowEachItemRight->onMouseRelease((ActionHandler)&SellState::arrowIncreaseEachItemRelease);
+		_arrowEachItemRight->onMouseClick((ActionHandler)&SellState::arrowIncreaseEachItemClick, 0);
+		_arrowEachItemLeft->onMousePress((ActionHandler)&SellState::arrowDecreaseEachItemPress);
+		_arrowEachItemLeft->onMouseRelease((ActionHandler)&SellState::arrowDecreaseEachItemRelease);
+		_arrowEachItemLeft->onMouseClick((ActionHandler)&SellState::arrowDecreaseEachItemClick, 0);
+	}
 
 	_cats.push_back("STR_ALL_ITEMS");
 
@@ -426,6 +457,12 @@ SellState::~SellState()
 {
 	delete _timerInc;
 	delete _timerDec;
+
+	if (Options::r1doStyle_sellState)
+	{
+		delete _timerDecreaseEachItem;
+		delete _timerIncreaseEachItem;
+	}
 }
 
 /**
@@ -453,6 +490,11 @@ void SellState::think()
 
 	_timerInc->think(this, 0);
 	_timerDec->think(this, 0);
+	if (Options::r1doStyle_sellState)
+	{
+		_timerDecreaseEachItem->think(this, 0);
+		_timerIncreaseEachItem->think(this, 0);
+	}
 }
 
 /**
@@ -1172,6 +1214,114 @@ void SellState::lstItemsMousePress(Action *action)
 }
 
 /**
+ * Handler for pressing the Move Left all items arrow button (includes mouse wheel).
+ *
+ * Starts moving each visible by filter item to the base.
+ * @param action Pointer to an action.
+ */
+void SellState::arrowIncreaseEachItemPress(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT && !_timerIncreaseEachItem->isRunning())
+	{
+		_timerIncreaseEachItem->start();
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
+	{
+		_timerIncreaseEachItem->stop();
+		_timerDecreaseEachItem->stop();
+		changeByValueEachItem(Options::changeValueByMouseWheel, 1);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
+	{
+		_timerIncreaseEachItem->stop();
+		_timerDecreaseEachItem->stop();
+		changeByValueEachItem(Options::changeValueByMouseWheel, -1);
+	}
+}
+
+/**
+ * Stops increasing the item.
+ * @param action Pointer to an action.
+ */
+void SellState::arrowIncreaseEachItemRelease(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		_timerIncreaseEachItem->stop();
+	}
+}
+
+/**
+ * Increases each item;
+ * by one on left-click, to max on right-click.
+ * @param action Pointer to an action.
+ */
+void SellState::arrowIncreaseEachItemClick(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT) changeByValueEachItem(INT_MAX, 1);
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		changeByValueEachItem(1,1);
+		_timerDecreaseEachItem->setInterval(250);
+		_timerIncreaseEachItem->setInterval(250);
+	}
+}
+
+/**
+ * Handler for pressing the Move Left all items arrow button (includes mouse wheel).
+ *
+ * Starts moving each visible by filter item to the base.
+ * @param action Pointer to an action.
+ */
+void SellState::arrowDecreaseEachItemPress(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT && !_timerDecreaseEachItem->isRunning())
+	{
+		_timerDecreaseEachItem->start();
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELUP)
+	{
+		_timerDecreaseEachItem->stop();
+		_timerIncreaseEachItem->stop();
+		changeByValueEachItem(Options::changeValueByMouseWheel, 1);
+	}
+	else if (action->getDetails()->button.button == SDL_BUTTON_WHEELDOWN)
+	{
+		_timerDecreaseEachItem->stop();
+		_timerIncreaseEachItem->stop();
+		changeByValueEachItem(Options::changeValueByMouseWheel, -1);
+	}
+}
+
+/**
+ * Stops decreasing each item.
+ * @param action Pointer to an action.
+ */
+void SellState::arrowDecreaseEachItemRelease(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		_timerDecreaseEachItem->stop();
+	}
+}
+
+/**
+ * Decreases each item;
+ * by one on left-click, to max on right-click.
+ * @param action Pointer to an action.
+ */
+void SellState::arrowDecreaseEachItemClick(Action *action)
+{
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT) changeByValueEachItem(INT_MAX, -1);
+	if (action->getDetails()->button.button == SDL_BUTTON_LEFT)
+	{
+		changeByValueEachItem(1,-1);
+		_timerIncreaseEachItem->setInterval(250);
+		_timerDecreaseEachItem->setInterval(250);
+	}
+}
+
+/**
  * Increases the quantity of the selected item to sell by one.
  */
 void SellState::increase()
@@ -1179,6 +1329,16 @@ void SellState::increase()
 	_timerDec->setInterval(50);
 	_timerInc->setInterval(50);
 	changeByValue(1,1);
+}
+
+/**
+ * Increases the quantity of each item to sell by one.
+ */
+void SellState::increaseEachItem()
+{
+	_timerDecreaseEachItem->setInterval(50);
+	_timerIncreaseEachItem->setInterval(50);
+	changeByValueEachItem(1,1);
 }
 
 /**
@@ -1235,6 +1395,26 @@ void SellState::changeByValue(int change, int dir)
 }
 
 /**
+ * Increases or decreases the quantity of each item to sell.
+ *
+ * @note
+ * Candidate for integration of `btnSellAllButOneClick()` and `btnSellAllClick()`.
+ * @param change Amount of each item to move.
+ * @param dir Direction to change, +1 to increase or -1 to decrease.
+ */
+void SellState::changeByValueEachItem(int change, int dir)
+{
+	size_t backup = _sel;
+	for (size_t i = 0; i < _lstItems->getTexts(); ++i)
+	{
+		_sel = i;
+		changeByValue(change, dir);
+	}
+	_sel = backup;
+}
+
+
+/**
  * Decreases the quantity of the selected item to sell by one.
  */
 void SellState::decrease()
@@ -1242,6 +1422,16 @@ void SellState::decrease()
 	_timerInc->setInterval(50);
 	_timerDec->setInterval(50);
 	changeByValue(1,-1);
+}
+
+/**
+ * Decreases the quantity of each item to sell by one.
+ */
+void SellState::decreaseEachItem()
+{
+	_timerIncreaseEachItem->setInterval(50);
+	_timerDecreaseEachItem->setInterval(50);
+	changeByValueEachItem(1,-1);
 }
 
 /**
