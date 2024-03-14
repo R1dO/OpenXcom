@@ -1127,17 +1127,18 @@ void SellState::lstItemsMousePress(Action *action)
 			if (rule != 0)
 			{
 				std::string articleId = rule->getUfopediaType();
-				if (_game->isCtrlPressed())
-				{
-					Ufopaedia::openArticle(_game, articleId);
-				}
-				else
+				ArticleDefinition* article = _game->getMod()->getUfopaediaArticle(articleId, false);
+				if (_game->isCtrlPressed() || !article || !Ufopaedia::isArticleAvailable(_game->getSavedGame(), article))
 				{
 					const RuleResearch* selectedTopic = _game->getMod()->getResearch(articleId, false);
 					if (selectedTopic)
 					{
 						_game->pushState(new TechTreeViewerState(selectedTopic, 0));
 					}
+				}
+				else
+				{
+					Ufopaedia::openArticle(_game, articleId);
 				}
 			}
 		}
