@@ -288,56 +288,64 @@ void SellState::delayedInit()
 			continue;
 
 		int qty = 0, transferSrc = 0;
-		if (_debriefingState != 0)
+		// Debriefing state logic is now an override.
+		// In order to facilitate new list column draw options.
+		qty = _base->getStorageItems()->getItem(rule);
+		if (Options::storageLimitsEnforced && (_origin == OPT_BATTLESCAPE || overfullCritical))
 		{
-			qty = _debriefingState->getRecoveredItemCount(rule);
-		}
-		else
-		{
-			qty = _base->getStorageItems()->getItem(rule);
-			if (Options::storageLimitsEnforced && (_origin == OPT_BATTLESCAPE || overfullCritical))
+			for (auto* transfer : *_base->getTransfers())
 			{
-				for (auto* transfer : *_base->getTransfers())
+				if (transfer->getItems() == rule)
 				{
-					if (transfer->getItems() == rule)
-					{
-						transferSrc += transfer->getQuantity();
-					}
-					else if (transfer->getCraft())
-					{
-						transferSrc += overfullCritical ? transfer->getCraft()->getTotalItemCount(rule) : transfer->getCraft()->getItems()->getItem(rule);
-					}
+					transferSrc += transfer->getQuantity();
 				}
-				for (auto* craft : *_base->getCrafts())
+				else if (transfer->getCraft())
 				{
-					qty +=  overfullCritical ? craft->getTotalItemCount(rule) : craft->getItems()->getItem(rule);
+					transferSrc += overfullCritical ? transfer->getCraft()->getTotalItemCount(rule) : transfer->getCraft()->getItems()->getItem(rule);
 				}
 			}
-			else if (Options::r1doStyle_sellState)
+			for (auto* craft : *_base->getCrafts())
 			{
-				transferSrc += _base->getItemCountTransfers(rule);
+				qty +=  overfullCritical ? craft->getTotalItemCount(rule) : craft->getItems()->getItem(rule);
 			}
 		}
-
+		else if (Options::r1doStyle_sellState)
+		{
+			transferSrc += _base->getItemCountTransfers(rule);
+		}
 		// Display only variables: `<allocated,protected>`.
 		std::pair<int, int> displayOnlySrc = std::make_pair(0,0);
-		if (Options::r1doStyle_sellState && Options::r1doReservedAmountBehavior > 0)
+		if (Options::r1doReservedAmountBehavior > 0)
 		{
 			displayOnlySrc = getAllocatedAndProtectedCountsSrc(rule, overfullCritical);
+		}
+
+		// Loot screen overrides
+		if (_debriefingState != 0)
+		{
+			displayOnlySrc.second += transferSrc;
+			transferSrc = 0;
+
+			int loot = _debriefingState->getRecoveredItemCount(rule);
+			displayOnlySrc.second += qty - loot;
+			qty = loot;
 		}
 
 		// Recognize there might still be a claim on an item while stock is depleted.
 		if (qty > 0 || transferSrc > 0 || (displayOnlySrc.first > 0 && _debriefingState == 0))
 		{
-			TransferRow row = { TRANSFER_ITEM, rule, tr(itemType), rule->getSellCost(), qty, 0, 0, rule->getListOrder(), rule->getSize(), qty * rule->getSize(), (int64_t)qty * rule->getSellCost() };
+			TransferRow row = { TRANSFER_ITEM, rule, tr(itemType), rule->getSellCost(), qty, 0, 0, rule->getListOrder(), rule->getSize(), 0, 0 };
 			row.allocatedSrc = displayOnlySrc.first;
 			row.protectedSrc = displayOnlySrc.second;
+			row.transferSrc = transferSrc;
+			row.totalSize = (qty + transferSrc) * rule->getSize();
+			row.totalCost = (qty + transferSrc) * rule->getSellCost();
 
 			if ((_debriefingState != 0) && (_game->getSavedGame()->getAutosell(rule)))
 			{
-				row.amount = qty;
-				_total += row.cost * qty;
-				_spaceChange -= qty * rule->getSize();
+				row.amount = qty + transferSrc;
+				_total += (qty + transferSrc) * row.cost;
+				_spaceChange -= (qty + transferSrc) * rule->getSize();
 			}
 			_items.push_back(row);
 			std::string cat = getCategory(_items.size() - 1);
@@ -1230,27 +1238,41 @@ void SellState::decrease()
  */
 void SellState::updateItemStrings()
 {
-	int qtyOnBase = getRow().qtySrc - getRow().amount + getRow().protectedSrc;
+	int qtyOnBase = getRow().qtySrc + getRow().transferSrc - getRow().amount;
 	int qtyAmount = getRow().amount;
-	int qtyAllocated = getRow().allocatedSrc;
-	// Temporal overrides for column alignment
+	// Temporal overrides for column alignment (using regular screen).
 	//qtyOnBase = 9'999;
 	//qtyAmount = 9'999;
-	//qtyAllocated = 999;
+
 	if (Options::r1doStyle_sellState && Options::r1doReservedAmountBehavior > 0)
 	{
-		_lstItems->setCellText(_sel, 1, Unicode::formatNumber(qtyOnBase).c_str());
+		int qtyAllocated = getRow().allocatedSrc;
+		int qtyProtected = getRow().protectedSrc;
+		// Temporal overrides for column alignment (using regular screen).
+		//qtyAllocated = 999;
+		//qtyProtected = 0;
+
 		_lstItems->setCellText(_sel, 3, Unicode::formatNumber(qtyAmount).c_str());
+		if (_debriefingState != 0)
+		{
+			// Show only looted items.
+			_lstItems->setCellText(_sel, 1, Unicode::formatNumber(qtyOnBase).c_str());
+		}
+		else
+		{
+			_lstItems->setCellText(_sel, 1, Unicode::formatNumber(qtyOnBase + qtyProtected).c_str());
+		}
+
 		std::string allocatedString;
 		if (qtyAllocated == 0)
 		{
 			allocatedString = "";
 		}
-		else if ( qtyOnBase > qtyAllocated)
+		else if ( qtyOnBase + qtyProtected > qtyAllocated)
 		{
 			allocatedString = tr("STR_IS_BIGGER_THAN_ALLOCATED_NUMBER").arg(Unicode::formatNumber(qtyAllocated));
 		}
-		else if ( qtyOnBase < qtyAllocated)
+		else if ( qtyOnBase + qtyProtected < qtyAllocated)
 		{
 			allocatedString = tr("STR_IS_SMALLER_THAN_ALLOCATED_NUMBER").arg(Unicode::formatNumber(qtyAllocated));
 		}
@@ -1362,70 +1384,73 @@ std::pair<int, int> SellState::getAllocatedAndProtectedCountsSrc(const RuleItem*
 		return std::make_pair(0,0);
 
 	int qtyA = 0, qtyP = 0;
-	if (Options::r1doReservedAmountBehavior != 2) // Claims by soldiers.
+	if (Options::r1doReservedAmountBehavior != 2)
 	{
+		// Claims by soldiers.
 		qtyA += _base->getItemCountSoldierEquipment(itemRule, true);
 		qtyA += _base->getItemCountTransfersSoldierEquipment(itemRule, true);
 
-		if (_debriefingState == 0)
-		{
-			// Unlike other soldier items, armor is taken from base stores.
-			// To paint a complete picture add armor to display of "on base" count.
-			qtyP += qtyA;
-			qtyP -= _base->getItemCountSoldierEquipment(itemRule);
-			qtyP -= _base->getItemCountTransfersSoldierEquipment(itemRule);
-		}
+		// Unlike other items, soldiers take armor directly from base stores.
+		// To paint a complete picture add armor to display of "on base" count.
+		qtyP += qtyA;
+		qtyP -= _base->getItemCountSoldierEquipment(itemRule);
+		qtyP -= _base->getItemCountTransfersSoldierEquipment(itemRule);
 	}
-	if (Options::r1doReservedAmountBehavior > 1)  // Claims by craft/manufacture/research/buildings.
+	if (Options::r1doReservedAmountBehavior > 1)
 	{
+		// Claims by craft/manufacture/research/buildings.
+
 		// Show capacity and future requirements.
 		// 'protected' takes care of current allocation.
 		qtyA += _base->getItemCountCraftArmament(itemRule, true);
 		qtyA += _base->getItemCountCraftCargoBay(itemRule);
 		qtyA += _base->getItemCountCraftFuel(itemRule, true);
+		// Next line is debatable though.
+		// One could also make a case that one wants to know the requirement
+		// for a theoretical max base defense instead of just a single pass.
 		qtyA += _base->getItemCountDefenses(itemRule);
 		qtyA += _base->getItemCountDefensesWithOwnAmmo(itemRule, true);
+		// Next line could lead to a display case where allocated < protected.
+		// e.g. The lowest on base number will be larger than the allocated one.
 		qtyA += _base->getItemCountFacilities(itemRule, true);
 		qtyA += _base->getItemCountManufacture(itemRule, true);
 		qtyA += _base->getItemCountResearch(itemRule);
-		qtyA += _base->getItemCountTransfersCraftArmament(itemRule,true);
-		qtyA += _base->getItemCountTransfersCraftFuel(itemRule,true);
+		qtyA += _base->getItemCountTransfersCraftArmament(itemRule, true);
+		qtyA += _base->getItemCountTransfersCraftFuel(itemRule, true);
 		qtyA += _base->getItemCountTransfersCraftCargoBay(itemRule);
 
-		if (_debriefingState == 0) // Don't mess with loot screen 'on base' visual amounts.
-		{
-			// Show items one cannot get back via this screen's methods,
-			// by adding them as 'protected' value to the on base column.
-			qtyP += _base->getItemCountCraftFuel(itemRule); // Tells one if there is still enough elerium left to fuel craft (original driver for this screen's deviation).
-			qtyP += _base->getItemCountDefensesWithOwnAmmo(itemRule);
-			qtyP += _base->getItemCountFacilities(itemRule);
-			qtyP += _base->getItemCountManufacture(itemRule);
-			qtyP += _base->getItemCountResearch(itemRule);
-			qtyP += _base->getItemCountTransfersCraftFuel(itemRule);
+		// Show items one cannot get back via this screen's methods,
+		// by adding them as 'protected' value to the on base column.
+		qtyP += _base->getItemCountDefensesWithOwnAmmo(itemRule);
+		qtyP += _base->getItemCountFacilities(itemRule);
+		qtyP += _base->getItemCountManufacture(itemRule);
+		qtyP += _base->getItemCountResearch(itemRule);
+		// Next line can be used to derive if there is still enough elerium left
+		// to fuel craft (original driver for this screen's deviation).
+		qtyP += _base->getItemCountCraftFuel(itemRule);
+		qtyP += _base->getItemCountTransfersCraftFuel(itemRule);
 
-			// By default we are not allowed to take away craft armament.
-			// Those only count towards base stores if
-			// `overfullCritical == true`.
-			if (!Options::storageLimitsEnforced || !overfullCritical)
-			{
-				qtyP += _base->getItemCountCraftArmament(itemRule);
-				qtyP += _base->getItemCountTransfersCraftArmament(itemRule);
-			}
-			// By default we are not allowed to take items away from craft cargo bay.
-			// Those only count towards base stores if
-			// `overfullCritical == true` or `_origin == OPT_BATTLESCAPE`.
-			if (!Options::storageLimitsEnforced || _origin != OPT_BATTLESCAPE || !overfullCritical)
-			{
-				qtyP += _base->getItemCountCraftCargoBay(itemRule);
-				qtyP += _base->getItemCountTransfersCraftCargoBay(itemRule);
-			}
+		// By default we are not allowed to take away craft armament.
+		// Those only count towards base stores if `overfullCritical == true`.
+		if (!Options::storageLimitsEnforced || !overfullCritical)
+		{
+			qtyP += _base->getItemCountCraftArmament(itemRule);
+			qtyP += _base->getItemCountTransfersCraftArmament(itemRule);
+		}
+		// By default we are not allowed to take items away from craft cargo bay.
+		// Those only count towards base stores if
+		// `overfullCritical == true` or `_origin == OPT_BATTLESCAPE`.
+		if (!Options::storageLimitsEnforced || _origin != OPT_BATTLESCAPE || !overfullCritical)
+		{
+			qtyP += _base->getItemCountCraftCargoBay(itemRule);
+			qtyP += _base->getItemCountTransfersCraftCargoBay(itemRule);
 		}
 	}
-	if (Options::r1doReservedAmountBehavior == 3) // Greedy claim (max of 1 and 2)
+	if (Options::r1doReservedAmountBehavior == 3)
 	{
-		// Cargo hold and soldier items (for those soldiers on board)
-		// could lead to double counting.
-		//
+		// Greedy claim (max of 1 and 2)
+
+		// Cargo hold and (on board) soldier items leads to double counting.
 		// This must be corrected **per** craft.
 		int correction = 0;
 		for (auto* craft : *_base->getCrafts())
