@@ -85,6 +85,7 @@ void SellState::delayedInit()
 
 	bool overfull = _debriefingState == 0 && Options::storageLimitsEnforced && _base->storesOverfull();
 	bool overfullCritical = overfull ? _base->storesOverfullCritical() : false;
+	_invertFilter = false;
 
 	// Create objects
 	_window = new Window(this, 320, 200, 0, 0);
@@ -576,6 +577,7 @@ void SellState::updateList()
 	for (size_t i = 0; i < _items.size(); ++i)
 	{
 		// filter
+		bool hideItem = false;
 		if (selCategory >= _vanillaCategories)
 		{
 			if (categoryUnassigned && _items[i].type == TRANSFER_ITEM)
@@ -583,21 +585,23 @@ void SellState::updateList()
 				RuleItem* rule = (RuleItem*)_items[i].rule;
 				if (!rule->getCategories().empty())
 				{
-					continue;
+					hideItem = true;
 				}
 			}
 			else if (categoryFilterEnabled && !belongsToCategory(i, selectedCategory))
 			{
-				continue;
+				hideItem = true;
 			}
 		}
 		else
 		{
 			if (categoryFilterEnabled && selectedCategory != getCategory(i))
 			{
-				continue;
+				hideItem = true;
 			}
 		}
+		hideItem ^= _invertFilter;
+		if (hideItem && categoryFilterEnabled) continue;
 
 		// quick search
 		if (!searchString.empty())
@@ -641,6 +645,12 @@ void SellState::updateList()
 		updateItemStrings();
 	}
 	_sel = 0; // During the loop it was reset to end of list, time to undo.
+
+	// Inform player inverse filter is in effect.
+	if (categoryFilterEnabled && _invertFilter)
+	{
+		_cbxCategory->setText(tr("STR_INVERSE_FILTER_INDICATOR").arg(tr(selectedCategory)));
+	}
 }
 
 /**
@@ -1313,8 +1323,9 @@ void SellState::updateItemStrings()
 /**
 * Updates the production list to match the category filter.
 */
-void SellState::cbxCategoryChange(Action *)
+void SellState::cbxCategoryChange(Action *action)
 {
+	_invertFilter = action->getDetails()->button.button == SDL_BUTTON_RIGHT;
 	_previousSort = _currentSort;
 
 	if (_game->isCtrlPressed())
