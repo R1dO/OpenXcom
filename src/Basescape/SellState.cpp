@@ -222,6 +222,10 @@ void SellState::delayedInit()
 	}
 
 	_cats.push_back("STR_ALL_ITEMS");
+	if (Options::r1doReservedAmountBehavior > 0)
+	{
+		_cats.push_back("STR_FILTER_RESERVED_ITEMS");
+	}
 
 	// Original behavior makes sense: No display of named soldiers assigned to craft or in-transfer.
 	// Prevents display clutter. Wounded soldiers are fair game though.
@@ -418,6 +422,10 @@ void SellState::delayedInit()
 		{
 			_cats.clear();
 			_cats.push_back("STR_ALL_ITEMS");
+			if (Options::r1doReservedAmountBehavior > 0)
+			{
+				_cats.push_back("STR_FILTER_RESERVED_ITEMS");
+			}
 			_vanillaCategories = _cats.size();
 		}
 		for (auto& categoryName : _game->getMod()->getItemCategoriesList())
@@ -603,6 +611,7 @@ void SellState::updateList()
 	const std::string selectedCategory = _cats[selCategory];
 	bool categoryFilterEnabled = (selectedCategory != "STR_ALL_ITEMS");
 	bool categoryUnassigned = (selectedCategory == "STR_UNASSIGNED");
+	bool categoryReserved = (selectedCategory == "STR_FILTER_RESERVED_ITEMS");
 
 	if (_previousSort != _currentSort)
 	{
@@ -637,7 +646,11 @@ void SellState::updateList()
 		}
 		else
 		{
-			if (categoryFilterEnabled && selectedCategory != getCategory(i))
+			if (categoryReserved)
+			{
+				hideItem = (_items[i].allocatedSrc == 0);
+			}
+			else if (categoryFilterEnabled && selectedCategory != getCategory(i))
 			{
 				hideItem = true;
 			}

@@ -7,6 +7,7 @@ en-US:
   STR_IS_BIGGER_THAN_ALLOCATED_NUMBER: "> {0}"  # {0} is allocated amount.
   STR_IS_EQUAL_TO_ALLOCATED_NUMBER: "= {0}"     # {0} is allocated amount.
   STR_IS_SMALLER_THAN_ALLOCATED_NUMBER: "< {0}" # {0} is allocated amount.
+  STR_FILTER_RESERVED_ITEMS: "Reserved items"
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"
