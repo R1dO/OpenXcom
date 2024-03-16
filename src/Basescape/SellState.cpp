@@ -1408,22 +1408,79 @@ void SellState::changeByValue(int change, int dir)
 }
 
 /**
- * Increases or decreases the quantity of each item to sell.
+ * Increases or decreases the quantity of each item to sell, honoring current filter.
+ *
+ * Uses a 2 step approach:
+ * + 1st click: Try to balance reserved items
+ *   - Only remove excess or give back to meet demand.
+ * + 2nd click: Operate on all items.
  *
  * @note
+ * Balancing takes into account that for some items it is not possible
+ * to perform excess removal or giving back to meet demand.
+ * @note
  * Candidate for integration of `btnSellAllButOneClick()` and `btnSellAllClick()`.
+ *
  * @param change Amount of each item to move.
  * @param dir Direction to change, +1 to increase or -1 to decrease.
  */
 void SellState::changeByValueEachItem(int change, int dir)
 {
-	size_t backup = _sel;
+	if (!(dir == 1 || dir == -1)) return;
+
+	// First check if we are (still) in balancing modus.
+	bool balancing = false;
 	for (size_t i = 0; i < _lstItems->getTexts(); ++i)
 	{
 		_sel = i;
-		changeByValue(change, dir);
+		int inStoresQty = getRow().qtySrc + getRow().transferSrc - getRow().amount;
+		int claimQty = getRow().allocatedSrc;
+		if (dir > 0 && claimQty > 0 && inStoresQty > 0)
+		{
+			// There is still some excess stock.
+			// Allow more sales if reservation is not in danger.
+			if (claimQty < inStoresQty + getRow().protectedSrc)
+			{
+				balancing = true;
+				break;
+			}
+		}
+		else if (dir < 0 && claimQty > 0 &&  getRow().amount > 0)
+		{
+			// Sales person might have been overzealous.
+			// If stock level is below desired reservation take corrective action.
+			if (claimQty > inStoresQty + getRow().protectedSrc)
+			{
+				balancing = true;
+				break;
+			}
+		}
 	}
-	_sel = backup;
+
+	// `changeByValue()` depends on `_sel` to identify items.
+	for (size_t i = 0; i < _lstItems->getTexts(); ++i)
+	{
+		_sel = i;
+		if (!balancing)
+		{
+			changeByValue(change, dir);
+			continue;
+		}
+
+		int inStoresQty = getRow().qtySrc + getRow().transferSrc - getRow().amount;
+		int claimQty = getRow().allocatedSrc;
+		int allowedQty = 0;
+		if (dir > 0 && claimQty > 0 && inStoresQty > 0)
+		{
+			allowedQty = std::max(inStoresQty + getRow().protectedSrc - claimQty, 0);
+		}
+		else if (dir < 0 && claimQty > 0 &&  getRow().amount > 0)
+		{
+			allowedQty = std::max(claimQty - inStoresQty - getRow().protectedSrc, 0);
+		}
+		changeByValue(std::min(allowedQty, change), dir);
+	}
+	_sel = 0;
 }
 
 
