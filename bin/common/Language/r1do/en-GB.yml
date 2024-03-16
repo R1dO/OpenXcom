@@ -4,6 +4,10 @@ en-GB:
   STR_IS_BIGGER_THAN_CLAIMED_NUMBER: "> {0}"  # {0} is claimed/reserved amount.
   STR_IS_EQUAL_TO_CLAIMED_NUMBER: "= {0}"     # {0} is claimed/reserved amount.
   STR_IS_SMALLER_THAN_CLAIMED_NUMBER: "< {0}" # {0} is claimed/reserved amount.
+  STR_IS_BIGGER_THAN_ALLOCATED_NUMBER: "> {0}"  # {0} is allocated amount.
+  STR_IS_EQUAL_TO_ALLOCATED_NUMBER: "= {0}"     # {0} is allocated amount.
+  STR_IS_SMALLER_THAN_ALLOCATED_NUMBER: "< {0}" # {0} is allocated amount.
+  STR_FILTER_RESERVED_ITEMS: "Reserved items"
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"
@@ -29,5 +33,11 @@ en-GB:
     Always show claimed soldier items (using a separate column).
     Adds buttons operating on the whole (filtered) item list.
     Show craft item limits.
+  R1DO_STYLE_SELLSTATE: "DEMO: R1do style sell screen"
+  R1DO_STYLE_SELLSTATE_DESC: |
+      Transfer items are valid sale targets by default.
+      Adds buttons operating on the whole (filtered) item list.
+      Always show reserved items (using a separate column).
+      (hidden) note: Possibly obsoleted once item manager comes into play.
   #=================== Savegame ===================
   #=================== Ufopaedia ===================

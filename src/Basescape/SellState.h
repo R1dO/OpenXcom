@@ -36,6 +36,7 @@ class Timer;
 class Base;
 class DebriefingState;
 class RuleItem;
+class ArrowButton;
 
 /**
  * Sell/Sack screen that lets the player sell
@@ -59,7 +60,7 @@ private:
 	size_t _sel;
 	int64_t _total;
 	double _spaceChange;
-	Timer *_timerInc, *_timerDec;
+	Timer *_timerInc, *_timerDec, *_timerDecreaseEachItem, *_timerIncreaseEachItem;
 	Uint8 _ammoColor;
 	OptionsOrigin _origin;
 	bool _reset;
@@ -73,6 +74,22 @@ private:
 	bool belongsToCategory(int sel, const std::string &cat) const;
 	/// Gets the row of the current selection.
 	TransferRow &getRow() { return _items[_rows[_sel]]; }
+
+	void updateSubtitleLine();
+	void updateOkButton();
+	std::pair<int, int> getAllocatedAndProtectedCountsSrc(const RuleItem* itemRule, bool overfullCritical = false) const;
+	bool _invertFilter;
+	ArrowButton *_arrowEachItemLeft, *_arrowEachItemRight;
+
+	void arrowIncreaseEachItemPress(Action *action);
+	void arrowIncreaseEachItemRelease(Action *action);
+	void arrowIncreaseEachItemClick(Action *action);
+	void arrowDecreaseEachItemPress(Action *action);
+	void arrowDecreaseEachItemRelease(Action *action);
+	void arrowDecreaseEachItemClick(Action *action);
+	void increaseEachItem();
+	void decreaseEachItem();
+	void changeByValueEachItem(int change, int dir);
 public:
 	/// Creates the Sell state.
 	SellState(Base *base, DebriefingState *debriefingState, OptionsOrigin origin = OPT_GEOSCAPE);
