@@ -179,7 +179,9 @@ void ManufactureInfoState::buildUi()
 	_txtUnitDown->setText(tr("STR_DECREASE_UC"));
 
 	_btnSell->setText(tr("STR_SELL_PRODUCTION"));
-	_btnSell->onMouseClick((ActionHandler)&ManufactureInfoState::btnSellClick, 0);
+	// Cannot use `button = 0`, that includes mouse-wheel which also triggers `_surfaceUnits`.
+	_btnSell->onMouseClick((ActionHandler)&ManufactureInfoState::btnSellClick, SDL_BUTTON_LEFT);
+	_btnSell->onMouseClick((ActionHandler)&ManufactureInfoState::btnSellClick, SDL_BUTTON_RIGHT);
 
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&ManufactureInfoState::btnOkClick);

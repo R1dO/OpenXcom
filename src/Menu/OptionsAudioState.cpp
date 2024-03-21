@@ -190,7 +190,8 @@ OptionsAudioState::OptionsAudioState(OptionsOrigin origin) : OptionsBaseState(or
 
 	_btnBackgroundMute->setText(tr("STR_BACKGROUND_MUTE"));
 	_btnBackgroundMute->setPressed(Options::backgroundMute);
-	_btnBackgroundMute->onMouseClick((ActionHandler)&OptionsAudioState::btnBackgroundMuteClick);
+	_btnBackgroundMute->onMouseClick((ActionHandler)&OptionsAudioState::btnBackgroundMuteClick, SDL_BUTTON_LEFT);
+	_btnBackgroundMute->onMouseClick((ActionHandler)&OptionsAudioState::btnBackgroundMuteClick, SDL_BUTTON_RIGHT);
 	_btnBackgroundMute->setTooltip("STR_BACKGROUND_MUTE_DESC");
 	_btnBackgroundMute->onMouseIn((ActionHandler)&OptionsAudioState::txtTooltipIn);
 	_btnBackgroundMute->onMouseOut((ActionHandler)&OptionsAudioState::txtTooltipOut);

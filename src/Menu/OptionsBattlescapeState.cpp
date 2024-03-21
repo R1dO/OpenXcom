@@ -164,21 +164,24 @@ OptionsBattlescapeState::OptionsBattlescapeState(OptionsOrigin origin) : Options
 
 	_btnArrows->setText(tr("STR_PATH_ARROWS"));
 	_btnArrows->setPressed((Options::battleNewPreviewPath & PATH_ARROWS) != 0);
-	_btnArrows->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnPathPreviewClick);
+	_btnArrows->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnPathPreviewClick, SDL_BUTTON_LEFT);
+	_btnArrows->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnPathPreviewClick, SDL_BUTTON_RIGHT);
 	_btnArrows->setTooltip("STR_PATH_ARROWS_DESC");
 	_btnArrows->onMouseIn((ActionHandler)&OptionsBattlescapeState::txtTooltipIn);
 	_btnArrows->onMouseOut((ActionHandler)&OptionsBattlescapeState::txtTooltipOut);
 
 	_btnTuCost->setText(tr("STR_PATH_TIME_UNIT_COST"));
 	_btnTuCost->setPressed((Options::battleNewPreviewPath & PATH_TU_COST) != 0);
-	_btnTuCost->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnPathPreviewClick);
+	_btnTuCost->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnPathPreviewClick, SDL_BUTTON_LEFT);
+	_btnTuCost->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnPathPreviewClick, SDL_BUTTON_RIGHT);
 	_btnTuCost->setTooltip("STR_PATH_TIME_UNIT_COST_DESC");
 	_btnTuCost->onMouseIn((ActionHandler)&OptionsBattlescapeState::txtTooltipIn);
 	_btnTuCost->onMouseOut((ActionHandler)&OptionsBattlescapeState::txtTooltipOut);
 
 	_btnEnergyCost->setText(tr("STR_PATH_ENERGY_COST"));
 	_btnEnergyCost->setPressed((Options::battleNewPreviewPath & PATH_ENERGY_COST) != 0);
-	_btnEnergyCost->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnPathPreviewClick);
+	_btnEnergyCost->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnPathPreviewClick, SDL_BUTTON_LEFT);
+	_btnEnergyCost->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnPathPreviewClick, SDL_BUTTON_RIGHT);
 	_btnEnergyCost->setTooltip("STR_PATH_ENERGY_COST_DESC");
 	_btnEnergyCost->onMouseIn((ActionHandler)&OptionsBattlescapeState::txtTooltipIn);
 	_btnEnergyCost->onMouseOut((ActionHandler)&OptionsBattlescapeState::txtTooltipOut);
@@ -187,14 +190,16 @@ OptionsBattlescapeState::OptionsBattlescapeState(OptionsOrigin origin) : Options
 
 	_btnTooltips->setText(tr("STR_TOOLTIPS"));
 	_btnTooltips->setPressed(Options::battleTooltips);
-	_btnTooltips->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnTooltipsClick);
+	_btnTooltips->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnTooltipsClick, SDL_BUTTON_LEFT);
+	_btnTooltips->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnTooltipsClick, SDL_BUTTON_RIGHT);
 	_btnTooltips->setTooltip("STR_TOOLTIPS_DESC");
 	_btnTooltips->onMouseIn((ActionHandler)&OptionsBattlescapeState::txtTooltipIn);
 	_btnTooltips->onMouseOut((ActionHandler)&OptionsBattlescapeState::txtTooltipOut);
 
 	_btnDeaths->setText(tr("STR_DEATH_NOTIFICATIONS"));
 	_btnDeaths->setPressed(Options::battleNotifyDeath);
-	_btnDeaths->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnDeathsClick);
+	_btnDeaths->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnDeathsClick, SDL_BUTTON_LEFT);
+	_btnDeaths->onMouseClick((ActionHandler)&OptionsBattlescapeState::btnDeathsClick, SDL_BUTTON_RIGHT);
 	_btnDeaths->setTooltip("STR_DEATH_NOTIFICATIONS_DESC");
 	_btnDeaths->onMouseIn((ActionHandler)&OptionsBattlescapeState::txtTooltipIn);
 	_btnDeaths->onMouseOut((ActionHandler)&OptionsBattlescapeState::txtTooltipOut);

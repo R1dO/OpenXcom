@@ -108,7 +108,8 @@ GraphsState::GraphsState() : _butRegionsOffset(0), _butCountriesOffset(0), _zoom
 			_btnRegions.push_back(new ToggleTextButton(88, 11, 0, offset*11));
 			_btnRegions.at(offset)->setText(tr(region->getRules()->getType()));
 			_btnRegions.at(offset)->setInvertColor(color);
-			_btnRegions.at(offset)->onMousePress((ActionHandler)&GraphsState::btnRegionListClick);
+			_btnRegions.at(offset)->onMousePress((ActionHandler)&GraphsState::btnRegionListClick, SDL_BUTTON_LEFT);
+			_btnRegions.at(offset)->onMousePress((ActionHandler)&GraphsState::btnRegionListClick, SDL_BUTTON_RIGHT);
 			add(_btnRegions.at(offset), "button", "graphs");
 		}
 		_alienRegionLines.push_back(new Surface(320,200,0,0));
@@ -124,7 +125,8 @@ GraphsState::GraphsState() : _butRegionsOffset(0), _butCountriesOffset(0), _zoom
 	else
 		_btnRegionTotal = new ToggleTextButton(88, 11, 0, GRAPH_MAX_BUTTONS*11);
 	_regionToggles.push_back(new GraphButInfo(tr("STR_TOTAL_UC"), regionTotalColor));
-	_btnRegionTotal->onMousePress((ActionHandler)&GraphsState::btnRegionListClick);
+	_btnRegionTotal->onMousePress((ActionHandler)&GraphsState::btnRegionListClick, SDL_BUTTON_LEFT);
+	_btnRegionTotal->onMousePress((ActionHandler)&GraphsState::btnRegionListClick, SDL_BUTTON_RIGHT);
 	_btnRegionTotal->setInvertColor(regionTotalColor);
 	_btnRegionTotal->setText(tr("STR_TOTAL_UC"));
 	_alienRegionLines.push_back(new Surface(320,200,0,0));
@@ -145,7 +147,8 @@ GraphsState::GraphsState() : _butRegionsOffset(0), _butCountriesOffset(0), _zoom
 			_btnCountries.push_back(new ToggleTextButton(88, 11, 0, offset*11));
 			_btnCountries.at(offset)->setInvertColor(color);
 			_btnCountries.at(offset)->setText(tr(country->getRules()->getType()));
-			_btnCountries.at(offset)->onMousePress((ActionHandler)&GraphsState::btnCountryListClick);
+			_btnCountries.at(offset)->onMousePress((ActionHandler)&GraphsState::btnCountryListClick, SDL_BUTTON_LEFT);
+			_btnCountries.at(offset)->onMousePress((ActionHandler)&GraphsState::btnCountryListClick, SDL_BUTTON_RIGHT);
 			add(_btnCountries.at(offset), "button", "graphs");
 		}
 		_alienCountryLines.push_back(new Surface(320,200,0,0));
@@ -163,7 +166,8 @@ GraphsState::GraphsState() : _butRegionsOffset(0), _butCountriesOffset(0), _zoom
 	else
 		_btnCountryTotal = new ToggleTextButton(88, 11, 0, GRAPH_MAX_BUTTONS*11);
 	_countryToggles.push_back(new GraphButInfo(tr("STR_TOTAL_UC"), countryTotalColor));
-	_btnCountryTotal->onMousePress((ActionHandler)&GraphsState::btnCountryListClick);
+	_btnCountryTotal->onMousePress((ActionHandler)&GraphsState::btnCountryListClick, SDL_BUTTON_LEFT);
+	_btnCountryTotal->onMousePress((ActionHandler)&GraphsState::btnCountryListClick, SDL_BUTTON_RIGHT);
 	_btnCountryTotal->setInvertColor(countryTotalColor);
 	_btnCountryTotal->setText(tr("STR_TOTAL_UC"));
 	_alienCountryLines.push_back(new Surface(320,200,0,0));
@@ -181,7 +185,8 @@ GraphsState::GraphsState() : _butRegionsOffset(0), _butCountriesOffset(0), _zoom
 		_btnFinances.push_back(new ToggleTextButton(88, 11, 0, offset*11));
 		_financeToggles.push_back(false);
 		_btnFinances.at(offset)->setInvertColor(13 + (8*offset));
-		_btnFinances.at(offset)->onMousePress((ActionHandler)&GraphsState::btnFinanceListClick);
+		_btnFinances.at(offset)->onMousePress((ActionHandler)&GraphsState::btnFinanceListClick, SDL_BUTTON_LEFT);
+		_btnFinances.at(offset)->onMousePress((ActionHandler)&GraphsState::btnFinanceListClick, SDL_BUTTON_RIGHT);
 		add(_btnFinances.at(offset), "button", "graphs");
 		_financeLines.push_back(new Surface(320,200,0,0));
 		add(_financeLines.at(offset));

@@ -42,6 +42,11 @@ InteractiveSurface::~InteractiveSurface()
 {
 }
 
+bool InteractiveSurface::isAnyMouseButtonHandled()
+{
+	return !_click.empty() || !_press.empty() || !_release.empty();
+}
+
 bool InteractiveSurface::isButtonHandled(Uint8 button)
 {
 	bool handled = (_click.find(0) != _click.end() ||

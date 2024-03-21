@@ -97,7 +97,10 @@ AllocatePsiTrainingState::AllocatePsiTrainingState(Base *base) : _sel(0), _base(
 	}
 	else
 	{
-		_btnPlus->onMouseClick((ActionHandler)&AllocatePsiTrainingState::btnPlusClick, 0);
+		// Even though it does not intersect with other interactive surfaces
+		// I highly doubt activation on MMB or mouse-wheel is wanted.
+		_btnPlus->onMouseClick((ActionHandler)&AllocatePsiTrainingState::btnPlusClick, SDL_BUTTON_LEFT);
+		_btnPlus->onMouseClick((ActionHandler)&AllocatePsiTrainingState::btnPlusClick, SDL_BUTTON_RIGHT);
 	}
 
 	_txtTitle->setBig();

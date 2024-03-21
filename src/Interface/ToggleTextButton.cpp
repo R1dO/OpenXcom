@@ -38,7 +38,13 @@ ToggleTextButton::~ToggleTextButton(void)
 /// handle mouse clicks by toggling the button state; use _fakeGroup to trick TextButton into drawing the right thing
 void ToggleTextButton::mousePress(Action *action, State *state)
 {
-	if (action->getDetails()->button.button == SDL_BUTTON_LEFT || action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	auto mouseButton = action->getDetails()->button.button;
+
+	// Compatibility for buttons without event handler attached.
+	bool isBareButtonClick = !InteractiveSurface::isAnyMouseButtonHandled() &&
+		(mouseButton == SDL_BUTTON_LEFT || mouseButton == SDL_BUTTON_RIGHT);
+
+	if (isBareButtonClick || InteractiveSurface::isButtonHandled(mouseButton))
 	{
 		_isPressed = !_isPressed;
 		_fakeGroup = _isPressed ? this : 0; // this is the trick that makes TextButton stick

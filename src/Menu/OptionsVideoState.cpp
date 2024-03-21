@@ -168,21 +168,24 @@ OptionsVideoState::OptionsVideoState(OptionsOrigin origin) : OptionsBaseState(or
 
 	_btnLetterbox->setText(tr("STR_LETTERBOXED"));
 	_btnLetterbox->setPressed(Options::keepAspectRatio);
-	_btnLetterbox->onMouseClick((ActionHandler)&OptionsVideoState::btnLetterboxClick);
+	_btnLetterbox->onMouseClick((ActionHandler)&OptionsVideoState::btnLetterboxClick, SDL_BUTTON_LEFT);
+	_btnLetterbox->onMouseClick((ActionHandler)&OptionsVideoState::btnLetterboxClick, SDL_BUTTON_RIGHT);
 	_btnLetterbox->setTooltip("STR_LETTERBOXED_DESC");
 	_btnLetterbox->onMouseIn((ActionHandler)&OptionsVideoState::txtTooltipIn);
 	_btnLetterbox->onMouseOut((ActionHandler)&OptionsVideoState::txtTooltipOut);
 
 	_btnLockMouse->setText(tr("STR_LOCK_MOUSE"));
 	_btnLockMouse->setPressed(Options::captureMouse == SDL_GRAB_ON);
-	_btnLockMouse->onMouseClick((ActionHandler)&OptionsVideoState::btnLockMouseClick);
+	_btnLockMouse->onMouseClick((ActionHandler)&OptionsVideoState::btnLockMouseClick, SDL_BUTTON_LEFT);
+	_btnLockMouse->onMouseClick((ActionHandler)&OptionsVideoState::btnLockMouseClick, SDL_BUTTON_RIGHT);
 	_btnLockMouse->setTooltip("STR_LOCK_MOUSE_DESC");
 	_btnLockMouse->onMouseIn((ActionHandler)&OptionsVideoState::txtTooltipIn);
 	_btnLockMouse->onMouseOut((ActionHandler)&OptionsVideoState::txtTooltipOut);
 
 	_btnRootWindowedMode->setText(tr("STR_FIXED_WINDOW_POSITION"));
 	_btnRootWindowedMode->setPressed(Options::rootWindowedMode);
-	_btnRootWindowedMode->onMouseClick((ActionHandler)&OptionsVideoState::btnRootWindowedModeClick);
+	_btnRootWindowedMode->onMouseClick((ActionHandler)&OptionsVideoState::btnRootWindowedModeClick, SDL_BUTTON_LEFT);
+	_btnRootWindowedMode->onMouseClick((ActionHandler)&OptionsVideoState::btnRootWindowedModeClick, SDL_BUTTON_RIGHT);
 	_btnRootWindowedMode->setTooltip("STR_FIXED_WINDOW_POSITION_DESC");
 	_btnRootWindowedMode->onMouseIn((ActionHandler)&OptionsVideoState::txtTooltipIn);
 	_btnRootWindowedMode->onMouseOut((ActionHandler)&OptionsVideoState::txtTooltipOut);

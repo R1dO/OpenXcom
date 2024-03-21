@@ -221,15 +221,18 @@ void StatsForNerdsState::buildUI(bool debug, bool ids, bool defaults)
 
 	_btnIncludeDebug->setText(tr("STR_INCLUDE_DEBUG"));
 	_btnIncludeDebug->setPressed(debug);
-	_btnIncludeDebug->onMouseClick((ActionHandler)&StatsForNerdsState::btnRefreshClick);
+	_btnIncludeDebug->onMouseClick((ActionHandler)&StatsForNerdsState::btnRefreshClick, SDL_BUTTON_LEFT);
+	_btnIncludeDebug->onMouseClick((ActionHandler)&StatsForNerdsState::btnRefreshClick, SDL_BUTTON_RIGHT);
 
 	_btnIncludeIds->setText(tr("STR_INCLUDE_IDS"));
 	_btnIncludeIds->setPressed(ids);
-	_btnIncludeIds->onMouseClick((ActionHandler)&StatsForNerdsState::btnRefreshClick);
+	_btnIncludeIds->onMouseClick((ActionHandler)&StatsForNerdsState::btnRefreshClick, SDL_BUTTON_LEFT);
+	_btnIncludeIds->onMouseClick((ActionHandler)&StatsForNerdsState::btnRefreshClick, SDL_BUTTON_RIGHT);
 
 	_btnIncludeDefaults->setText(tr("STR_INCLUDE_DEFAULTS"));
 	_btnIncludeDefaults->setPressed(defaults);
-	_btnIncludeDefaults->onMouseClick((ActionHandler)&StatsForNerdsState::btnRefreshClick);
+	_btnIncludeDefaults->onMouseClick((ActionHandler)&StatsForNerdsState::btnRefreshClick, SDL_BUTTON_LEFT);
+	_btnIncludeDefaults->onMouseClick((ActionHandler)&StatsForNerdsState::btnRefreshClick, SDL_BUTTON_RIGHT);
 
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&StatsForNerdsState::btnOkClick);

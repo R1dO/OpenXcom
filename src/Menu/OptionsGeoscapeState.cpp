@@ -127,21 +127,24 @@ OptionsGeoscapeState::OptionsGeoscapeState(OptionsOrigin origin) : OptionsBaseSt
 
 	_btnGlobeCountries->setText(tr("STR_GLOBE_COUNTRIES"));
 	_btnGlobeCountries->setPressed(Options::globeDetail);
-	_btnGlobeCountries->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnGlobeCountriesClick);
+	_btnGlobeCountries->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnGlobeCountriesClick, SDL_BUTTON_LEFT);
+	_btnGlobeCountries->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnGlobeCountriesClick, SDL_BUTTON_RIGHT);
 	_btnGlobeCountries->setTooltip("STR_GLOBE_COUNTRIES_DESC");
 	_btnGlobeCountries->onMouseIn((ActionHandler)&OptionsGeoscapeState::txtTooltipIn);
 	_btnGlobeCountries->onMouseOut((ActionHandler)&OptionsGeoscapeState::txtTooltipOut);
 
 	_btnGlobeRadars->setText(tr("STR_GLOBE_RADARS"));
 	_btnGlobeRadars->setPressed(Options::globeRadarLines);
-	_btnGlobeRadars->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnGlobeRadarsClick);
+	_btnGlobeRadars->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnGlobeRadarsClick, SDL_BUTTON_LEFT);
+	_btnGlobeRadars->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnGlobeRadarsClick, SDL_BUTTON_RIGHT);
 	_btnGlobeRadars->setTooltip("STR_GLOBE_RADARS_DESC");
 	_btnGlobeRadars->onMouseIn((ActionHandler)&OptionsGeoscapeState::txtTooltipIn);
 	_btnGlobeRadars->onMouseOut((ActionHandler)&OptionsGeoscapeState::txtTooltipOut);
 
 	_btnGlobePaths->setText(tr("STR_GLOBE_FLIGHT_PATHS"));
 	_btnGlobePaths->setPressed(Options::globeFlightPaths);
-	_btnGlobePaths->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnGlobePathsClick);
+	_btnGlobePaths->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnGlobePathsClick, SDL_BUTTON_LEFT);
+	_btnGlobePaths->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnGlobePathsClick, SDL_BUTTON_RIGHT);
 	_btnGlobePaths->setTooltip("STR_GLOBE_FLIGHT_PATHS_DESC");
 	_btnGlobePaths->onMouseIn((ActionHandler)&OptionsGeoscapeState::txtTooltipIn);
 	_btnGlobePaths->onMouseOut((ActionHandler)&OptionsGeoscapeState::txtTooltipOut);
@@ -150,7 +153,8 @@ OptionsGeoscapeState::OptionsGeoscapeState(OptionsOrigin origin) : OptionsBaseSt
 
 	_btnShowFunds->setText(tr("STR_SHOW_FUNDS"));
 	_btnShowFunds->setPressed(Options::showFundsOnGeoscape);
-	_btnShowFunds->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnShowFundsClick);
+	_btnShowFunds->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnShowFundsClick, SDL_BUTTON_LEFT);
+	_btnShowFunds->onMouseClick((ActionHandler)&OptionsGeoscapeState::btnShowFundsClick, SDL_BUTTON_RIGHT);
 	_btnShowFunds->setTooltip("STR_SHOW_FUNDS_DESC");
 	_btnShowFunds->onMouseIn((ActionHandler)&OptionsGeoscapeState::txtTooltipIn);
 	_btnShowFunds->onMouseOut((ActionHandler)&OptionsGeoscapeState::txtTooltipOut);

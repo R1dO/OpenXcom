@@ -52,6 +52,8 @@ protected:
 	bool isButtonPressed(Uint8 button = 0) const;
 	/// Is this mouse button event handled?
 	virtual bool isButtonHandled(Uint8 button = 0);
+	/// Is **any** mouse button event handled?
+	virtual bool isAnyMouseButtonHandled();
 	/// Set a mouse button's internal state.
 	void setButtonPressed(Uint8 button, bool pressed);
 public:

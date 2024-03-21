@@ -107,7 +107,9 @@ AllocateTrainingState::AllocateTrainingState(Base *base) : _sel(0), _base(base),
 	}
 	else
 	{
-		_btnPlus->onMouseClick((ActionHandler)&AllocateTrainingState::btnPlusClick, 0);
+		// I highly doubt activation on MMB or mouse-wheel is wanted.
+		_btnPlus->onMouseClick((ActionHandler)&AllocateTrainingState::btnPlusClick, SDL_BUTTON_LEFT);
+		_btnPlus->onMouseClick((ActionHandler)&AllocateTrainingState::btnPlusClick, SDL_BUTTON_RIGHT);
 	}
 
 	_txtTitle->setBig();
