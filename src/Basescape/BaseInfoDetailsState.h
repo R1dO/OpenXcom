@@ -117,6 +117,7 @@ private:
 
 	void add2vector(std::vector<BeanCounter> &subCategory, BeanCounter row);
 	void sortChildrenByDescription(std::vector<BeanCounter> &subCategory, size_t skipChildren = 0);
+	int countContributingFacilities(std::vector<BeanCounter> subCategory);
 	double calcProbabilityAtLeastOne(std::vector<BeanCounter> subCategory);
 	double calcProbabilityAtLeastOne(int baseChance, int tries);
 	BeanCounter &getRow() {return _details[_rows[_sel]];}

@@ -752,6 +752,26 @@ void BaseInfoDetailsState::sortChildrenByDescription(std::vector<BeanCounter> &s
 }
 
 /**
+* Calculate the amount of facilities contributing to the given subCategory.
+*
+* @param subCategory The method's local `_details` slice copy to work on.
+* @return The amount of facilities
+*/
+int BaseInfoDetailsState::countContributingFacilities(std::vector<BeanCounter> subCategory)
+{
+	int count = 0;
+	for (auto bean : subCategory)
+	{
+		// By default the first element is meant to display the result of this method.
+		// Hence skip this first one by default.
+		if (bean.parentId == bean.childId) continue; // not a child
+
+		count += bean.amount;
+	}
+	return count;
+}
+
+/**
 * Calculate the probability of getting a success for the given subCategory.
 *
 * @remark
@@ -772,7 +792,7 @@ double BaseInfoDetailsState::calcProbabilityAtLeastOne(std::vector<BeanCounter> 
 	for (auto bean : subCategory)
 	{
 		// By default the first element is meant to display the result of this method.
-		//* Hence we skip this first one by default.
+		// Hence skip this first one by default.
 		if (bean.parentId == bean.childId) continue; // not a child
 
 		detectionFail *= (1.0 - calcProbabilityAtLeastOne(bean.baseValue, bean.amount));
