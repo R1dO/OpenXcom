@@ -49,9 +49,9 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, BaseInfoDetailsCategory c
 	_btnPrev = new TextButton(28, 14, 8, 18);
 	_btnNext = new TextButton(28, 14, 284, 18);
 	_txtTitle = new Text(278, 17, 21, 18);
-	_txtSource = new Text(114, 9, 30, 35);
-	_txtQuantity = new Text(34, 9, 178, 35);
-	_txtResult = new Text(76, 9, 218, 35);
+	_txtSource = new Text(114, 9, 25, 35);
+	_txtQuantity = new Text(54, 9, 180+15, 35);
+	_txtResult = new Text(54, 9, 225+15, 35);
 	_lstDetails = new TextList(272, 104, 23, 46); // Height = 13*8 (8 due to rowheight overlap using default rules).
 	_txtTotal = new Text(133, 9, 171, 154);
 
@@ -95,7 +95,7 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, BaseInfoDetailsCategory c
 	_txtQuantity->setText(tr("STR_FACILITIES"));
 	_txtResult->setText(tr("STR_VALUE"));
 
-	_lstDetails->setColumns(3, 155, 45, 70);
+	_lstDetails->setColumns(3, 155+15, 45, 70-15);
 	_lstDetails->setSelectable(true); // Required for collapse/fold functionality.
 	_lstDetails->setBackground(_window);
 	_lstDetails->setScrolling(true);
