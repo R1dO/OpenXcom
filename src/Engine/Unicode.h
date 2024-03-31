@@ -90,7 +90,7 @@ namespace Unicode
 	/// Formats an integer value as currency.
 	std::string formatFunding(int64_t funds, bool allowPositivePrefix = false);
 	/// Formats an integer value as percentage.
-	std::string formatPercentage(int value);
+	std::string formatPercentage(int value, bool allowPositivePrefix = false);
 }
 
 }

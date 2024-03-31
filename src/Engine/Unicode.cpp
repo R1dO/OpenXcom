@@ -770,11 +770,9 @@ std::string formatFunding(int64_t funds, bool allowPositivePrefix)
  * @param value The percentage value.
  * @return The formatted string.
  */
-std::string formatPercentage(int value)
+std::string formatPercentage(int value, bool allowPositivePrefix)
 {
-	std::ostringstream ss;
-	ss << value << "%";
-	return ss.str();
+	return formatNumber(value, "", allowPositivePrefix) + "%";
 }
 
 

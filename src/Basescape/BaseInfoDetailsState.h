@@ -19,6 +19,7 @@
  */
 
 #include "../Engine/State.h"
+#include "../Mod/RuleBaseFacilityFunctions.h"
 
 namespace OpenXcom
 {
@@ -35,7 +36,7 @@ enum class BaseInfoDetailsCategory {
 	QUARTERS, STORES, LABORATORIES, WORKSHOPS, CONTAINMENT, HANGARS,
 	DEFENSE, DETECTION
 	};
-constexpr std::string_view enum2string(BaseInfoDetailsCategory category) //C++17 -> string_view
+constexpr std::string_view enum2string(BaseInfoDetailsCategory category) // C++17 -> string_view
 {
 	switch (category)
 	{
@@ -62,31 +63,64 @@ constexpr std::string_view enum2string(BaseInfoDetailsCategory category) //C++17
 class BaseInfoDetailsState : public State
 {
 private:
+	struct BeanCounter
+	{
+		// Use parent-child relation to enable collapsable details.
+		// We have a subtotal (parent) if 'childId == parentId'.
+		size_t childId = 0;
+		size_t parentId = 0;
+		std::string description = ""; // First display Column
+		int amount = 0;               // How many times a contribution is present on the base.
+		int baseValue = 0;            // Basic value of this contribution (e.g. for an amount of 1).
+
+		// Overrides
+		bool isRowVisible = false;       // By default children are hidden unless unfolded.
+		std::string amountOverride = ""; // Specialized string for 'amount' column.
+		std::string valueOverride = "";  // Specialized string for 'result' column.
+
+		BeanCounter() = default;
+		// Shortcut for minimum amount necessary
+		BeanCounter(size_t _childId, size_t _parentId, std::string _description,
+			int _amount, int _value, bool _isVisible
+			) :
+			childId(_childId), parentId(_parentId), description(_description),
+			amount(_amount), baseValue(_value), isRowVisible(_isVisible)
+			{ }
+	};
+
+
 	Base *_base;
 	BaseInfoDetailsCategory _category;
 
 	TextButton *_btnOk, *_btnPrev, *_btnNext;
-	ToggleTextButton *_btnAllBases;
+	ToggleTextButton *_btnQueuedFacilities;
 	Window *_window;
-	Text *_txtTitle, *_txtSource, *_txtQuantity, *_txtResult;
-	TextList *_lstDetails, *_lstTotal;
+	Text *_txtTitle, *_txtSource, *_txtQuantity, *_txtResult, *_txtTotal;
+	TextList *_lstDetails;
+	std::vector<BeanCounter> _details;
+	std::vector<int> _rows;
+	size_t _sel;
+
+	void btnOkClick(Action *);
+	void btnNextClick(Action *);
+	void btnPrevClick(Action *);
+	void btnToggleQueuedFacilities(Action *);
+	void lstDetailsMousePress(Action *);
 
 	void drawBody();
+	void setupPlaceholders();
+	void updateList();
 
-	/// Handler for clicking the Grand Total button.
-	void btnAllBasesClick(Action *action);
+	void add2vector(std::vector<BeanCounter> &subCategory, BeanCounter row);
+	void sortChildrenByDescription(std::vector<BeanCounter> &subCategory, size_t skipChildren = 0);
+	double calcProbabilityAtLeastOne(std::vector<BeanCounter> subCategory);
+	double calcProbabilityAtLeastOne(int baseChance, int tries);
+	BeanCounter &getRow() {return _details[_rows[_sel]];}
 public:
 	/// Creates the info details state.
 	BaseInfoDetailsState(Base *base, BaseInfoDetailsCategory category);
 	/// Cleans up the info details state.
 	~BaseInfoDetailsState();
-	/// Handler for clicking the OK button.
-	void btnOkClick(Action *action);
-
-	/// Handler for clicking Previous button.
-	void btnPrevClick(Action *action);
-	/// Handler for clicking Next button.
-	void btnNextClick(Action *action);
 };
 
 }
