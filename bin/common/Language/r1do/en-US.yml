@@ -14,6 +14,14 @@ en-US:
   STR_SOURCE: "Source"
   STR_INCLUDE_QUEUED_FACILITIES: "Allow under construction"
 # BaseInfoDetailsState.cpp
+  STR_BIDS_CATEGORY_DETECTION: "Detection and Camouflage"
+  STR_BIDS_TITLE_CAMOUFLAGE: "Base Camouflage"
+  STR_BIDS_DETAIL_CAMOUFLAGE_BASE_SIZE: "Base size"
+  STR_BIDS_DETAIL_DISABLED_MINDSHIELD: "{0} (DISABLED)"                     # {0} is facility name.
+  STR_BIDS_TITLE_UFO_DETECTION_RADAR: "UFO radar detection {0} NM"          # Uses ICAO symbol
+  STR_BIDS_TITLE_UFO_DETECTION_HYPERWAVE: "UFO hyper-wave detection {0} NM" # Uses ICAO symbol
+  STR_BIDS_DETAIL_UFO_DETECTION_HYPERWAVE: "{0} (Hyper Wave)"               # {0} is facility name. TFTD: Transmission resolver.
+  STR_BIDS_TITLE_ALIEN_BASE_DETECTION: "Alien Base detection {0} NM"        # Uses ICAO symbol
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"

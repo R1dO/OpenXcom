@@ -109,6 +109,10 @@ private:
 
 	void drawBody();
 	void setupPlaceholders();
+	void setupCategoryDetection();
+	void subcategoryBaseCamouflage();
+	void subcategoryUfoDetection();
+	void subcategoryAlienBaseDetection();
 	void updateList();
 
 	void add2vector(std::vector<BeanCounter> &subCategory, BeanCounter row);

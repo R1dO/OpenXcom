@@ -737,28 +737,6 @@ void BaseInfoState::defenseClick(Action *)
 
 /**
  * Open sub-window showing details on detection abilities.
- *
- * This includes facilities providing:
- * + HyperWave functionality.
- * + Facilities contributing to range based UFO detection (defined per range limit)
- *   - Meaning: long(er) range facilities are added to short(er) range ones.
- *   - per facility shows detection chance
- *   - Subtotal shows chance for that limit
- *   - variables: radarRange & radarChance
- * + Facilities contributing to range based AlienBase detection (defined per range limit)
- *   - Meaning: long(er) range facilities are added to short(er) range ones.
- *   - per facility shows detection chance
- *   - Subtotal shows chance for that limit
- *   - variables: sightRange & sightChance
- *   - Not sure about this one: one could argue it should be a hidden stat.
- * + Facilities contribution to camouflage
- *   - variables: mind & mindPower
- *   - Subtotal shows chance of being detected (based on no of facilities and mind shield power).
- *   - Could also be part of defense (not being able to stay undetected is a defense tactic),
- *
- * Note:
- * Detection chance calculation = (1- chance_of_not_detecting)^no_of_facilities_participating
- *
  * @param action Pointer to an action.
  */
 void BaseInfoState::detectionClick(Action *)

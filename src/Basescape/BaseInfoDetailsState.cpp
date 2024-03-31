@@ -230,8 +230,9 @@ void BaseInfoDetailsState::drawBody()
 	// 	break;
 	// case BaseInfoDetailsCategory::DEFENSE:
 	// 	break;
-	// case BaseInfoDetailsCategory::DETECTION:
-	// 	break;
+	case BaseInfoDetailsCategory::DETECTION:
+		setupCategoryDetection();
+		break;
 	default:
 		setupPlaceholders();
 		break;
@@ -267,7 +268,389 @@ void BaseInfoDetailsState::setupPlaceholders()
 		}
 	}
 	updateList();
+}
 
+/**
+ * Setup base detection abilities and camouflage screen.
+ *
+ * Facilities contributing to the following subcategories:
+ *  - Base Camouflage, e.g. chance of staying undetected.
+ *  - UFO detection per range, including hyperwave abilities.
+ *  - Alien Base detection per range.
+
+ * And show the effect of those facilities on base services (if any).??
+
+ */
+void BaseInfoDetailsState::setupCategoryDetection()
+{
+	_txtTitle->setText(tr("STR_BIDS_CATEGORY_DETECTION"));
+	_txtTotal->setText("");
+
+	subcategoryBaseCamouflage();
+	subcategoryUfoDetection();
+	subcategoryAlienBaseDetection();
+
+	updateList(); //2024
+}
+
+/**
+ * Setup and add base camouflage to `_details` vector.
+ *
+ * Camouflage is the chance of staying undetected (per 10 minute time interval).
+ * A value that feels a bit less technical/cheaty, even though it is not.
+ *
+ * @remark
+ * Ruleset variables: `mind`, `mindPower` and `size` (or `sizeX`and`sizeY`).
+ *
+ * @note
+ * Uses +/- as hint for player that adding/subtracting percentages
+ * is viable in this situation.
+ *
+ * @remark
+ * One could argue it should be part of defense category,
+ * you can't target what you can't detect.
+ * It is listed here since this screen is expected to have less subcategories.
+ *
+ * @remark
+ * See: `Base::getDetectionChance()` for reference formula.
+ * + Lowest possible camouflage value is 79% (pretty high).
+ * + Could lead to a false sense of security if one is not aware that
+ *   check runs in 10 minute intervals.
+ *   Hence one might argue it is better not to show this sub-category at all.
+ */
+void BaseInfoDetailsState::subcategoryBaseCamouflage()
+{
+	std::vector<BeanCounter> subCategory;
+	size_t childId, parentId = _details.size(); // `childId` is set later.
+	BeanCounter row;
+
+	// Sub category header (a.k.a. subtotal).
+	row = {parentId, parentId, tr("STR_BIDS_TITLE_CAMOUFLAGE"), 0, 0, true};
+	subCategory.push_back(row);
+
+	// A base must contain at least 1 facility, hence next child always exist.
+	childId = subCategory.size() + parentId;
+	row = {childId, parentId, tr("STR_BIDS_DETAIL_CAMOUFLAGE_BASE_SIZE"), 0, 0, false};
+	subCategory.push_back(row);
+
+	int totalFacilityAmount = 0;
+	int totalFacilitySize = 0;
+	int totalMindPower = 0;
+	for (auto facility : *_base->getFacilities())
+	{
+		// Skip buildings under construction (unless we demand their inclusion).
+		if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
+			continue;
+
+		// Contribution due to base size in grid units.
+		totalFacilityAmount++;
+		totalFacilitySize += facility->getRules()->getSizeX() * facility->getRules()->getSizeY();
+
+		if (facility->getRules()->isMindShield())
+		{
+			int currentMindPower = 0;
+			std::string description;
+			std::string valueOverride = "";
+			if (facility->getDisabled())
+			{
+				description = tr("STR_BIDS_DETAIL_DISABLED_MINDSHIELD").arg(tr(facility->getRules()->getType()));
+				valueOverride = "---";
+			}
+			else
+			{
+				description = tr(facility->getRules()->getType());
+				currentMindPower = facility->getRules()->getMindShieldPower();
+				totalMindPower += currentMindPower;
+			}
+
+			childId = subCategory.size() + parentId;
+			row = {childId, parentId, description ,1 , currentMindPower, false};
+			row.valueOverride = valueOverride;
+			add2vector(subCategory, row);
+		}
+	}
+
+	// Multiple unique mind shields (with unique `mindPower`) might exist.
+	std::vector<std::pair<size_t, int>> shieldTypes;
+	for (auto element : subCategory)
+	{
+		// At this point only active mindShields can have `.baseValue > 0`.
+		if (element.baseValue == 0) continue;
+
+		shieldTypes.push_back(std::make_pair(element.childId, element.amount * element.baseValue));
+	}
+
+	// Apply field overrides where necessary.
+	// Some behind the scenes calculations depend on fractional values.
+	float detectionP = (totalFacilitySize/6.0 + 15)/(totalMindPower + 1.0);
+	float baseSizeEffectP = 15.0 + (totalFacilitySize / 6.0); // Effect on detectionP as if no mindshields are present.
+	for (auto &element : subCategory)
+	{
+		if (element.childId == element.parentId)
+		{
+			// Internal game functionality uses integer math for Pdetection.
+			// We want to display Pcamouflage (= 100 - Pdetection).
+			element.valueOverride = Unicode::formatPercentage(100 - std::trunc(detectionP));
+			// element.amount = totalFacilityAmount; // Keep at zero, does not add informational value.
+		}
+		else if (element.childId == element.parentId + 1)
+		{
+			element.amount = totalFacilityAmount;
+			element.valueOverride = Unicode::formatPercentage(100 - std::trunc(baseSizeEffectP));
+		}
+		else if (element.baseValue == 0) // or (element.valueOverride == "---")
+		{
+			// Do nothing
+		}
+		else
+		{
+			// Effect of mindshield depends on base size.
+			// For this screen it is chosen to display contribution
+			// to camouflage/detection counteracting the effect of base size.
+			// Pdetection = Pbase_size - Ptotal_mindshield
+			//
+			// For each unique shield type we want to show it's contribution.
+			// Ptotal_mindshield = Pmindshield1 + Pmindshield2 + ... + PmindshieldN
+			//
+			// We know that Ptotal_mindshield = F(totalMindPower)
+			// For this screen we now assume it is valid to say:
+			// Pmindshield1 = Ptotal_mindshield * mindPower1/totalMindPower
+			float mindShieldP = detectionP - baseSizeEffectP;
+			int currentPower = 0;
+			int totalPower = 0;
+			for (auto shield : shieldTypes)
+			{
+				if (shield.first == element.childId)
+				{
+					currentPower = shield.second;
+				}
+				totalPower += shield.second;
+			}
+			// Effect on camouflage is -1 * effect on detection.
+			float valueOverride = -1 * mindShieldP * currentPower / std::max(1, totalPower);
+			element.valueOverride = Unicode::formatPercentage(std::round(valueOverride), true);
+		}
+	}
+
+	// Prefer alphabetical listing of named facilities.
+	sortChildrenByDescription(subCategory, 1);
+
+	// We are happy now, add to `_details` vector.
+	_details.insert(_details.end(), subCategory.begin(), subCategory.end());
+
+	// TRIVIA:
+	// If total 'mindpower' >= 21 base cannot be found by UFO's, due to integer math.
+}
+
+/**
+ * Setup and add UFO detection capabilities to `_details` vector.
+ *
+ * + The (per range limit) probability of detection.
+ * + The (per range limit) HyperWave/Transmission Resolver functionality.
+ *
+ * @remark
+ * Ruleset variables: `radarRange`, `radarChance` and `hyper`.
+ *
+ * @note
+ * Each range based subtotal shows the combined probability
+ * of all facilities contributing to that range.
+ *
+ * @remark
+ * Detection probability = (1- chance_of_not_detecting)^no_of_facilities_participating
+ */
+void BaseInfoDetailsState::subcategoryUfoDetection()
+{
+	// Intention is to show detection chance per unique range.
+	int hyperMaxRange = 0;
+	std::set<int> radarRanges;
+	for (auto *facility : *_base->getFacilities())
+	{
+		if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
+			continue;
+
+		if (facility->getRules()->getRadarRange() == 0)
+			continue;
+
+		int currentRange = facility->getRules()->getRadarRange();
+		if (facility->getRules()->isHyperwave() && currentRange > hyperMaxRange)
+		{
+			hyperMaxRange = currentRange;
+		}
+		radarRanges.insert(currentRange);
+	}
+
+	// Ufo detection per range limit.
+	for (auto detectionRange : radarRanges)
+	{
+		std::vector<BeanCounter> subCategory;
+		size_t childId, parentId = _details.size(); // `childId` is set later.
+		BeanCounter row;
+		std::string description;
+
+		// Sub category header (a.k.a. subtotal).
+		if (detectionRange <= hyperMaxRange)
+		{
+			description = tr("STR_BIDS_TITLE_UFO_DETECTION_HYPERWAVE").arg(detectionRange);
+		}
+		else
+		{
+			description = tr("STR_BIDS_TITLE_UFO_DETECTION_RADAR").arg(detectionRange);
+		}
+		row = {parentId, parentId, description, 0, 0, true};
+		subCategory.push_back(row);
+
+		for (auto *facility : *_base->getFacilities())
+		{
+			if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
+				continue;
+
+			if (facility->getRules()->getRadarRange() < detectionRange)
+				continue;
+
+			// Facility detection chance
+			int detectionChance = facility->getRules()->getRadarChance();
+			if (facility->getRules()->isHyperwave())
+			{
+				description = tr("STR_BIDS_DETAIL_UFO_DETECTION_HYPERWAVE").arg(tr(facility->getRules()->getType()));
+			}
+			else
+			{
+				description = tr(facility->getRules()->getType());
+			}
+			childId = subCategory.size() + parentId;
+			row = {childId, parentId, description , 1, detectionChance, false};
+			add2vector(subCategory, row);
+		}
+
+		// Apply field overrides where necessary.
+		for (auto &element : subCategory)
+		{
+			float detectionChance = 0.0;
+			if (element.childId == element.parentId)
+			{
+				detectionChance = calcProbabilityAtLeastOne(subCategory);
+				// element.amount = totalFacilityAmount; // Keep at zero, does not add informational value.
+			}
+			else if (element.baseValue == 0)
+			{
+				// "0" is a valid detection chance for a hyperwave that only tracks.
+			}
+			else
+			{
+				detectionChance = calcProbabilityAtLeastOne(element.baseValue, element.amount);
+			}
+			element.valueOverride = Unicode::formatPercentage(std::round(100*detectionChance));
+		}
+
+		// Prefer alphabetical listing of named facilities.
+		sortChildrenByDescription(subCategory);
+
+		// We are happy now, add to `_details` vector.
+		_details.insert(_details.end(), subCategory.begin(), subCategory.end());
+	}
+}
+
+/**
+ * Setup and add alien base detection capabilities to `_details` vector.
+ *
+ * The (per range limit) probability of detection.
+ *
+ * @remark
+ * Ruleset variables: `sightRange`, `sightChance`.
+ *
+ * @note
+ * Each range based subtotal shows the combined probability
+ * of all facilities contributing to that range.
+ *
+ * @remark
+ * Detection probability = (1- chance_of_not_detecting)^no_of_facilities_participating
+ * If dynamic detection use 2 ranges @100%ofRange (chance is 0%) and @50%ofRange (chance is 50%)
+ *
+ * @remark
+ * Not sure about this one: one could argue it should be a hidden stat.
+ */
+void BaseInfoDetailsState::subcategoryAlienBaseDetection()
+{
+	// Intention is to show chance per unique sight range.
+	std::set<int> sightRanges;
+	for (auto *facility : *_base->getFacilities())
+	{
+		if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
+			continue;
+
+		if (facility->getRules()->getSightRange() == 0)
+			continue;
+
+		int sightRange = facility->getRules()->getSightRange();
+		sightRanges.insert(sightRange);
+		// For dynamic ranges the chance at max range chance = 0%
+		// No need for adding extra ranges so player can deduce.
+		// A facility showing "0%" at max range should suffice.
+		// if (facility->getRules()->getSightChance() == 0)
+		// {
+		// 	sightRanges.insert(sightRange/2);
+		// }
+	}
+
+	// Alien base detection per range limit.
+	for (auto detectionRange : sightRanges)
+	{
+		std::vector<BeanCounter> subCategory;
+		size_t childId, parentId = _details.size(); // `childId` is set later.
+		BeanCounter row;
+		std::string description;
+
+		// Sub category header (a.k.a. subtotal).
+		description = tr("STR_BIDS_TITLE_ALIEN_BASE_DETECTION").arg(detectionRange);
+		row = {parentId, parentId, description, 0, 0, true};
+		subCategory.push_back(row);
+
+		for (auto *facility : *_base->getFacilities())
+		{
+			if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
+				continue;
+
+			if (facility->getRules()->getSightRange() < detectionRange)
+				continue;
+
+			// Facility detection chance
+			int detectionChance = facility->getRules()->getSightChance();
+			if (detectionChance == 0)
+			{
+				// Dynamic, e.g. 0%-50% based on distance.
+				// Formula from `GeoscapeState::time1Day()`:
+				// `chanceToDetect = 50 - (distance * 50 / facility->getRules()->getSightRange())`
+				// For this subroutine we can use: distance = `detectionRange`.
+				detectionChance = 50 - (detectionRange * 50) / facility->getRules()->getSightRange();
+			}
+			childId = subCategory.size() + parentId;
+			description = tr(facility->getRules()->getType());
+			row = {childId, parentId, description , 1, detectionChance, false};
+			add2vector(subCategory, row);
+		}
+
+		// Apply field overrides where necessary.
+		for (auto &element : subCategory)
+		{
+			float detectionChance = 0.0;
+			if (element.childId == element.parentId)
+			{
+				detectionChance = calcProbabilityAtLeastOne(subCategory);
+				// element.amount = totalFacilityAmount; // Keep at zero, does not add informational value.
+			}
+			else
+			{
+				detectionChance = calcProbabilityAtLeastOne(element.baseValue, element.amount);
+			}
+			element.valueOverride = Unicode::formatPercentage(std::round(100*detectionChance));
+		}
+
+		// Prefer alphabetical listing of named facilities.
+		sortChildrenByDescription(subCategory);
+
+		// We are happy now, add to `_details` vector.
+		_details.insert(_details.end(), subCategory.begin(), subCategory.end());
+	}
 }
 
 /**
