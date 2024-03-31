@@ -1197,6 +1197,26 @@ void Globe::drawRadars()
 			{
 				for (size_t j=0; j<ranges.size(); j++) drawGlobeCircle(lat,lon,ranges[j],48);
 			}
+			else if (Options::r1do_showAllActiveRadarCircles)
+			{
+				// Draw all radar circles
+				std::set<int> radarRanges;
+				for (auto* fac : *xbase->getFacilities())
+				{
+					if (fac->getBuildTime() == 0)
+					{
+						tr = fac->getRules()->getRadarRange();
+						if (tr < MAX_DRAW_RADAR_CIRCLE_RADIUS && tr > 0)
+						{
+							radarRanges.insert(tr);
+						}
+					}
+				}
+				for (auto rr : radarRanges)
+				{
+					drawGlobeCircle(lat, lon, Nautical(rr), 48);
+				}
+			}
 			else
 			{
 				range = 0;

@@ -531,6 +531,8 @@ void createAdvancedOptionsOTHER()
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1do_enableBaseInfoDetailsScreens", &r1do_enableBaseInfoDetailsScreens, false, "R1DO_BASEINFO_DETAILS_SCREENS", "STR_BASESCAPE"));
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1doStyle_craftEquipmentState", &r1doStyle_craftEquipmentState, false, "R1DO_STYLE_CRAFTEQUIPMENTSTATE", "STR_BASESCAPE"));
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1doStyle_sellState", &r1doStyle_sellState, false, "R1DO_STYLE_SELLSTATE", "STR_BASESCAPE"));
+	// OTHER options geoscape
+	_info.push_back(OptionInfo(OPTION_OTHER, "r1do_showAllActiveRadars", &r1do_showAllActiveRadarCircles, false, "R1DO_SHOW_ALL_ACTIVE_RADAR_CIRCLES", "STR_GEOSCAPE"));
 }
 
 void createControlsOTHER()
