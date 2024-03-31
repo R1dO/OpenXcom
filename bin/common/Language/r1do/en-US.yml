@@ -10,7 +10,7 @@ en-US:
   STR_FILTER_RESERVED_ITEMS: "Reserved items"
   STR_DOTTED_INDENTATION: ".." # Abuses '..' ~= ' ' and '..' ~= '+' for the default font.
 # BaseInfo/MonthlyCost DetailsState.cpp
-  STR_AMOUNT: "Amount"
+  STR_FACILITIES: "Facilities"
   STR_SOURCE: "Source"
   STR_INCLUDE_QUEUED_FACILITIES: "Allow under construction"
 # BaseInfoDetailsState.cpp

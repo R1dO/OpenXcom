@@ -92,7 +92,7 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, BaseInfoDetailsCategory c
 	_txtTitle->setAlign(ALIGN_CENTER);
 
 	_txtSource->setText(tr("STR_SOURCE"));
-	_txtQuantity->setText(tr("STR_AMOUNT"));
+	_txtQuantity->setText(tr("STR_FACILITIES"));
 	_txtResult->setText(tr("STR_VALUE"));
 
 	_lstDetails->setColumns(3, 155, 45, 70);
@@ -391,7 +391,7 @@ void BaseInfoDetailsState::subcategoryBaseCamouflage()
 			// Internal game functionality uses integer math for Pdetection.
 			// We want to display Pcamouflage (= 100 - Pdetection).
 			element.valueOverride = Unicode::formatPercentage(100 - std::trunc(detectionP));
-			// element.amount = totalFacilityAmount; // Keep at zero, does not add informational value.
+			element.amount = totalFacilityAmount;
 		}
 		else if (element.childId == element.parentId + 1)
 		{
@@ -529,7 +529,7 @@ void BaseInfoDetailsState::subcategoryUfoDetection()
 			if (element.childId == element.parentId)
 			{
 				detectionChance = calcProbabilityAtLeastOne(subCategory);
-				// element.amount = totalFacilityAmount; // Keep at zero, does not add informational value.
+				element.amount = countContributingFacilities(subCategory);
 			}
 			else if (element.baseValue == 0)
 			{
@@ -636,7 +636,7 @@ void BaseInfoDetailsState::subcategoryAlienBaseDetection()
 			if (element.childId == element.parentId)
 			{
 				detectionChance = calcProbabilityAtLeastOne(subCategory);
-				// element.amount = totalFacilityAmount; // Keep at zero, does not add informational value.
+				element.amount = countContributingFacilities(subCategory);
 			}
 			else
 			{
