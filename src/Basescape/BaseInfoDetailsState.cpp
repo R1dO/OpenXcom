@@ -735,6 +735,21 @@ void BaseInfoDetailsState::add2vector(std::vector<BeanCounter> &subCategory, Bea
 }
 
 /**
+* Adds given subcategory vector to screen's global `_details` vector.
+*
+* @note
+* Only adds if parent has child(ren) otherwise subcategory does not add value.
+*
+* @param subCategory Vector to add to `_details` vector
+*/
+void BaseInfoDetailsState::add2screenList(std::vector<BeanCounter> &subCategory)
+{
+	if (subCategory.size() < 2) return;
+
+	_details.insert(_details.end(), subCategory.begin(), subCategory.end());
+}
+
+/**
 * Alphabetical sort of children (by description)
 *
 * @param subCategory The method's local `_details` slice copy to work on.
@@ -757,7 +772,7 @@ void BaseInfoDetailsState::sortChildrenByDescription(std::vector<BeanCounter> &s
 * @param subCategory The method's local `_details` slice copy to work on.
 * @return The amount of facilities
 */
-int BaseInfoDetailsState::countContributingFacilities(std::vector<BeanCounter> subCategory)
+int BaseInfoDetailsState::countContributingFacilities(std::vector<BeanCounter> &subCategory)
 {
 	int count = 0;
 	for (auto bean : subCategory)
@@ -785,7 +800,7 @@ int BaseInfoDetailsState::countContributingFacilities(std::vector<BeanCounter> s
 * @param subCategory The method's local `_details` slice copy to work on.
 * @return The probability of success (0 < Psucces < 1).
 */
-double BaseInfoDetailsState::calcProbabilityAtLeastOne(std::vector<BeanCounter> subCategory)
+double BaseInfoDetailsState::calcProbabilityAtLeastOne(std::vector<BeanCounter> &subCategory)
 {
 
 	double detectionFail = 1.0;
