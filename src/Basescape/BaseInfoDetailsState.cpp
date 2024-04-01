@@ -433,10 +433,8 @@ void BaseInfoDetailsState::subcategoryBaseCamouflage()
 	}
 
 	// Prefer alphabetical listing of named facilities.
-	sortChildrenByDescription(subCategory, 1);
-
-	// We are happy now, add to `_details` vector.
-	_details.insert(_details.end(), subCategory.begin(), subCategory.end());
+	sortChildrenByDescription(subCategory);
+	add2screenList(subCategory);
 
 	// TRIVIA:
 	// If total 'mindpower' >= 21 base cannot be found by UFO's, due to integer math.
@@ -544,9 +542,7 @@ void BaseInfoDetailsState::subcategoryUfoDetection()
 
 		// Prefer alphabetical listing of named facilities.
 		sortChildrenByDescription(subCategory);
-
-		// We are happy now, add to `_details` vector.
-		_details.insert(_details.end(), subCategory.begin(), subCategory.end());
+		add2screenList(subCategory);
 	}
 }
 
@@ -647,9 +643,7 @@ void BaseInfoDetailsState::subcategoryAlienBaseDetection()
 
 		// Prefer alphabetical listing of named facilities.
 		sortChildrenByDescription(subCategory);
-
-		// We are happy now, add to `_details` vector.
-		_details.insert(_details.end(), subCategory.begin(), subCategory.end());
+		add2screenList(subCategory);
 	}
 }
 
