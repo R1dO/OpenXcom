@@ -1217,6 +1217,28 @@ int Base::getItemCountSoldierEquipment(const RuleItem* item, bool countArmor) co
 }
 
 /**
+ * Returns the amount of a specific storage item in storage.
+ *
+ * @param item Pointer to item ruleset.
+ * @return Amount of specific item in storage.
+ */
+int Base::getItemCountStorage(const RuleItem* item) const
+{
+	return _items->getItem(item);
+}
+
+/**
+ * Returns the amount of a specific storage item in storage.
+ *
+ * @param id Item ID.
+ * @return Amount of specific item in storage.
+ */
+int Base::getItemCountStorage(const std::string &id) const
+{
+	return _items->getItem(id);
+}
+
+/**
  * Returns the amount of a specific storage item claimed by soldiers in transfer to this base.
  *
  * @note

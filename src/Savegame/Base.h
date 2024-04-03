@@ -347,6 +347,8 @@ public:
 	int getItemCountManufacture(const RuleItem* item, bool includeFutureProduction = false) const;
 	int getItemCountResearch(const RuleItem* item) const;
 	int getItemCountSoldierEquipment(const RuleItem* item, bool countArmor = false) const;
+	int getItemCountStorage(const RuleItem* item) const;
+	int getItemCountStorage(const std::string &id) const;
 
 	int getItemCountTransfers(const RuleItem* item) const;
 	int getItemCountTransfersCraftArmament(const RuleItem* item, bool assumeFullyLoaded = false) const;
