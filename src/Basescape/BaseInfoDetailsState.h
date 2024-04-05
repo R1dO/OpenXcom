@@ -117,7 +117,7 @@ private:
 	void updateList();
 
 	void add2vector(std::vector<BeanCounter> &subCategory, BeanCounter row);
-	void add2screenList(std::vector<BeanCounter> &subCategory);
+	void add2screenList(std::vector<BeanCounter> &subCategory, bool forceInclude = false);
 	void sortChildrenByDescription(std::vector<BeanCounter> &subCategory, size_t skipChildren = 0);
 	int countContributingFacilities(std::vector<BeanCounter> &subCategory);
 	double calcProbabilityAtLeastOne(std::vector<BeanCounter> &subCategory);

@@ -768,10 +768,12 @@ void BaseInfoDetailsState::add2vector(std::vector<BeanCounter> &subCategory, Bea
 * Only adds if parent has child(ren) otherwise subcategory does not add value.
 *
 * @param subCategory Vector to add to `_details` vector
+* @param forceInclude Include even if parent has no children.
 */
-void BaseInfoDetailsState::add2screenList(std::vector<BeanCounter> &subCategory)
+void BaseInfoDetailsState::add2screenList(std::vector<BeanCounter> &subCategory, bool forceInclude)
 {
-	if (subCategory.size() < 2) return;
+	if (subCategory.size() < 2 - (size_t)forceInclude) // `forceInclude` still requires a subtotal.
+		return;
 
 	_details.insert(_details.end(), subCategory.begin(), subCategory.end());
 }
@@ -854,7 +856,7 @@ double BaseInfoDetailsState::calcProbabilityAtLeastOne(std::vector<BeanCounter> 
 *
 * @param baseChance The success chance for each try (e.g. detection chance).
 * @param tries      Number of facilities contributing to this calculation.
-* @return The probability of success (0 < Psucces < 1).
+* @return The probability of success (0 =< Psuccess < 1, yup ... 0 is allowed in this context).
 */
 double BaseInfoDetailsState::calcProbabilityAtLeastOne(int baseChance, int tries)
 {
