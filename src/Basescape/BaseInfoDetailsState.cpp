@@ -44,49 +44,59 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, BaseInfoDetailsCategory c
 
 	// Create objects
 	_window = new Window(this, 320, 184, 0, 8, POPUP_BOTH); // TransferState Style
-	_btnOk = new TextButton(148, 16, 164, 169);
-	_btnQueuedFacilities = new ToggleTextButton(148, 16, 9, 169);
 	_btnPrev = new TextButton(28, 14, 8, 18);
 	_btnNext = new TextButton(28, 14, 284, 18);
 	_txtTitle = new Text(278, 17, 21, 18);
-	_txtSource = new Text(114, 9, 25, 35);
-	_txtQuantity = new Text(54, 9, 180+15, 35);
-	_txtResult = new Text(54, 9, 225+15, 35);
-	_lstDetails = new TextList(272, 104, 23, 46); // Height = 13*8 (8 due to rowheight overlap using default rules).
-	_txtTotal = new Text(133, 9, 171, 154);
+	_tabCapabilities = new ToggleTextButton(136, 16, 23, 35);
+	_tabBuildLimitations = new ToggleTextButton(136, 16, 159, 35);
+	_txtSource = new Text(114, 9, 25, 35+16+2);
+	_txtQuantity = new Text(54, 9, 180+15, 35+16+2);
+	_txtResult = new Text(54, 9, 225+15, 35+16+2);
+	_lstDetails = new TextList(272, 104-16, 23, 46+16+2); // Height = 13*8 (8 due to rowheight overlap using default rules).
+	_txtTotal = new Text(133, 9, 171, 154+2);
+	_btnOk = new TextButton(148, 16, 164, 169);
+	_btnQueuedFacilities = new ToggleTextButton(148, 16, 9, 169);
 
 	// Set palette
 	setInterface("baseInfoDetails");
 
 	add(_window, "window", "baseInfoDetails");
-	add(_btnOk, "button", "baseInfoDetails");
-	add(_btnQueuedFacilities, "button", "baseInfoDetails");
 	add(_btnPrev, "button", "baseInfoDetails");
 	add(_btnNext, "button", "baseInfoDetails");
 	add(_txtTitle, "text", "baseInfoDetails");
+	add(_tabCapabilities, "button", "baseInfoDetails");
+	add(_tabBuildLimitations, "button", "baseInfoDetails");
 	add(_txtSource, "text", "baseInfoDetails");
 	add(_txtQuantity, "text", "baseInfoDetails");
 	add(_txtResult, "text", "baseInfoDetails");
 	add(_lstDetails, "list", "baseInfoDetails");
 	add(_txtTotal, "text", "baseInfoDetails");
+	add(_btnOk, "button", "baseInfoDetails");
+	add(_btnQueuedFacilities, "button", "baseInfoDetails");
 
 	centerAllSurfaces();
 
 	// Set up objects
 	setWindowBackground(_window, "baseInfoDetails");
 
+	_btnNext->setText(">>");
+	_btnNext->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnNextClick);
+	_btnNext->onKeyboardPress((ActionHandler)&BaseInfoDetailsState::btnNextClick, Options::keyGeoRight);
+	_btnPrev->setText("<<");
+	_btnPrev->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnPrevClick);
+	_btnPrev->onKeyboardPress((ActionHandler)&BaseInfoDetailsState::btnPrevClick, Options::keyGeoLeft);
+	_tabCapabilities->setText(tr("STR_BIDS_TAB_CAPABILITIES"));
+	_tabCapabilities->setPressed(true); // Default screen
+	_tabCapabilities->onMouseClick((ActionHandler)&BaseInfoDetailsState::tabClick);
+	_tabBuildLimitations->setText(tr("STR_BIDS_TAB_BUILD_LIMITATIONS"));
+	_tabBuildLimitations->setPressed(false);
+	_tabBuildLimitations->onMouseClick((ActionHandler)&BaseInfoDetailsState::tabClick);
+	_btnQueuedFacilities->setText(tr("STR_INCLUDE_QUEUED_FACILITIES"));
+	_btnQueuedFacilities->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnToggleQueuedFacilities); // LMB only
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnOkClick);
 	_btnOk->onKeyboardPress((ActionHandler)&BaseInfoDetailsState::btnOkClick, Options::keyOk);
 	_btnOk->onKeyboardPress((ActionHandler)&BaseInfoDetailsState::btnOkClick, Options::keyCancel);
-	_btnQueuedFacilities->setText(tr("STR_INCLUDE_QUEUED_FACILITIES"));
-	_btnQueuedFacilities->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnToggleQueuedFacilities); // LMB only
-	_btnPrev->setText("<<");
-	_btnPrev->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnPrevClick);
-	_btnPrev->onKeyboardPress((ActionHandler)&BaseInfoDetailsState::btnPrevClick, Options::keyGeoLeft);
-	_btnNext->setText(">>");
-	_btnNext->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnNextClick);
-	_btnNext->onKeyboardPress((ActionHandler)&BaseInfoDetailsState::btnNextClick, Options::keyGeoRight);
 
 	_txtTitle->setBig();
 	_txtTitle->setAlign(ALIGN_CENTER);
@@ -175,6 +185,23 @@ void BaseInfoDetailsState::btnPrevClick(Action *)
 	default:
 		_category = static_cast<BaseInfoDetailsCategory>(static_cast<int>(_category) - 1);
 		break;
+	}
+
+	drawBody();
+}
+
+/**
+ * Toggle screen tab
+ */
+void BaseInfoDetailsState::tabClick(Action *action)
+{
+	if (action->getSender() == _tabCapabilities)
+	{
+		_tabBuildLimitations->setPressed(!_tabBuildLimitations->getPressed());
+	}
+	else
+	{
+		_tabCapabilities->setPressed(!_tabCapabilities->getPressed());
 	}
 
 	drawBody();
@@ -286,9 +313,15 @@ void BaseInfoDetailsState::setupCategoryDetection()
 	_txtTitle->setText(tr("STR_BIDS_CATEGORY_DETECTION"));
 	_txtTotal->setText("");
 
-	subcategoryBaseCamouflage();
-	subcategoryUfoDetection();
-	subcategoryAlienBaseDetection();
+	if (_tabCapabilities->getPressed())
+	{
+		subcategoryBaseCamouflage();
+		subcategoryUfoDetection();
+		subcategoryAlienBaseDetection();
+	}
+	else
+	{
+	}
 
 	updateList(); //2024
 }

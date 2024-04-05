@@ -15,6 +15,8 @@ en-US:
   STR_INCLUDE_QUEUED_FACILITIES: "Allow under construction"
 # BaseInfoDetailsState.cpp
   STR_BIDS_CATEGORY_DETECTION: "Detection and Camouflage"
+  STR_BIDS_TAB_CAPABILITIES: "Capabilities"
+  STR_BIDS_TAB_BUILD_LIMITATIONS: "Building Limitations"
   STR_BIDS_TITLE_CAMOUFLAGE: "Base Camouflage"
   STR_BIDS_DETAIL_CAMOUFLAGE_BASE_SIZE: "Base size"
   STR_BIDS_DETAIL_DISABLED_MINDSHIELD: "{0} (DISABLED)"                     # {0} is facility name.

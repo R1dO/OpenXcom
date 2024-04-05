@@ -93,7 +93,7 @@ private:
 	BaseInfoDetailsCategory _category;
 
 	TextButton *_btnOk, *_btnPrev, *_btnNext;
-	ToggleTextButton *_btnQueuedFacilities;
+	ToggleTextButton *_btnQueuedFacilities, *_tabCapabilities, *_tabBuildLimitations;
 	Window *_window;
 	Text *_txtTitle, *_txtSource, *_txtQuantity, *_txtResult, *_txtTotal;
 	TextList *_lstDetails;
@@ -101,11 +101,12 @@ private:
 	std::vector<int> _rows;
 	size_t _sel;
 
-	void btnOkClick(Action *);
 	void btnNextClick(Action *);
 	void btnPrevClick(Action *);
-	void btnToggleQueuedFacilities(Action *);
+	void tabClick(Action *action);
 	void lstDetailsMousePress(Action *);
+	void btnToggleQueuedFacilities(Action *);
+	void btnOkClick(Action *);
 
 	void drawBody();
 	void setupPlaceholders();
