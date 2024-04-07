@@ -44,6 +44,9 @@
     <ClCompile Include="Basescape\BaseView.cpp">
       <Filter>Basescape</Filter>
     </ClCompile>
+    <ClCompile Include="Basescape\BuildFacilitiesDetailsState.cpp">
+      <Filter>Basescape</Filter>
+    </ClCompile>
     <ClCompile Include="Basescape\BuildFacilitiesState.cpp">
       <Filter>Basescape</Filter>
     </ClCompile>
@@ -1191,6 +1194,9 @@
       <Filter>Basescape</Filter>
     </ClInclude>
     <ClInclude Include="Basescape\BaseView.h">
+      <Filter>Basescape</Filter>
+    </ClInclude>
+    <ClInclude Include="Basescape\BuildFacilitiesDetailsState.h">
       <Filter>Basescape</Filter>
     </ClInclude>
     <ClInclude Include="Basescape\BuildFacilitiesState.h">

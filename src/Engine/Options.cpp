@@ -529,6 +529,7 @@ void createAdvancedOptionsOTHER()
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1doEnableReverseStatsSearch", &r1doEnableReverseStatsSearch, false, "R1DO_REVERSE_STATS_SEARCH", "STR_GENERAL"));
 	// OTHER options basescape
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1do_enableBaseInfoDetailsScreens", &r1do_enableBaseInfoDetailsScreens, false, "R1DO_BASEINFO_DETAILS_SCREENS", "STR_BASESCAPE"));
+	_info.push_back(OptionInfo(OPTION_OTHER, "r1do_enableBuildFacilitiesDetailsScreen", &r1do_enableBuildFacilitiesDetailsScreen, false, "R1DO_BUILD_FACILITIES_DETAILS_SCREEN", "STR_BASESCAPE"));
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1doStyle_craftEquipmentState", &r1doStyle_craftEquipmentState, false, "R1DO_STYLE_CRAFTEQUIPMENTSTATE", "STR_BASESCAPE"));
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1doStyle_sellState", &r1doStyle_sellState, false, "R1DO_STYLE_SELLSTATE", "STR_BASESCAPE"));
 	// OTHER options geoscape

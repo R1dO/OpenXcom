@@ -59,6 +59,10 @@ en-GB:
   R1DO_BASEINFO_DETAILS_SCREENS_DESC: |
     Allow drill down into numbers behind overview.
     For the following screens: BaseInfo & MonthlyCosts
+  R1DO_BUILD_FACILITIES_DETAILS_SCREEN: "DEMO: Activate facility requirements screen"
+  R1DO_BUILD_FACILITIES_DETAILS_SCREEN_DESC: |
+    Allows a new base screen that displays any facility requirements.
+    Including reasons why a known facility cannot be build.
   R1DO_SHOW_ALL_ACTIVE_RADAR_CIRCLES: "DEMO: Show radar circles for all active facilities."
   R1DO_SHOW_ALL_ACTIVE_RADAR_CIRCLES_DESC: |
     Shows a unique radar circle for each radar active on a base.

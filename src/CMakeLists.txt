@@ -9,6 +9,7 @@ set ( basescape_src
   Basescape/BaseInfoDetailsState.cpp
   Basescape/BasescapeState.cpp
   Basescape/BaseView.cpp
+  Basescape/BuildFacilitiesDetailsState.cpp
   Basescape/BuildFacilitiesState.cpp
   Basescape/CraftArmorState.cpp
   Basescape/CraftEquipmentLoadState.cpp
