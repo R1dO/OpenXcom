@@ -20,15 +20,14 @@
 
 #include "../Engine/State.h"
 #include "../Mod/RuleBaseFacilityFunctions.h"
-#include "../Savegame/BaseFacility.h"
-#include "../Savegame/Country.h"
-#include "../Savegame/Region.h"
-#include <utility>
+#include "../Mod/RuleCountry.h"
+#include "../Mod/RuleRegion.h"
 
 namespace OpenXcom
 {
 
 class Base;
+
 class TextButton;
 class ToggleTextButton;
 class Window;
@@ -37,15 +36,16 @@ class TextList;
 class RuleBaseFacility;
 
 /**
- * Base info category breakdown subwindow
+ * Base facilities details subwindow
  *
- * Shows which facilities contribute to selected category.
+ * Shows reasons for build errors and facilities requirements.
  */
 class BuildFacilitiesDetailsState : public State
 {
+	friend class BuildFacilitiesState;
+protected:
+	enum class Tabs { Blockers, Requirements };
 private:
-	enum class SelectedTab { Errors, Requirements };
-
 	struct BeanCounter
 	{
 		// Use parent-child relation to enable collapsable details.
@@ -76,61 +76,47 @@ private:
 
 
 	Base *_base;
-	BaseInfoDetailsCategory _category;
+	RuleBaseFacility *_facRuleSelected;
+	Tabs _activeTab;
 
-	TextButton *_btnOk, *_btnPrev, *_btnNext;
-	ToggleTextButton *_btnQueuedFacilities, *_tabCapabilities, *_tabBuildLimitations;
 	Window *_window;
-	Text *_txtTitle, *_txtSource, *_txtQuantity, *_txtResult, *_txtTotal;
+	Text *_txtTitle, *_txtSource, *_txtResult;
+	ToggleTextButton *_tabRequirements, *_tabBlockers;
 	TextList *_lstDetails;
+	TextButton *_btnOk;
+
 	std::vector<BeanCounter> _details;
 	std::vector<int> _rows;
 	size_t _sel;
+	RuleBaseFacilityFunctions _facilitiesOnlyServices, _countriesOnlyServices, _regionsOnlyServices;
 	RuleBaseFacilityFunctions _providedBaseFunc, _futureBaseFunc, _forbiddenBaseFunc;
-	std::set<RuleBaseFacility*> _forbiddenFacilities, _missingReqsFacilities;
-	const Country *_baseCountry;
-	const Region *_baseRegion;
+	RuleBaseFacilityFunctions _requiredFacFunc, _forbiddenFacFunc, _providedFacFunc;
+	const RuleCountry *_countryRule = nullptr;
+	const RuleRegion *_regionRule = nullptr;
+	std::map<const RuleBaseFacility*, int> _baseFacilitiesAndCount;
 
-	void btnNextClick(Action *);
-	void btnPrevClick(Action *);
 	void tabClick(Action *action);
 	void lstDetailsMousePress(Action *);
-	void btnToggleQueuedFacilities(Action *);
 	void btnOkClick(Action *);
 
 	void drawBody();
-	void setupPlaceholders();
-	void setupCategoryDetection();
-	void subcategoryBaseCamouflage();
-	void subcategoryUfoDetection();
-	void subcategoryAlienBaseDetection();
-	void subcategoryForbiddenFacilities();
-	void subcategoryMissingReqsFacilities();
+	void setupTabBlockers();
+	void subcategoryBlockedByCountry();
+	void subcategoryBlockedByRegion();
+	void subcategoryBlockedByFacilities();
+	void subcategoryBlockedByRequiredItems();
+	void subcategoryBlockedByFunds();
 	void updateList();
 
-	void add2vector(std::vector<BeanCounter> &subCategory, BeanCounter row);
-	void add2screenList(std::vector<BeanCounter> &subCategory, bool forceInclude = false);
-	void sortChildrenByDescription(std::vector<BeanCounter> &subCategory, size_t skipChildren = 0);
-	int countContributingFacilities(std::vector<BeanCounter> &subCategory);
-	double calcProbabilityAtLeastOne(std::vector<BeanCounter> &subCategory);
-	double calcProbabilityAtLeastOne(int baseChance, int tries);
+	void add2_detailsVector(std::vector<BeanCounter> &subCategory, bool forceInclude = false);
 	BeanCounter &getRow() {return _details[_rows[_sel]];}
 
-	void updateBlockedFacilitiesSets();
-	bool isFacilityPartOfScreenCategory(RuleBaseFacility *rule);
 
-	// OBSOLETE ?
-	int addToDetailsVector(BeanCounter row, bool updateExistingValueField = true); // Mag weg?
-	bool parentHasChildren(int parentId);
-	int calculateSumOfChildrenAmountField(int parentId);
-	int calculateSumOfChildrenValueField(int parentId);
-	int calculateMaxOfChildrenValueField(int parentId);
-	// END OBSOLETE ?
 public:
-	/// Creates the info details state.
-	BaseInfoDetailsState(Base *base, BaseInfoDetailsCategory category);
-	/// Cleans up the info details state.
-	~BaseInfoDetailsState();
+	/// Creates the facilities details state.
+	BuildFacilitiesDetailsState(Base *base, RuleBaseFacility *currentFacility, Tabs currentTab = Tabs::Requirements);
+	/// Cleans up the facilities details state.
+	~BuildFacilitiesDetailsState();
 };
 
 }

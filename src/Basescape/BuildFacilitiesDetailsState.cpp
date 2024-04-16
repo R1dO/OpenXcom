@@ -22,17 +22,17 @@
 #include "../Engine/Game.h"
 #include "../Engine/Options.h"
 #include "../Mod/Mod.h"
-#include "../Mod/RuleCountry.h"
-#include "../Mod/RuleRegion.h"
-#include "../Interface/TextButton.h"
+#include "../Mod/RuleInterface.h"
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
+#include "../Interface/TextButton.h"
 #include "../Interface/TextList.h"
 #include "../Interface/ToggleTextButton.h"
 #include "../Savegame/Base.h"
+#include "../Savegame/BaseFacility.h"
+#include "../Savegame/Country.h"
+#include "../Savegame/Region.h"
 #include "../Savegame/SavedGame.h"
-
-#include "../Mod/RuleInterface.h"
 
 namespace OpenXcom
 {
@@ -40,113 +40,141 @@ namespace OpenXcom
 /**
  * Initializes all elements in the base info category breakdown subwindow.
  *
- * @param base Pointer to the base to get info from.
+ * @param base            Pointer to the base to get info from.
+ * @param currentFacility Pointer to ruleset of the facility to display.
  * @param currentTab Category to open
  */
-BuildFacilitiesDetailsState::BuildFacilitiesDetailsState(Base *base, SelectedTab currentTab) : _base(base), _category(currentTab)
+BuildFacilitiesDetailsState::BuildFacilitiesDetailsState(Base *base, RuleBaseFacility *currentFacility, Tabs currentTab) :
+	_base(base), _facRuleSelected(currentFacility), _activeTab(currentTab)
 {
 	_screen = false;
 
 	// Create objects
-	_window = new Window(this, 320, 184, 0, 8, POPUP_BOTH); // TransferState Style
-	_btnPrev = new TextButton(28, 14, 8, 18);
-	_btnNext = new TextButton(28, 14, 284, 18);
-	_txtTitle = new Text(278, 17, 21, 18);
-	_tabCapabilities = new ToggleTextButton(136, 16, 23, 35);
-	_tabBuildLimitations = new ToggleTextButton(136, 16, 159, 35);
-	_txtSource = new Text(114, 9, 25, 35+16+2);
-	_txtQuantity = new Text(54, 9, 180+15, 35+16+2);
-	_txtResult = new Text(54, 9, 225+15, 35+16+2);
-	_lstDetails = new TextList(272, 104-16, 23, 46+16+2); // Height = 13*8 (8 due to rowheight overlap using default rules).
-	_txtTotal = new Text(133, 9, 171, 154+2);
-	_btnOk = new TextButton(148, 16, 164, 169);
-	_btnQueuedFacilities = new ToggleTextButton(148, 16, 9, 169);
+	_window = new Window(this, 320, 192-16, 0, 8+8, POPUP_BOTH); // Vertical center w.r.t. base grid.
+	_txtTitle = new Text(278, 16, 21, 25);
+	_tabRequirements = new ToggleTextButton(136, 16, 23, 35+8+3);
+	_tabBlockers = new ToggleTextButton(136, 16, 159, 35+8+3);
+	_txtSource = new Text(114, 9, 25, 35+16+2+13);
+	_txtResult = new Text(54, 9, 225+15, 35+16+2+13);
+	_lstDetails = new TextList(272, 104-16, 23, 46+16+2+8+5); // Height = 11*8 = 88 (8 due to rowheight overlap using default rules).
+	_btnOk = new TextButton(288, 16, 16, 169);
 
 	// Set palette
-	setInterface("baseInfoDetails");
+	setInterface("buildFacilitiesDetails");
 
-	add(_window, "window", "baseInfoDetails");
-	add(_btnPrev, "button", "baseInfoDetails");
-	add(_btnNext, "button", "baseInfoDetails");
-	add(_txtTitle, "text", "baseInfoDetails");
-	add(_tabCapabilities, "button", "baseInfoDetails");
-	add(_tabBuildLimitations, "button", "baseInfoDetails");
-	add(_txtSource, "text", "baseInfoDetails");
-	add(_txtQuantity, "text", "baseInfoDetails");
-	add(_txtResult, "text", "baseInfoDetails");
-	add(_lstDetails, "list", "baseInfoDetails");
-	add(_txtTotal, "text", "baseInfoDetails");
-	add(_btnOk, "button", "baseInfoDetails");
-	add(_btnQueuedFacilities, "button", "baseInfoDetails");
+	add(_window, "window", "buildFacilitiesDetails");
+	add(_txtTitle, "text", "buildFacilitiesDetails");
+	add(_tabRequirements, "button", "buildFacilitiesDetails");
+	add(_tabBlockers, "button", "buildFacilitiesDetails");
+	add(_txtSource, "text", "buildFacilitiesDetails");
+	add(_txtResult, "text", "buildFacilitiesDetails");
+	add(_lstDetails, "list", "buildFacilitiesDetails");
+	add(_btnOk, "button", "buildFacilitiesDetails");
 
 	centerAllSurfaces();
 
 	// Set up objects
-	setWindowBackground(_window, "baseInfoDetails");
-
-	_btnNext->setText(">>");
-	_btnNext->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnNextClick);
-	_btnNext->onKeyboardPress((ActionHandler)&BaseInfoDetailsState::btnNextClick, Options::keyGeoRight);
-	_btnPrev->setText("<<");
-	_btnPrev->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnPrevClick);
-	_btnPrev->onKeyboardPress((ActionHandler)&BaseInfoDetailsState::btnPrevClick, Options::keyGeoLeft);
-	_tabCapabilities->setText(tr("STR_BIDS_TAB_CAPABILITIES"));
-	_tabCapabilities->setPressed(true); // Default screen
-	_tabCapabilities->onMouseClick((ActionHandler)&BaseInfoDetailsState::tabClick);
-	_tabBuildLimitations->setText(tr("STR_BIDS_TAB_BUILD_LIMITATIONS"));
-	_tabBuildLimitations->setPressed(false);
-	_tabBuildLimitations->onMouseClick((ActionHandler)&BaseInfoDetailsState::tabClick);
-	_btnQueuedFacilities->setText(tr("STR_INCLUDE_QUEUED_FACILITIES"));
-	//_btnQueuedFacilities->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnToggleQueuedFacilities, 0); // Any mouse button.
-	_btnQueuedFacilities->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnToggleQueuedFacilities); // LMB only
-	_btnOk->setText(tr("STR_OK"));
-	_btnOk->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnOkClick);
-	_btnOk->onKeyboardPress((ActionHandler)&BaseInfoDetailsState::btnOkClick, Options::keyOk);
-	_btnOk->onKeyboardPress((ActionHandler)&BaseInfoDetailsState::btnOkClick, Options::keyCancel);
+	setWindowBackground(_window, "buildFacilitiesDetails");
 
 	_txtTitle->setBig();
 	_txtTitle->setAlign(ALIGN_CENTER);
-
+	_txtTitle->setText(tr("STR_BFDS_TITLE").arg(tr(_facRuleSelected->getType())));
+	_tabRequirements->setText(tr("STR_BFDS_TAB_REQUIREMENTS"));
+	_tabRequirements->setPressed(_activeTab == Tabs::Requirements);
+	_tabRequirements->onMousePress((ActionHandler)&BuildFacilitiesDetailsState::tabClick, SDL_BUTTON_LEFT);
+	_tabBlockers->setText(tr("STR_BFDS_TAB_BLOCKERS"));
+	_tabBlockers->setPressed(_activeTab == Tabs::Blockers);
+	_tabBlockers->onMousePress((ActionHandler)&BuildFacilitiesDetailsState::tabClick, SDL_BUTTON_LEFT);
 	_txtSource->setText(tr("STR_SOURCE"));
-	_txtQuantity->setText(tr("STR_FACILITIES"));
 	_txtResult->setText(tr("STR_VALUE"));
-
-	//_lstDetails->setColumns(3, 155+15, 45, 70-15);
+	_lstDetails->setColumns(2, 155+15+45, 70-15);
 	_lstDetails->setSelectable(true); // Required for collapse/fold functionality.
 	_lstDetails->setBackground(_window);
 	_lstDetails->setScrolling(true);
 	_lstDetails->setMargin(2);        // Shifts **all** columns 2px to the right.
-	_lstDetails->onMousePress((ActionHandler)&BaseInfoDetailsState::lstDetailsMousePress, SDL_BUTTON_LEFT);
-	_lstDetails->onMousePress((ActionHandler)&BaseInfoDetailsState::lstDetailsMousePress, SDL_BUTTON_RIGHT);
-	_lstDetails->setDot(true);
+	_lstDetails->onMousePress((ActionHandler)&BuildFacilitiesDetailsState::lstDetailsMousePress, SDL_BUTTON_LEFT);
+	_lstDetails->onMousePress((ActionHandler)&BuildFacilitiesDetailsState::lstDetailsMousePress, SDL_BUTTON_RIGHT);
 	_lstDetails->setWordWrap(true);
-	//_lstDetails->setAlign(ALIGN_RIGHT, 2);
 
-	// Current country/region is needed for list of build limitations
-	// Based on `Base::calculateServices()`
-	_baseCountry = nullptr;
-	_baseRegion = nullptr;
+	_btnOk->setText(tr("STR_OK"));
+	_btnOk->onMouseClick((ActionHandler)&BuildFacilitiesDetailsState::btnOkClick);
+	_btnOk->onKeyboardPress((ActionHandler)&BuildFacilitiesDetailsState::btnOkClick, Options::keyOk);
+	_btnOk->onKeyboardPress((ActionHandler)&BuildFacilitiesDetailsState::btnOkClick, Options::keyCancel);
+
+	RuleBaseFacilityFunctions allCountriesServices;
 	for (const auto* country : *_game->getSavedGame()->getCountries())
 	{
-		if (country->getRules()->insideCountry(base->getLongitude(), base->getLatitude()))
+		const RuleCountry *ruleCountry = country->getRules();
+		if (!ruleCountry) continue;
+
+		allCountriesServices |= ruleCountry->getProvidedBaseFunc();
+		// Blockers/Requirements might depend on services from current country.
+		// Based on `Base::calculateServices()`
+		if (ruleCountry->insideCountry(_base->getLongitude(), _base->getLatitude()))
 		{
-			_baseCountry = country;
-			break;
+			_countryRule = ruleCountry;
 		}
 	}
+	RuleBaseFacilityFunctions allRegionsServices;
 	for (const auto* region : *_game->getSavedGame()->getRegions())
 	{
-		if (region->getRules()->insideRegion(base->getLongitude(), base->getLatitude()))
+		RuleRegion *ruleRegion = region->getRules();
+		if (!ruleRegion) continue;
+
+		allRegionsServices |= ruleRegion->getProvidedBaseFunc();
+		// Blockers/Requirements might depend on services from current region.
+		if (ruleRegion->insideRegion(_base->getLongitude(), _base->getLatitude()))
 		{
-			_baseRegion = region;
-			break;
+			_regionRule = ruleRegion;
 		}
 	}
+	RuleBaseFacilityFunctions allFacilitiesServices;
+	for (auto& facilityType : _game->getMod()->getBaseFacilitiesList())
+	{
+		RuleBaseFacility *ruleFacility = _game->getMod()->getBaseFacility(facilityType);
+		if (!ruleFacility) continue;
 
-	// Services that don't depend on current category.
-	_providedBaseFunc = base->getProvidedBaseFunc({});
-	_futureBaseFunc = base->getFutureBaseFunc({});
-	_forbiddenBaseFunc = base->getForbiddenBaseFunc({});
+		allFacilitiesServices |= ruleFacility->getProvidedBaseFunc();
+	}
+	// For completeness:
+	// No check here if the `_*OnlyServices` are possible for this base.
+	// If it is somehow blocked due to a `forbidden*func()` this should show up
+	// in those subcategories other than the one related to the`_*OnlyService`.
+	// * As blocked by country
+	// * As blocked by region
+	// * As blocked by existing facility
+	// * As blocked by missing facility/service
+	// Player might have to navigate to other facilities to connect the dots.
+	_countriesOnlyServices = allCountriesServices & ~allRegionsServices & ~allFacilitiesServices;
+	_regionsOnlyServices = allRegionsServices & ~allFacilitiesServices & ~allCountriesServices;
+	_facilitiesOnlyServices = allFacilitiesServices & ~allCountriesServices & ~allRegionsServices;
+
+	// Base services based blockers/requirements.
+	_providedBaseFunc = _base->getProvidedBaseFunc({});
+	_forbiddenBaseFunc = _base->getForbiddenBaseFunc({});
+	_futureBaseFunc = _base->getFutureBaseFunc({});
+	// Facility specific service based blockers/requirements.
+	_requiredFacFunc = _facRuleSelected->getRequireBaseFunc();
+	_providedFacFunc = _facRuleSelected->getProvidedBaseFunc();
+	_forbiddenFacFunc = _facRuleSelected->getForbiddenBaseFunc();
+
+	// Unique facilities on base, including under construction/queued.
+	// No need to track those separately:
+	// + Creates too much list clutter due to multiple identical facilities
+	// + Under construction / queue exists for a limited amount of time
+	// + That level of technical detail is outside the scope of this screen
+	for (auto& facility : *_base->getFacilities())
+	{
+		const RuleBaseFacility *ruleFac = facility->getRules();
+
+		int countFac = 1;
+		if (auto search = _baseFacilitiesAndCount.find(ruleFac);
+			search != _baseFacilitiesAndCount.end())
+		{
+			countFac += search->second;
+		}
+		_baseFacilitiesAndCount.insert_or_assign(ruleFac, countFac);
+	}
 
 	drawBody();
 }
@@ -154,7 +182,7 @@ BuildFacilitiesDetailsState::BuildFacilitiesDetailsState(Base *base, SelectedTab
 /**
  *
  */
-BaseInfoDetailsState::~BaseInfoDetailsState()
+BuildFacilitiesDetailsState::~BuildFacilitiesDetailsState()
 {
 }
 
@@ -162,81 +190,23 @@ BaseInfoDetailsState::~BaseInfoDetailsState()
  * Returns to the previous screen.
  * @param action Pointer to an action.
  */
-void BaseInfoDetailsState::btnOkClick(Action *)
+void BuildFacilitiesDetailsState::btnOkClick(Action *)
 {
 	_game->popState();
 }
 
 /**
- * Show details from all bases.
- */
-void BaseInfoDetailsState::btnToggleQueuedFacilities(Action *)
-{
-	drawBody();
-}
-
-/**
- * Goes to the next details category.
- * @param action Pointer to an action.
- */
-void BaseInfoDetailsState::btnNextClick(Action *)
-{
-	switch (_category)
-	{
-	case BaseInfoDetailsCategory::DETECTION:
-		_category = BaseInfoDetailsCategory::SOLDIERS;
-		break;
-	case BaseInfoDetailsCategory::SOLDIERS:
-	case BaseInfoDetailsCategory::ENGINEERS:
-	case BaseInfoDetailsCategory::SCIENTISTS:
-		// Skip categories for which I could not devise meaningful screen content.
-		_category = BaseInfoDetailsCategory::QUARTERS;
-		break;
-	default:
-		_category = static_cast<BaseInfoDetailsCategory>(static_cast<int>(_category) + 1);
-		break;
-	}
-
-	drawBody();
-}
-
-/**
- * Goes to the previous details category.
- * @param action Pointer to an action.
- */
-void BaseInfoDetailsState::btnPrevClick(Action *)
-{
-	switch (_category)
-	{
-	case BaseInfoDetailsCategory::SOLDIERS:
-		_category = BaseInfoDetailsCategory::DETECTION;
-		break;
-	case BaseInfoDetailsCategory::QUARTERS:
-	case BaseInfoDetailsCategory::SCIENTISTS:
-	case BaseInfoDetailsCategory::ENGINEERS:
-		// Skip categories for which I could not devise meaningful screen content.
-		_category = BaseInfoDetailsCategory::SOLDIERS;
-		break;
-	default:
-		_category = static_cast<BaseInfoDetailsCategory>(static_cast<int>(_category) - 1);
-		break;
-	}
-
-	drawBody();
-}
-
-/**
  * Toggle screen tab
  */
-void BaseInfoDetailsState::tabClick(Action *action)
+void BuildFacilitiesDetailsState::tabClick(Action *action)
 {
-	if (action->getSender() == _tabCapabilities)
+	if (action->getSender() == _tabRequirements)
 	{
-		_tabBuildLimitations->setPressed(!_tabBuildLimitations->getPressed());
+		_tabBlockers->setPressed(!_tabBlockers->getPressed());
 	}
-	else
+	else if (action->getSender() == _tabBlockers)
 	{
-		_tabCapabilities->setPressed(!_tabCapabilities->getPressed());
+		_tabRequirements->setPressed(!_tabRequirements->getPressed());
 	}
 
 	drawBody();
@@ -245,14 +215,14 @@ void BaseInfoDetailsState::tabClick(Action *action)
 /**
 * Handles mouse-clicks on the list rows.
 */
-void BaseInfoDetailsState::lstDetailsMousePress(Action *)
+void BuildFacilitiesDetailsState::lstDetailsMousePress(Action *)
 {
-	_sel = _lstDetails->getSelectedRow();
+	_sel = _lstDetails->getSelectedRow(); // Needed for `getRow()`.
 
 	// Flip visibility of child elements.
 	for (size_t i = 0; i < _details.size(); ++i)
 	{
-		if (_details[i].parentId == _details[i].childId) continue;
+		if (_details[i].parentId == i) continue;
 		if (_details[i].parentId != getRow().parentId) continue;
 
 		_details[i].isRowVisible ^= true;
@@ -339,612 +309,594 @@ int BaseInfoDetailsState::calculateMaxOfChildrenValueField(int parentId)
 /**
  * Setup and draw the screen's body.
  *  * Screen title
- *  * list details
- *  * (optional) Grand total
+ *  * List contents (and 'headers')
  */
-void BaseInfoDetailsState::drawBody()
+void BuildFacilitiesDetailsState::drawBody()
 {
 	_details.clear();
 	_lstDetails->clearList();
 
-	if (_tabCapabilities->getPressed())
+	if (_tabRequirements->getPressed())
 	{
-	 	_lstDetails->setColumns(3, 155+15, 45, 70-15);
-		_txtQuantity->setVisible(true);
-		_txtResult->setVisible(true);
-		_btnQueuedFacilities->setVisible(true);
+	 	//_lstDetails->setColumns(3, 155+15, 45, 70-15);
+		//_txtQuantity->setVisible(true);
+		_txtResult->setText(tr("STR_VALUE"));
+		//_btnQueuedFacilities->setVisible(true);
+		//setupTabRequirements();
 	}
 	else
 	{
-		_lstDetails->setColumns(2, 155+15+45, 70-15);
-		_txtQuantity->setVisible(false);
-		_txtResult->setVisible(false);
-		_btnQueuedFacilities->setVisible(false);
+		//_lstDetails->setColumns(2, 155+15+45, 70-15);
+		//_txtQuantity->setVisible(false);
+		_txtResult->setText(tr("STR_BFDS_SOLVABLE_BY"));
+		//_btnQueuedFacilities->setVisible(false);
+		setupTabBlockers();
 	}
-	updateBlockedFacilitiesSets();
 
-	switch (_category)
-	{
-	// case BaseInfoDetailsCategory::SOLDIERS:
-	//	break;
-	// case BaseInfoDetailsCategory::ENGINEERS:
-	// 	break;
-	// case BaseInfoDetailsCategory::SCIENTISTS:
-	// 	break;
-	// case BaseInfoDetailsCategory::QUARTERS:
-	// 	break;
-	// case BaseInfoDetailsCategory::STORES:
-	// 	break;
-	// case BaseInfoDetailsCategory::LABORATORIES:
-	// 	break;
-	// case BaseInfoDetailsCategory::WORKSHOPS:
-	// 	break;
-	// case BaseInfoDetailsCategory::CONTAINMENT:
-	// 	break;
-	// case BaseInfoDetailsCategory::HANGARS:
-	// 	break;
-	// case BaseInfoDetailsCategory::DEFENSE:
-	// 	break;
-	case BaseInfoDetailsCategory::DETECTION:
-		setupCategoryDetection();
-		break;
-	default:
-		setupPlaceholders();
-		break;
-	}
-}
-
-/**
- * Creates all placeholder elements.
-*/
-void BaseInfoDetailsState::setupPlaceholders()
-{
-	std::ostringstream ssTitle, screenTotal;
-	// Do not end sentence with '.'
-	// Automatic font scaling "setText()" does not like that (Cause: b1b6f9ae).
-	ssTitle << "Category " << enum2string(_category) << " not implemented yet";
-	screenTotal << tr("STR_TOTAL") << ">\t" << Unicode::formatFunding(999'999'999'999);
-	_txtTitle->setText(ssTitle.str());
-	_txtTotal->setText(screenTotal.str());
-
-	BeanCounter row;
-	size_t parent, childId = 0;
-	for (auto i = 0; i < 5; i++)
-	{
-		parent = childId;
-		row = {childId, parent, "Long text explaining the source", 999, 999'999'999, true};
-		_details.push_back(row);
-		childId++;
-		for (auto j = 0; j < 5; j++)
-		{
-			row = {childId, parent, "Normally collapsed (moaar details)", 99, 999'999'999, false};
-			_details.push_back(row);
-			childId++;
-		}
-	}
 	updateList();
 }
 
+// /**
+//  * Creates all placeholder elements.
+// */
+// void BaseInfoDetailsState::setupTabRequirements()
+// {
+// 	std::ostringstream ssTitle, screenTotal;
+// 	// Do not end sentence with '.'
+// 	// Automatic font scaling "setText()" does not like that (Cause: b1b6f9ae).
+// 	ssTitle << "Category " << enum2string(_activeTab) << " not implemented yet";
+// 	screenTotal << tr("STR_TOTAL") << ">\t" << Unicode::formatFunding(999'999'999'999);
+// 	_txtTitle->setText(ssTitle.str());
+// 	_txtTotal->setText(screenTotal.str());
+
+// 	BeanCounter row;
+// 	size_t parent, childId = 0;
+// 	for (auto i = 0; i < 5; i++)
+// 	{
+// 		parent = childId;
+// 		row = {childId, parent, "Long text explaining the source", 999, 999'999'999, true};
+// 		_details.push_back(row);
+// 		childId++;
+// 		for (auto j = 0; j < 5; j++)
+// 		{
+// 			row = {childId, parent, "Normally collapsed (moaar details)", 99, 999'999'999, false};
+// 			_details.push_back(row);
+// 			childId++;
+// 		}
+// 	}
+// 	updateList();
+// }
+
 /**
- * Setup base detection abilities and camouflage screen.
+ * Setup list showing the reasons for blocking the build of this facility.
  *
- * Facilities contributing to the following subcategories:
- *  - Base Camouflage, e.g. chance of staying undetected.
- *  - UFO detection per range, including hyperwave abilities.
- *  - Alien Base detection per range.
- * And show the effect of those facilities on base services (if any).
+ * @remark
+ * Mostly subcategories are based on:
+ * + PlaceFacilityState::viewClick()
+ * + BaseView::getPlacementError()
  */
-void BaseInfoDetailsState::setupCategoryDetection()
+void BuildFacilitiesDetailsState::setupTabBlockers()
 {
-	_txtTitle->setText(tr("STR_BIDS_CATEGORY_DETECTION"));
-	_txtTotal->setText("");
+	// _txtTitle->setText(tr("STR_BIDS_CATEGORY_DETECTION"));
+	// _txtTotal->setText("");
 
-	if (_tabCapabilities->getPressed())
-	{
-		subcategoryBaseCamouflage();
-		subcategoryUfoDetection();
-		subcategoryAlienBaseDetection();
-	}
-	else
-	{
-		subcategoryForbiddenFacilities();
-	}
-	// subcat detection related facilities not able to be build due to missing requirements.
+	// if (_tabRequirements->getPressed())
+	// {
+	// }
+	// else
+	// {
+	// }
 
-	updateList(); //2024
+	subcategoryBlockedByCountry();
+	subcategoryBlockedByRegion();
+	subcategoryBlockedByFacilities();
+	subcategoryBlockedByRequiredItems();
+	subcategoryBlockedByFunds();
 }
 
 /**
- * Setup and add base camouflage to `_details` vector.
- *
- * Camouflage is the chance of staying undetected (per 10 minute time interval).
- * A value that feels a bit less technical/cheaty, even though it is not.
- *
- * @remark
- * Ruleset variables: `mind`, `mindPower` and `size` (or `sizeX`and`sizeY`).
- *
- * @note
- * Uses +/- as hint for player that adding/subtracting percentages
- * is viable in this situation.
- *
- * @remark
- * One could argue it should be part of defense category,
- * you can't target what you can't detect.
- * It is listed here since this screen is expected to have less subcategories.
- *
- * @remark
- * See: `Base::getDetectionChance()` for reference formula.
- * + Lowest possible camouflage value is 79% (pretty high).
- * + Could lead to a false sense of security if one is not aware that
- *   check runs in 10 minute intervals.
- *   Hence one might argue it is better not to show this sub-category at all.
+ * Setup and add "blocked by country" to `_details` vector.
  */
-void BaseInfoDetailsState::subcategoryBaseCamouflage()
+void BuildFacilitiesDetailsState::subcategoryBlockedByCountry()
 {
+	size_t parentId = _details.size();
+	std::string description;
+	BeanCounter bean;
 	std::vector<BeanCounter> subCategory;
-	size_t childId, parentId = _details.size(); // `childId` is set later.
-	BeanCounter row;
 
-	// Sub category header (a.k.a. subtotal).
-	row = {parentId, parentId, tr("STR_BIDS_TITLE_CAMOUFLAGE"), 0, 0, true};
-	subCategory.push_back(row);
-
-	// A base must contain at least 1 facility, hence next child always exist.
-	childId = subCategory.size() + parentId;
-	row = {childId, parentId, tr("STR_BIDS_DETAIL_CAMOUFLAGE_BASE_SIZE"), 0, 0, false};
-	subCategory.push_back(row);
-
-	int totalFacilityAmount = 0;
-	int totalFacilitySize = 0;
-	int totalMindPower = 0;
-	for (auto facility : *_base->getFacilities())
+	if (_countryRule)
 	{
-		// Skip buildings under construction (unless we demand their inclusion).
-		if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
-			continue;
+		description = tr("STR_BFDS_BLOCKER_BY_COUNTRY")
+			.arg(tr(_countryRule->getType()));
+		bean = {0, parentId, description , 0, 0, true};
+		subCategory.push_back(bean);
 
-		// Contribution due to base size in grid units.
-		totalFacilityAmount++;
-		totalFacilitySize += facility->getRules()->getSizeX() * facility->getRules()->getSizeY();
-
-		if (facility->getRules()->isMindShield())
+		if ((_countryRule->getForbiddenBaseFunc() & _providedFacFunc).any())
 		{
-			int currentMindPower = 0;
-			std::string description;
-			std::string valueOverride = "";
-			if (facility->getDisabled())
-			{
-				description = tr("STR_BIDS_DETAIL_DISABLED_MINDSHIELD").arg(tr(facility->getRules()->getType()));
-				valueOverride = "---";
-			}
-			else
-			{
-				description = tr(facility->getRules()->getType());
-				currentMindPower = facility->getRules()->getMindShieldPower();
-				totalMindPower += currentMindPower;
-			}
-
-			childId = subCategory.size() + parentId;
-			row = {childId, parentId, description ,1 , currentMindPower, false};
-			row.valueOverride = valueOverride;
-			add2vector(subCategory, row);
+			description = tr("STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_BY_COUNTRY")
+				.arg(tr(_countryRule->getType()));
+			bean = {0, parentId, description , 0, 0, false};
+			subCategory.push_back(bean);
 		}
+		if ((_countryRule->getProvidedBaseFunc() & _forbiddenFacFunc).any())
+		{
+			description = tr("STR_BFDS_BLOCKER_DETAIL_NOT_COMPATIBLE_WITH_COUNTRY")
+				.arg(tr(_countryRule->getType()));
+			bean = {0, parentId, description , 0, 0, false};
+			subCategory.push_back(bean);
+		}
+		// Service only provided by some another country.
+		if ((_countriesOnlyServices & _requiredFacFunc & ~_countryRule->getProvidedBaseFunc()).any())
+		{
+			description = tr("STR_BFDS_BLOCKER_DETAIL_MISSING_SERVICE_COUNTRY")
+				.arg(tr(_countryRule->getType()));
+			bean = {0, parentId, description , 0, 0, false};
+			subCategory.push_back(bean);
+		}
+		add2_detailsVector(subCategory);
 	}
-
-	// Multiple unique mind shields (with unique `mindPower`) might exist.
-	std::vector<std::pair<size_t, int>> shieldTypes;
-	for (auto element : subCategory)
+	else if ((_countriesOnlyServices & _requiredFacFunc).any())
 	{
-		// At this point only active mindShields can have `.baseValue > 0`.
-		if (element.baseValue == 0) continue;
-
-		shieldTypes.push_back(std::make_pair(element.childId, element.amount * element.baseValue));
-	}
-
-	// Apply field overrides where necessary.
-	// Some behind the scenes calculations depend on fractional values.
-	float detectionP = (totalFacilitySize/6.0 + 15)/(totalMindPower + 1.0);
-	float baseSizeEffectP = 15.0 + (totalFacilitySize / 6.0); // Effect on detectionP as if no mindshields are present.
-	for (auto &element : subCategory)
-	{
-		if (element.childId == element.parentId)
-		{
-			// Internal game functionality uses integer math for Pdetection.
-			// We want to display Pcamouflage (= 100 - Pdetection).
-			element.valueOverride = Unicode::formatPercentage(100 - std::trunc(detectionP));
-			element.amount = totalFacilityAmount;
-		}
-		else if (element.childId == element.parentId + 1)
-		{
-			element.amount = totalFacilityAmount;
-			element.valueOverride = Unicode::formatPercentage(100 - std::trunc(baseSizeEffectP));
-		}
-		else if (element.baseValue == 0) // or (element.valueOverride == "---")
-		{
-			// Do nothing
-		}
-		else
-		{
-			// Effect of mindshield depends on base size.
-			// For this screen it is chosen to display contribution
-			// to camouflage/detection counteracting the effect of base size.
-			// Pdetection = Pbase_size - Ptotal_mindshield
-			//
-			// For each unique shield type we want to show it's contribution.
-			// Ptotal_mindshield = Pmindshield1 + Pmindshield2 + ... + PmindshieldN
-			//
-			// We know that Ptotal_mindshield = F(totalMindPower)
-			// For this screen we now assume it is valid to say:
-			// Pmindshield1 = Ptotal_mindshield * mindPower1/totalMindPower
-			float mindShieldP = detectionP - baseSizeEffectP;
-			int currentPower = 0;
-			int totalPower = 0;
-			for (auto shield : shieldTypes)
-			{
-				if (shield.first == element.childId)
-				{
-					currentPower = shield.second;
-				}
-				totalPower += shield.second;
-			}
-			// Effect on camouflage is -1 * effect on detection.
-			float valueOverride = -1 * mindShieldP * currentPower / std::max(1, totalPower);
-			element.valueOverride = Unicode::formatPercentage(std::round(valueOverride), true);
-		}
-	}
-
-	// Prefer alphabetical listing of named facilities.
-	sortChildrenByDescription(subCategory);
-	add2screenList(subCategory);
-
-	// TRIVIA:
-	// If total 'mindpower' >= 21 base cannot be found by UFO's, due to integer math.
-}
-
-/**
- * Setup and add UFO detection capabilities to `_details` vector.
- *
- * + The (per range limit) probability of detection.
- * + The (per range limit) HyperWave/Transmission Resolver functionality.
- *
- * @remark
- * Ruleset variables: `radarRange`, `radarChance` and `hyper`.
- *
- * @note
- * Each range based subtotal shows the combined probability
- * of all facilities contributing to that range.
- *
- * @remark
- * Detection probability = (1- chance_of_not_detecting)^no_of_facilities_participating
- */
-void BaseInfoDetailsState::subcategoryUfoDetection()
-{
-	// Intention is to show detection chance per unique range.
-	int hyperMaxRange = 0;
-	std::set<int> radarRanges;
-	for (auto *facility : *_base->getFacilities())
-	{
-		if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
-			continue;
-
-		if (facility->getRules()->getRadarRange() == 0)
-			continue;
-
-		int currentRange = facility->getRules()->getRadarRange();
-		if (facility->getRules()->isHyperwave() && currentRange > hyperMaxRange)
-		{
-			hyperMaxRange = currentRange;
-		}
-		radarRanges.insert(currentRange);
-	}
-
-	// Ufo detection per range limit.
-	for (auto detectionRange : radarRanges)
-	{
-		std::vector<BeanCounter> subCategory;
-		size_t childId, parentId = _details.size(); // `childId` is set later.
-		BeanCounter row;
-		std::string description;
-
-		// Sub category header (a.k.a. subtotal).
-		if (detectionRange <= hyperMaxRange)
-		{
-			description = tr("STR_BIDS_TITLE_UFO_DETECTION_HYPERWAVE").arg(detectionRange);
-		}
-		else
-		{
-			description = tr("STR_BIDS_TITLE_UFO_DETECTION_RADAR").arg(detectionRange);
-		}
-		row = {parentId, parentId, description, 0, 0, true};
-		subCategory.push_back(row);
-
-		for (auto *facility : *_base->getFacilities())
-		{
-			if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
-				continue;
-
-			if (facility->getRules()->getRadarRange() < detectionRange)
-				continue;
-
-			// Facility detection chance
-			int detectionChance = facility->getRules()->getRadarChance();
-			if (facility->getRules()->isHyperwave())
-			{
-				description = tr("STR_BIDS_DETAIL_UFO_DETECTION_HYPERWAVE").arg(tr(facility->getRules()->getType()));
-			}
-			else
-			{
-				description = tr(facility->getRules()->getType());
-			}
-			childId = subCategory.size() + parentId;
-			row = {childId, parentId, description , 1, detectionChance, false};
-			add2vector(subCategory, row);
-		}
-
-		// Apply field overrides where necessary.
-		for (auto &element : subCategory)
-		{
-			float detectionChance = 0.0;
-			if (element.childId == element.parentId)
-			{
-				detectionChance = calcProbabilityAtLeastOne(subCategory);
-				element.amount = countContributingFacilities(subCategory);
-			}
-			else if (element.baseValue == 0)
-			{
-				// "0" is a valid detection chance for a hyperwave that only tracks.
-			}
-			else
-			{
-				detectionChance = calcProbabilityAtLeastOne(element.baseValue, element.amount);
-			}
-			element.valueOverride = Unicode::formatPercentage(std::round(100*detectionChance));
-		}
-
-		// Prefer alphabetical listing of named facilities.
-		sortChildrenByDescription(subCategory);
-		add2screenList(subCategory);
+		// Base is not build inside a country.
+		description = tr("STR_BFDS_BLOCKER_NO_COUNTRY_MISSING_SERVICE");
+		bean = {0, parentId, description , 0, 0, true};
+		subCategory.push_back(bean);
+		add2_detailsVector(subCategory, true);
 	}
 }
 
 /**
- * Setup and add alien base detection capabilities to `_details` vector.
- *
- * The (per range limit) probability of detection.
- *
- * @remark
- * Ruleset variables: `sightRange`, `sightChance`.
- *
- * @note
- * Each range based subtotal shows the combined probability
- * of all facilities contributing to that range.
- *
- * @remark
- * Detection probability = (1- chance_of_not_detecting)^no_of_facilities_participating
- * If dynamic detection use 2 ranges @100%ofRange (chance is 0%) and @50%ofRange (chance is 50%)
- *
- * @remark
- * Not sure about this one: one could argue it should be a hidden stat.
+ * Setup and add "blocked by region" to `_details` vector.
  */
-void BaseInfoDetailsState::subcategoryAlienBaseDetection()
+void BuildFacilitiesDetailsState::subcategoryBlockedByRegion()
 {
-	// Intention is to show chance per unique sight range.
-	std::set<int> sightRanges;
-	for (auto *facility : *_base->getFacilities())
+	size_t parentId = _details.size();
+	std::string description;
+	BeanCounter bean;
+	std::vector<BeanCounter> subCategory;
+
+	if (_regionRule)
 	{
-		if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
-			continue;
+		description = tr("STR_BFDS_BLOCKER_BY_REGION")
+			.arg(tr(_regionRule->getType()));
+		bean = {0, parentId, description , 0, 0, true};
+		subCategory.push_back(bean);
 
-		if (facility->getRules()->getSightRange() == 0)
-			continue;
-
-		int sightRange = facility->getRules()->getSightRange();
-		sightRanges.insert(sightRange);
-		// For dynamic ranges the chance at max range chance = 0%
-		// No need for adding extra ranges to help player deduce.
-		// A facility showing "0%" at max range should suffice.
+		if ((_regionRule->getForbiddenBaseFunc() & _providedFacFunc).any())
+		{
+			description = tr("STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_BY_REGION")
+				.arg(tr(_regionRule->getType()));
+			bean = {0, parentId, description , 0, 0, false};
+			subCategory.push_back(bean);
+		}
+		if ((_regionRule->getProvidedBaseFunc() & _forbiddenFacFunc).any())
+		{
+			description = tr("STR_BFDS_BLOCKER_DETAIL_NOT_COMPATIBLE_WITH_REGION")
+				.arg(tr(_regionRule->getType()));
+			bean = {0, parentId, description , 0, 0, false};
+			subCategory.push_back(bean);
+		}
+		// Service only provided by some another country.
+		if ((_regionsOnlyServices & _requiredFacFunc & ~_regionRule->getProvidedBaseFunc()).any())
+		{
+			description = tr("STR_BFDS_BLOCKER_DETAIL_MISSING_SERVICE_REGION")
+				.arg(tr(_regionRule->getType()));
+			bean = {0, parentId, description , 0, 0, false};
+			subCategory.push_back(bean);
+		}
+		add2_detailsVector(subCategory);
 	}
-
-	// Alien base detection per range limit.
-	for (auto detectionRange : sightRanges)
+	else if ((_regionsOnlyServices & _requiredFacFunc).any())
 	{
-		std::vector<BeanCounter> subCategory;
-		size_t childId, parentId = _details.size(); // `childId` is set later.
-		BeanCounter row;
-		std::string description;
-
-		// Sub category header (a.k.a. subtotal).
-		description = tr("STR_BIDS_TITLE_ALIEN_BASE_DETECTION").arg(detectionRange);
-		row = {parentId, parentId, description, 0, 0, true};
-		subCategory.push_back(row);
-
-		for (auto *facility : *_base->getFacilities())
-		{
-			if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
-				continue;
-
-			if (facility->getRules()->getSightRange() < detectionRange)
-				continue;
-
-			// Facility detection chance
-			int detectionChance = facility->getRules()->getSightChance();
-			if (detectionChance == 0)
-			{
-				// Dynamic, e.g. 0%-50% based on distance.
-				// Formula from `GeoscapeState::time1Day()`:
-				// `chanceToDetect = 50 - (distance * 50 / facility->getRules()->getSightRange())`
-				// For this subroutine we can use: distance = `detectionRange`.
-				detectionChance = 50 - (detectionRange * 50) / facility->getRules()->getSightRange();
-			}
-			childId = subCategory.size() + parentId;
-			description = tr(facility->getRules()->getType());
-			row = {childId, parentId, description , 1, detectionChance, false};
-			add2vector(subCategory, row);
-		}
-
-		// Apply field overrides where necessary.
-		for (auto &element : subCategory)
-		{
-			float detectionChance = 0.0;
-			if (element.childId == element.parentId)
-			{
-				detectionChance = calcProbabilityAtLeastOne(subCategory);
-				element.amount = countContributingFacilities(subCategory);
-			}
-			else
-			{
-				detectionChance = calcProbabilityAtLeastOne(element.baseValue, element.amount);
-			}
-			element.valueOverride = Unicode::formatPercentage(std::round(100*detectionChance));
-		}
-
-		// Prefer alphabetical listing of named facilities.
-		sortChildrenByDescription(subCategory);
-		add2screenList(subCategory);
+		// Base is not build inside a region.
+		description = tr("STR_BFDS_BLOCKER_NO_REGION_MISSING_SERVICE");
+		bean = {0, parentId, description , 0, 0, true};
+		subCategory.push_back(bean);
+		add2_detailsVector(subCategory, true);
 	}
 }
 
 /**
- * Setup and add list of current category facilities forbidden from being build.
+ * Setup and add "blocked by existing facilities" to `_details` vector.
  */
-void BaseInfoDetailsState::subcategoryForbiddenFacilities()
+void BuildFacilitiesDetailsState::subcategoryBlockedByFacilities()
 {
-	for (auto forbiddenFacilityRule : _forbiddenFacilities)
+	size_t parentId = 0; // Will be set later.
+	std::string description;
+	BeanCounter bean;
+	std::vector<BeanCounter> subCategory;
+
+	for (auto& baseFac : _baseFacilitiesAndCount)
 	{
-		std::vector<BeanCounter> subCategory;
-		size_t childId, parentId = _details.size(); // `childId` is set later.
-		BeanCounter row;
-		std::string description;
-		RuleBaseFacilityFunctions req = forbiddenFacilityRule->getRequireBaseFunc();
-		RuleBaseFacilityFunctions forb = forbiddenFacilityRule->getForbiddenBaseFunc();
-		RuleBaseFacilityFunctions prov = forbiddenFacilityRule->getProvidedBaseFunc();
+		parentId = _details.size();
+		description = tr("STR_BFDS_BLOCKER_BY_FACILITY")
+			.arg(tr(baseFac.first->getType()));
+		bean = {0, parentId, description , 0, 0, true};
+		subCategory.push_back(bean);
 
-		// Sub category header (a.k.a. subtotal).
-		description = tr("STR_BIDS_TITLE_FORBIDDEN_FACILITY").arg(tr(forbiddenFacilityRule->getType()));
-		row = {parentId, parentId, description, 0, 0, true};
-		subCategory.push_back(row);
-
-		if (_baseCountry && (_baseCountry->getRules()->getForbiddenBaseFunc() & prov).any())
+		bool canRenovate = _facRuleSelected->getCanBuildOverOtherFacility(baseFac.first) == BPE_None;
+		if (baseFac.first == _facRuleSelected && _facRuleSelected->getMaxAllowedPerBase() > 0 &&
+			baseFac.second >= _facRuleSelected->getMaxAllowedPerBase())
 		{
-			description = tr("STR_BIDS_DETAIL_FORBIDDEN_BY_COUNTRY").arg(tr(_baseCountry->getRules()->getType()));
-			childId = subCategory.size() + parentId;
-			row = {childId, parentId, description , 0, 0, false};
-			add2vector(subCategory, row);
+			description = tr("STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_BY_AMOUNT")
+				.arg(_facRuleSelected->getMaxAllowedPerBase())
+				.arg(baseFac.second);
+			bean = {0, parentId, description , baseFac.second, 1, false};
+			// Can always be solved.
+			// No need to tell player, since it involves:
+			// * Removal of existing facility and rebuild.
+			// * Renovation of existing facility with same one.
+			// A Great way to burn money, nothing more.
+			subCategory.push_back(bean);
 		}
-		if (_baseRegion && (_baseRegion->getRules()->getForbiddenBaseFunc() & prov).any())
+		if ((baseFac.first->getForbiddenBaseFunc() & _providedFacFunc).any())
 		{
-			description = tr("STR_BIDS_DETAIL_FORBIDDEN_BY_REGION").arg(tr(_baseRegion->getRules()->getType()));
-			childId = subCategory.size() + parentId;
-			row = {childId, parentId, description , 0, 0, false};
-			add2vector(subCategory, row);
+			description = tr("STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_SERVICE_BY_EXISTING")
+				.arg(tr(_facRuleSelected->getType()));
+			bean = {0, parentId, description , 0, 1, false};
+			subCategory.push_back(bean);
 		}
-		if (_base->isMaxAllowedLimitReached(forbiddenFacilityRule))
+		if ((baseFac.first->getProvidedBaseFunc() & _forbiddenFacFunc).any())
 		{
-			int amountPresent = 0;
-			for (auto facility : *_base->getFacilities())
-			{
-				// Internal calculation does not exclude buildings under construction.
-				amountPresent += facility->getRules() == forbiddenFacilityRule; // Implicit conversion bool->int
-			}
-
-			description = tr("STR_BIDS_DETAIL_FORBIDDEN_BY_AMOUNT")
-				.arg(forbiddenFacilityRule->getMaxAllowedPerBase())
-				.arg(amountPresent);
-			childId = subCategory.size() + parentId;
-			row = {childId, parentId, description , 0, 0, false};
-			add2vector(subCategory, row);
+			description = tr("STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_SERVICE_BY_NEW")
+				.arg(tr(_facRuleSelected->getType()));
+			bean = {0, parentId, description , 0, 1, false};
+			subCategory.push_back(bean);
 		}
-		// Ensure anything added up to now is listed above facility services based blockers.
-		size_t skipSort = subCategory.size() - 1;
-
-		for (auto facility : *_base->getFacilities())
+		// Only include possible workaround if there is an actual error.
+		// No need to list itself, renovation has no added value.
+		if (canRenovate && subCategory.size() > 1 && baseFac.first != _facRuleSelected)
 		{
-			if ((facility->getRules()->getForbiddenBaseFunc() & prov).any())
-			{
-				description = tr("STR_BIDS_DETAIL_FORBIDDEN_SERVICE_BY_EXISTING")
-					.arg(tr(facility->getRules()->getType()));
-				childId = subCategory.size() + parentId;
-				row = {childId, parentId, description , 0, 0, false};
-
-				// Can problem be solved by building over respective facility?
-				// Based on: `BaseView::getPlacementError()`.
-				if (forbiddenFacilityRule->getCanBuildOverOtherFacility(facility->getRules()) == BPE_None)
-				{
-					// We are only interested on 'service' blockers
-					// Any size/intersection mismatch is part of placement algorithm.
-					row.valueOverride = tr("STR_BIDS_DETAIL_FORBIDDEN_RENOVATION_ALLOWED");
-				}
-				add2vector(subCategory, row);
-			}
-			if ((facility->getRules()->getProvidedBaseFunc() & forb).any())
-			{
-				description = tr("STR_BIDS_DETAIL_FORBIDDEN_SERVICE_BY_NEW")
-					.arg(tr(facility->getRules()->getType()));
-				childId = subCategory.size() + parentId;
-				row = {childId, parentId, description , 0, 0, false};
-
-				// Can problem be solved by building over respective facility?
-				// Based on: `BaseView::getPlacementError()`.
-				if (forbiddenFacilityRule->getCanBuildOverOtherFacility(facility->getRules()) == BPE_None)
-				{
-					// We are only interested on 'service' blockers
-					// Any size/intersection mismatch is part of placement algorithm.
-					row.valueOverride = tr("STR_BIDS_DETAIL_FORBIDDEN_RENOVATION_ALLOWED");
-				}
-				add2vector(subCategory, row);
-			}
+			description = tr("STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_RENOVATION_ALLOWED");
+			bean = {0, parentId, description , 0, 1, false};
+			subCategory.push_back(bean);
 		}
-
-
-		// Prefer alphabetical listing of named facilities.
-		sortChildrenByDescription(subCategory, skipSort);
-		// Always show forbidden facilities even if we cannot determine reason.
-		add2screenList(subCategory, true);
+		add2_detailsVector(subCategory);
+		subCategory.clear();
 	}
-
-	// @note
-	// Does not take `buildOverFacilities` into account.
-		// At list create time:
-		// If a facility is blocked but can build over: do not list it?
-		// Or add a "can build over row" (replace only)
-
-		// headers
-		// Cannot build $FAC: missing service
-		//	$FAC missing	#	Service
-		//  || None discovered yet.
-		// Cannot build $FAC: blocked service
-		//	$FAC blocking	#	Service
-		//	$FAC buildover	#	Renovation allowed
-
 }
+
+/**
+ * Setup and add "blocked by existing facilities" to `_details` vector.
+ */
+void BuildFacilitiesDetailsState::subcategoryBlockedByRequiredItems()
+{
+	if (_facRuleSelected->getBuildCostItems().empty()) return;
+
+	size_t parentId = _details.size();
+	std::string description;
+	BeanCounter bean;
+	std::vector<BeanCounter> subCategory;
+
+	description = tr("STR_BFDS_BLOCKER_BY_ITEMS");
+	bean = {0, parentId, description , 0, 0, true};
+	subCategory.push_back(bean);
+
+	// Start by listing all missing items
+	std::map<const std::string, int> missingItems;
+	for (auto& item : _facRuleSelected->getBuildCostItems())
+	{
+		int needed = item.second.first - _base->getItemCountStorage(item.first);
+		if (needed <= 0) continue;
+
+		description = tr("STR_BFDS_BLOCKER_DETAIL_MISSING_ITEMS_AMOUNT")
+			.arg(needed)
+			.arg(tr(item.first));
+		bean = {0, parentId, description , 0, 1, false};
+		subCategory.push_back(bean);
+
+		missingItems.insert(std::make_pair(item.first, needed));
+	}
+	// List all facilities where renovation solves missing items.
+	// Not considering if a facility might be queued:
+	// + Would easily lead to false expectations if workaround
+	//   is only valid for queued facilities.
+	for (auto& baseFac : _baseFacilitiesAndCount)
+	{
+		if (missingItems.empty()) break; // Loop has no value, this trick reduces indentation.
+		// No need to list itself, renovation has no added value.
+		if (baseFac.first == _facRuleSelected) continue;
+
+		bool canFix = _facRuleSelected->getCanBuildOverOtherFacility(baseFac.first) == BPE_None;
+		auto& buildCosts = baseFac.first->getBuildCostItems();
+		for (auto& item : missingItems)
+		{
+			if (canFix == false) break;
+			
+			if (auto search = buildCosts.find(item.first); search != buildCosts.end())
+			{
+				canFix &= search->second.second >= item.second; // Refund value bigger than missing
+			}
+			else
+			{
+				canFix = false;
+			}
+		}
+		if (canFix)
+		{
+			description = tr("STR_BFDS_BLOCKER_DETAIL_MISSING_ITEMS_RENOVATION_ALLOWED")
+				.arg(tr(baseFac.first->getType()));
+			bean = {0, parentId, description , 0, 1, false};
+			subCategory.push_back(bean);
+		}
+	}
+	add2_detailsVector(subCategory);
+}
+
+
+/**
+ * Setup and add "blocked by existing facilities" to `_details` vector.
+ */
+void BuildFacilitiesDetailsState::subcategoryBlockedByFunds()
+{
+	int missingFunds = _facRuleSelected->getBuildCost() - _game->getSavedGame()->getFunds();
+	if (missingFunds <= 0)
+		return;
+	
+	size_t parentId = _details.size();
+	std::string description;
+	BeanCounter bean;
+	std::vector<BeanCounter> subCategory;
+
+	description = tr("STR_BFDS_BLOCKER_BY_FUNDS");
+	bean = {0, parentId, description , 0, 0, true};
+	subCategory.push_back(bean);
+
+	description = tr("STR_BFDS_BLOCKER_DETAIL_MISSING_FUNDS")
+		.arg(Unicode::formatFunding(missingFunds));
+	bean = {0, parentId, description , 0, 1, false};
+	subCategory.push_back(bean);
+
+	add2_detailsVector(subCategory);
+}
+
+// SOME old snippet
+// {
+// 	// Prefer alphabetical listing of named facilities.
+// 	sortChildrenByDescription(subCategory);
+// 	add2_detailsVector(subCategory);
+
+// 	// TRIVIA:
+// 	// If total 'mindpower' >= 21 base cannot be found by UFO's, due to integer math.
+// }
+
+// /**
+//  * Setup and add UFO detection capabilities to `_details` vector.
+//  *
+//  * + The (per range limit) probability of detection.
+//  * + The (per range limit) HyperWave/Transmission Resolver functionality.
+//  *
+//  * @remark
+//  * Ruleset variables: `radarRange`, `radarChance` and `hyper`.
+//  *
+//  * @note
+//  * Each range based subtotal shows the combined probability
+//  * of all facilities contributing to that range.
+//  *
+//  * @remark
+//  * Detection probability = (1- chance_of_not_detecting)^no_of_facilities_participating
+//  */
+// void BaseInfoDetailsState::subcategoryUfoDetection()
+// {
+// 	// Intention is to show detection chance per unique range.
+// 	int hyperMaxRange = 0;
+// 	std::set<int> radarRanges;
+// 	for (auto *facility : *_base->getFacilities())
+// 	{
+// 		if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
+// 			continue;
+
+// 		if (facility->getRules()->getRadarRange() == 0)
+// 			continue;
+
+// 		int currentRange = facility->getRules()->getRadarRange();
+// 		if (facility->getRules()->isHyperwave() && currentRange > hyperMaxRange)
+// 		{
+// 			hyperMaxRange = currentRange;
+// 		}
+// 		radarRanges.insert(currentRange);
+// 	}
+
+// 	// Ufo detection per range limit.
+// 	for (auto detectionRange : radarRanges)
+// 	{
+// 		std::vector<BeanCounter> subCategory;
+// 		size_t childId, parentId = _details.size(); // `childId` is set later.
+// 		BeanCounter row;
+// 		std::string description;
+
+// 		// Sub category header (a.k.a. subtotal).
+// 		if (detectionRange <= hyperMaxRange)
+// 		{
+// 			description = tr("STR_BIDS_TITLE_UFO_DETECTION_HYPERWAVE").arg(detectionRange);
+// 		}
+// 		else
+// 		{
+// 			description = tr("STR_BIDS_TITLE_UFO_DETECTION_RADAR").arg(detectionRange);
+// 		}
+// 		row = {parentId, parentId, description, 0, 0, true};
+// 		subCategory.push_back(row);
+
+// 		for (auto *facility : *_base->getFacilities())
+// 		{
+// 			if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
+// 				continue;
+
+// 			if (facility->getRules()->getRadarRange() < detectionRange)
+// 				continue;
+
+// 			// Facility detection chance
+// 			int detectionChance = facility->getRules()->getRadarChance();
+// 			if (facility->getRules()->isHyperwave())
+// 			{
+// 				description = tr("STR_BIDS_DETAIL_UFO_DETECTION_HYPERWAVE").arg(tr(facility->getRules()->getType()));
+// 			}
+// 			else
+// 			{
+// 				description = tr(facility->getRules()->getType());
+// 			}
+// 			childId = subCategory.size() + parentId;
+// 			row = {childId, parentId, description , 1, detectionChance, false};
+// 			add2vector(subCategory, row);
+// 		}
+
+// 		// Apply field overrides where necessary.
+// 		for (auto &element : subCategory)
+// 		{
+// 			float detectionChance = 0.0;
+// 			if (element.childId == element.parentId)
+// 			{
+// 				detectionChance = calcProbabilityAtLeastOne(subCategory);
+// 				element.amount = countContributingFacilities(subCategory);
+// 			}
+// 			else if (element.baseValue == 0)
+// 			{
+// 				// "0" is a valid detection chance for a hyperwave that only tracks.
+// 			}
+// 			else
+// 			{
+// 				detectionChance = calcProbabilityAtLeastOne(element.baseValue, element.amount);
+// 			}
+// 			element.valueOverride = Unicode::formatPercentage(std::round(100*detectionChance));
+// 		}
+
+// 		// Prefer alphabetical listing of named facilities.
+// 		sortChildrenByDescription(subCategory);
+// 		add2_detailsVector(subCategory);
+// 	}
+// }
+
+// /**
+//  * Setup and add alien base detection capabilities to `_details` vector.
+//  *
+//  * The (per range limit) probability of detection.
+//  *
+//  * @remark
+//  * Ruleset variables: `sightRange`, `sightChance`.
+//  *
+//  * @note
+//  * Each range based subtotal shows the combined probability
+//  * of all facilities contributing to that range.
+//  *
+//  * @remark
+//  * Detection probability = (1- chance_of_not_detecting)^no_of_facilities_participating
+//  * If dynamic detection use 2 ranges @100%ofRange (chance is 0%) and @50%ofRange (chance is 50%)
+//  *
+//  * @remark
+//  * Not sure about this one: one could argue it should be a hidden stat.
+//  */
+// void BaseInfoDetailsState::subcategoryAlienBaseDetection()
+// {
+// 	// Intention is to show chance per unique sight range.
+// 	std::set<int> sightRanges;
+// 	for (auto *facility : *_base->getFacilities())
+// 	{
+// 		if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
+// 			continue;
+
+// 		if (facility->getRules()->getSightRange() == 0)
+// 			continue;
+
+// 		int sightRange = facility->getRules()->getSightRange();
+// 		sightRanges.insert(sightRange);
+// 		// For dynamic ranges the chance at max range chance = 0%
+// 		// No need for adding extra ranges to help player deduce.
+// 		// A facility showing "0%" at max range should suffice.
+// 	}
+
+// 	// Alien base detection per range limit.
+// 	for (auto detectionRange : sightRanges)
+// 	{
+// 		std::vector<BeanCounter> subCategory;
+// 		size_t childId, parentId = _details.size(); // `childId` is set later.
+// 		BeanCounter row;
+// 		std::string description;
+
+// 		// Sub category header (a.k.a. subtotal).
+// 		description = tr("STR_BIDS_TITLE_ALIEN_BASE_DETECTION").arg(detectionRange);
+// 		row = {parentId, parentId, description, 0, 0, true};
+// 		subCategory.push_back(row);
+
+// 		for (auto *facility : *_base->getFacilities())
+// 		{
+// 			if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
+// 				continue;
+
+// 			if (facility->getRules()->getSightRange() < detectionRange)
+// 				continue;
+
+// 			// Facility detection chance
+// 			int detectionChance = facility->getRules()->getSightChance();
+// 			if (detectionChance == 0)
+// 			{
+// 				// Dynamic, e.g. 0%-50% based on distance.
+// 				// Formula from `GeoscapeState::time1Day()`:
+// 				// `chanceToDetect = 50 - (distance * 50 / facility->getRules()->getSightRange())`
+// 				// For this subroutine we can use: distance = `detectionRange`.
+// 				detectionChance = 50 - (detectionRange * 50) / facility->getRules()->getSightRange();
+// 			}
+// 			childId = subCategory.size() + parentId;
+// 			description = tr(facility->getRules()->getType());
+// 			row = {childId, parentId, description , 1, detectionChance, false};
+// 			add2vector(subCategory, row);
+// 		}
+
+// 		// Apply field overrides where necessary.
+// 		for (auto &element : subCategory)
+// 		{
+// 			float detectionChance = 0.0;
+// 			if (element.childId == element.parentId)
+// 			{
+// 				detectionChance = calcProbabilityAtLeastOne(subCategory);
+// 				element.amount = countContributingFacilities(subCategory);
+// 			}
+// 			else
+// 			{
+// 				detectionChance = calcProbabilityAtLeastOne(element.baseValue, element.amount);
+// 			}
+// 			element.valueOverride = Unicode::formatPercentage(std::round(100*detectionChance));
+// 		}
+
+// 		// Prefer alphabetical listing of named facilities.
+// 		sortChildrenByDescription(subCategory);
+// 		add2_detailsVector(subCategory);
+// 	}
+// }
+
+
 
 /**
 * Draw (en filter) the current details list.
 */
-void BaseInfoDetailsState::updateList()
+void BuildFacilitiesDetailsState::updateList()
 {
 	_lstDetails->clearList();
 	_rows.clear();
 
 	if (_details.size() == 0)
 	{
-		BeanCounter row = {0, 0, tr("STR_BIDS_EMPTY_LIST"), 0, 0, true};
-		_details.push_back(row);
+		_lstDetails->addRow(2, tr("STR_EMPTY_LIST").c_str(), "");
+		_rows.push_back(0);
+		_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), _lstDetails->getSecondaryColor());
+		return;
 	}
 
+	auto colorPrimary = _lstDetails->getColor();
+	auto colorSecondary = _lstDetails->getSecondaryColor();
+	auto colorTertiary = _lstDetails->getScrollbarColor();
+	//auto colorTertiary = _game->getMod()->getInterface("buildFacilitiesDetails")->getElement("list")->border;
 	for (size_t i = 0; i < _details.size(); ++i)
 	{
-		// Filter
 		if (!_details[i].isRowVisible) continue;
 
 		std::string description = _details[i].description;
 		std::ostringstream ssAmount, ssValue;
 		//bool unconditionallyShowSign = true;
-		if (_details[i].parentId != _details[i].childId) // A child row.
+		if (_details[i].parentId != i) // A child row.
 		{
 			description.insert(0, " "); // Do not use dots for description indentation.
-			ssAmount << tr("STR_DOTTED_INDENTATION");
-			ssValue << tr("STR_DOTTED_INDENTATION");
+			// ssAmount << tr("STR_DOTTED_INDENTATION");
+			// ssValue << tr("STR_DOTTED_INDENTATION");
 			//ssAmount << " ";
 			//ssValue << " ";
 			//unconditionallyShowSign = false;
@@ -958,7 +910,6 @@ void BaseInfoDetailsState::updateList()
 		{
 			ssValue << _details[i].baseValue;
 		}
-		ssAmount << _details[i].amount;
 
 		// // Test for Last column(s) align right
 		// if (_details[i].parentId != _details[i].childId) // A child row.
@@ -972,26 +923,21 @@ void BaseInfoDetailsState::updateList()
 		// }
 		// // End Test
 
-		if (_tabBuildLimitations->getPressed())
+		if (_details[i].parentId != i)
 		{
-			auto originalSecondarycolor = _lstDetails->getSecondaryColor();
-			_lstDetails->setSecondaryColor(_game->getMod()->getInterface("baseInfoDetails")->getElement("list")->border);
+			_lstDetails->setSecondaryColor(colorTertiary);
 			_lstDetails->addRow(2, description.c_str(), ssValue.str().c_str());
-			_lstDetails->setSecondaryColor(originalSecondarycolor);
-		}
-		else if (_details[i].amount > 0)
-		{
-			_lstDetails->addRow(3, description.c_str(), ssAmount.str().c_str(), ssValue.str().c_str());
+			_lstDetails->setSecondaryColor(colorSecondary);
 		}
 		else
 		{
-			_lstDetails->addRow(3, description.c_str(), "", ssValue.str().c_str());
+			_lstDetails->addRow(2, description.c_str(), ssValue.str().c_str());
 		}
 		_rows.push_back(i);
 
-		if(_details[i].parentId == _details[i].childId)
+		if(_details[i].parentId == i)
 		{
-			_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), _lstDetails->getSecondaryColor());
+			_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), colorSecondary);
 			//_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), _game->getMod()->getInterface("baseInfoDetails")->getElement("list")->border);
 		}
 	}
@@ -1062,15 +1008,12 @@ void BaseInfoDetailsState::add2vector(std::vector<BeanCounter> &subCategory, Bea
 /**
 * Adds given subcategory vector to screen's global `_details` vector.
 *
-* @note
-* Only adds if parent has child(ren) otherwise subcategory does not add value.
-*
 * @param subCategory Vector to add to `_details` vector
 * @param forceInclude Include even if parent has no children.
 */
-void BaseInfoDetailsState::add2screenList(std::vector<BeanCounter> &subCategory, bool forceInclude)
+void BuildFacilitiesDetailsState::add2_detailsVector(std::vector<BeanCounter> &subCategory, bool forceInclude)
 {
-	if (subCategory.size() < 2 - (size_t)forceInclude) // `forceInclude` still requires a subtotal.
+	if (subCategory.size() < 2 && !forceInclude)
 		return;
 
 	_details.insert(_details.end(), subCategory.begin(), subCategory.end());

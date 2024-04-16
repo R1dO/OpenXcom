@@ -9,14 +9,15 @@ en-US:
   STR_IS_SMALLER_THAN_ALLOCATED_NUMBER: "< {0}" # {0} is allocated amount.
   STR_FILTER_RESERVED_ITEMS: "Reserved items"
   STR_DOTTED_INDENTATION: ".." # Abuses '..' ~= ' ' and '..' ~= '+' for the default font.
-# BaseInfo/MonthlyCost DetailsState.cpp
+# BaseInfo/MonthlyCost/BuildFacilities - DetailsState.cpp
   STR_FACILITIES: "Facilities"
   STR_SOURCE: "Source"
   STR_INCLUDE_QUEUED_FACILITIES: "Allow under construction"
+  STR_EMPTY_LIST: "Nothing to see here, please move on."
 # BaseInfoDetailsState.cpp
   STR_BIDS_CATEGORY_DETECTION: "Detection and Camouflage"
   STR_BIDS_TAB_CAPABILITIES: "Capabilities"
-  STR_BIDS_TAB_BUILD_LIMITATIONS: "Building Limitations"
+  STR_BIDS_TAB_BUILD_LIMITATIONS: "Build Limitations"
   STR_BIDS_TITLE_CAMOUFLAGE: "Base Camouflage"
   STR_BIDS_DETAIL_CAMOUFLAGE_BASE_SIZE: "Base size"
   STR_BIDS_DETAIL_DISABLED_MINDSHIELD: "{0} (DISABLED)"                     # {0} is facility name.
@@ -24,6 +25,31 @@ en-US:
   STR_BIDS_TITLE_UFO_DETECTION_HYPERWAVE: "UFO hyper-wave detection {0} NM" # Uses ICAO symbol
   STR_BIDS_DETAIL_UFO_DETECTION_HYPERWAVE: "{0} (Hyper Wave)"               # {0} is facility name. TFTD: Transmission resolver.
   STR_BIDS_TITLE_ALIEN_BASE_DETECTION: "Alien Base detection {0} NM"        # Uses ICAO symbol
+# BuildFacilitiesDetailsState.cpp
+  STR_BFDS_TITLE: "{0} construction details" # {0} = facility name.
+  STR_BFDS_TAB_REQUIREMENTS: "Requirements"
+  STR_BFDS_TAB_BLOCKERS: "Blockers"
+  STR_BFDS_SOLVABLE_BY: "Solvable?"
+  STR_BFDS_BLOCKER_BY_COUNTRY: "Cannot be build in {0}"                                            # {0} = country name.
+  STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_BY_COUNTRY: "{0}'s hippies object to this facility"            # {0} = country name.
+  STR_BFDS_BLOCKER_DETAIL_NOT_COMPATIBLE_WITH_COUNTRY: "{0}'s lifestyle scares facility operators" # {0} = country name.
+  STR_BFDS_BLOCKER_DETAIL_MISSING_SERVICE_COUNTRY: "{0} lack necessary infrastructure"             # {0} = country name.
+  STR_BFDS_BLOCKER_NO_COUNTRY_MISSING_SERVICE: "Host country does not have adequate infrastructure"
+  STR_BFDS_BLOCKER_BY_REGION: "Cannot be build in {0}"                                              # {0} = country name.
+  STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_BY_REGION: "{0}'s politicians blacklisted this facility"        # {0} = region name.
+  STR_BFDS_BLOCKER_DETAIL_NOT_COMPATIBLE_WITH_REGION: "{0} is on a sanction list for this facility" # {0} = country name.
+  STR_BFDS_BLOCKER_DETAIL_MISSING_SERVICE_REGION: "{0} has a poorly educated workforce"             # {0} = country name.
+  STR_BFDS_BLOCKER_NO_REGION_MISSING_SERVICE: "Free-spirited region has no skilled craft folk"
+  STR_BFDS_BLOCKER_BY_FACILITY: "Blocked by: {0}"                                                     # {0} = existing facility on base.
+  STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_BY_AMOUNT: "Only {0} allowed, {1} present or being build"         # {0} = max amount, {1} = current amount.
+  STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_SERVICE_BY_EXISTING: "Forbids services provided by {ALT}{0}{ALT}" # {0} = screen facility.
+  STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_SERVICE_BY_NEW: "It's services are forbidden by {ALT}{0}{ALT}"    # {0} = screen facility.
+  STR_BFDS_BLOCKER_DETAIL_FORBIDDEN_RENOVATION_ALLOWED: "Might be solved by renovation (build over)"
+  STR_BFDS_BLOCKER_BY_ITEMS: "Missing required items"                                              # {0} is existing facility.
+  STR_BFDS_BLOCKER_DETAIL_MISSING_ITEMS_AMOUNT: "Missing {0} pieces of {1}"                        # {0} = missing amount, {1} = name of item.
+  STR_BFDS_BLOCKER_DETAIL_MISSING_ITEMS_RENOVATION_ALLOWED: "Might be solved by renovation of {0}" # {0} = name of facility that can be build over.
+  STR_BFDS_BLOCKER_BY_FUNDS: "Not enough funds"               # {0} is existing facility.
+  STR_BFDS_BLOCKER_DETAIL_MISSING_FUNDS: "Missing funds: {0}" #  {0} = missing funds.
 # CraftEquipmentState.cpp
   STR_ITEMS_UC: "ITEMS"
   STR_SPACE_UC: "SPACE"
@@ -59,10 +85,10 @@ en-US:
   R1DO_BASEINFO_DETAILS_SCREENS_DESC: |
     Allow drill down into numbers behind overview.
     For the following screens: BaseInfo & MonthlyCosts
-  R1DO_BUILD_FACILITIES_DETAILS_SCREEN: "DEMO: Activate facility requirements screen"
+  R1DO_BUILD_FACILITIES_DETAILS_SCREEN: "DEMO: Activate build facility details screen"
   R1DO_BUILD_FACILITIES_DETAILS_SCREEN_DESC: |
-    Allows a new base screen that displays any facility requirements.
-    Including reasons why a known facility cannot be build.
+    Screen showing build requirements for a selected facility.
+    Including reasons why said facility cannot be build (if that is the case).
   R1DO_SHOW_ALL_ACTIVE_RADAR_CIRCLES: "DEMO: Show radar circles for all active facilities."
   R1DO_SHOW_ALL_ACTIVE_RADAR_CIRCLES_DESC: |
     Shows a unique radar circle for each radar active on a base.

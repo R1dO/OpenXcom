@@ -18,6 +18,7 @@
  */
 #include <algorithm>
 #include "BuildFacilitiesState.h"
+#include "BuildFacilitiesDetailsState.h"
 #include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Mod/Mod.h"
@@ -81,6 +82,7 @@ BuildFacilitiesState::BuildFacilitiesState(Base *base, State *state) : _base(bas
 	_lstFacilities->setScrolling(true, 0);
 	_lstFacilities->onMouseClick((ActionHandler)&BuildFacilitiesState::lstFacilitiesClick);
 	_lstFacilities->onMouseClick((ActionHandler)&BuildFacilitiesState::lstFacilitiesClick, SDL_BUTTON_MIDDLE);
+	_lstFacilities->onMouseClick((ActionHandler)&BuildFacilitiesState::lstFacilitiesClick, SDL_BUTTON_RIGHT);
 
 }
 
@@ -206,6 +208,18 @@ void BuildFacilitiesState::lstFacilitiesClick(Action *action)
 	{
 		std::string tmp = (index >= _facilities.size()) ? _disabledFacilities[index - _facilities.size()]->getType() : _facilities[index]->getType();
 		Ufopaedia::openArticle(_game, tmp);
+		return;
+	}
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	{
+		if (index >= _facilities.size())
+		{
+			_game->pushState(new BuildFacilitiesDetailsState(_base, BuildFacilitiesDetailsState::Tabs::Blockers));
+		}
+		else
+		{
+			_game->pushState(new BuildFacilitiesDetailsState(_base));
+		}
 		return;
 	}
 
