@@ -527,6 +527,7 @@ void createAdvancedOptionsOTHER()
 	// OTHER options general
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1doReservedAmountBehavior", &r1doReservedAmountBehavior, 0, "R1DO_RESERVED_BEHAVIOR", "STR_GENERAL"));
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1doEnableReverseStatsSearch", &r1doEnableReverseStatsSearch, false, "R1DO_REVERSE_STATS_SEARCH", "STR_GENERAL"));
+	_info.push_back(OptionInfo(OPTION_OTHER, "r1do_enableControlsTooltips", &r1do_enableControlsTooltips, false, "R1DO_ENABLE_CONTROLS_TOOLTIPS", "STR_GENERAL"));
 	// OTHER options basescape
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1do_enableBaseInfoDetailsScreens", &r1do_enableBaseInfoDetailsScreens, false, "R1DO_BASEINFO_DETAILS_SCREENS", "STR_BASESCAPE"));
 	_info.push_back(OptionInfo(OPTION_OTHER, "r1do_enableBuildFacilitiesDetailsScreen", &r1do_enableBuildFacilitiesDetailsScreen, false, "R1DO_BUILD_FACILITIES_DETAILS_SCREEN", "STR_BASESCAPE"));

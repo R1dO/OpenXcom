@@ -52,6 +52,8 @@ BuildFacilitiesState::BuildFacilitiesState(Base *base, State *state) : _base(bas
 	_btnOk = new TextButton(112, 16, 200, 176);
 	_lstFacilities = new TextList(104, 104, 200, 64);
 	_txtTitle = new Text(118, 17, 197, 48);
+	// Going outside the window, want to show it at bottom of screen ... what could possibly go wrong
+	_txtShortcutsTooltip = new Text(320, 10, 0, 190); // For the default font 10 works nice with ALIGN_MIDDLE.
 
 	// Set palette
 	setInterface("selectFacility");
@@ -60,6 +62,7 @@ BuildFacilitiesState::BuildFacilitiesState(Base *base, State *state) : _base(bas
 	add(_btnOk, "button", "selectFacility");
 	add(_txtTitle, "text", "selectFacility");
 	add(_lstFacilities, "list", "selectFacility");
+	add(_txtShortcutsTooltip, "text", "selectFacility");
 
 	centerAllSurfaces();
 
@@ -83,7 +86,18 @@ BuildFacilitiesState::BuildFacilitiesState(Base *base, State *state) : _base(bas
 	_lstFacilities->onMouseClick((ActionHandler)&BuildFacilitiesState::lstFacilitiesClick);
 	_lstFacilities->onMouseClick((ActionHandler)&BuildFacilitiesState::lstFacilitiesClick, SDL_BUTTON_MIDDLE);
 	_lstFacilities->onMouseClick((ActionHandler)&BuildFacilitiesState::lstFacilitiesClick, SDL_BUTTON_RIGHT);
+	_lstFacilities->setTooltip("LMB = place facility, MMB = ufopaedia article, RMB = build details");
+	_lstFacilities->onMouseIn((ActionHandler)&BuildFacilitiesState::showToolTip);
+	_lstFacilities->onMouseOut((ActionHandler)&BuildFacilitiesState::hideToolTip);
 
+	_txtShortcutsTooltip->setText(_lstFacilities->getTooltip());
+	_txtShortcutsTooltip->setVisible(false);
+	_txtShortcutsTooltip->setAlign(ALIGN_CENTER);
+	_txtShortcutsTooltip->setVerticalAlign(ALIGN_MIDDLE); // Want space above without losing pixels on the likes of "p", "q", etc.
+	// Want a black background, simplest is just disabling the alpha.
+	// With the exception of "Backpals.dat" (and possibly user defined ones),
+	// on default palettes index 0 (the transparent one) corresponds to black,
+	SDL_SetColorKey(_txtShortcutsTooltip->getSurface(), SDL_FALSE, 0);
 }
 
 /**
@@ -92,6 +106,24 @@ BuildFacilitiesState::BuildFacilitiesState(Base *base, State *state) : _base(bas
 BuildFacilitiesState::~BuildFacilitiesState()
 {
 
+}
+
+/**
+ *
+ */
+void BuildFacilitiesState::showToolTip(Action *)
+{
+	if (!Options::r1do_enableControlsTooltips) return;
+	_txtShortcutsTooltip->setVisible(true);
+}
+
+/**
+ *
+ */
+void BuildFacilitiesState::hideToolTip(Action *)
+{
+	if (!Options::r1do_enableControlsTooltips) return;
+	_txtShortcutsTooltip->setVisible(false);
 }
 
 /**

@@ -152,6 +152,7 @@ OPT SoundFormat currentSound;
 /////////////////////////////
 // Engine Battlescape
 OPT bool r1doEnableReverseStatsSearch;
+OPT bool r1do_enableControlsTooltips;
 // GUI general
 OPT int r1doReservedAmountBehavior;
 // GUI basescape

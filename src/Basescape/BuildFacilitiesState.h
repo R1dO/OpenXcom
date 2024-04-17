@@ -44,7 +44,7 @@ protected:
 
 	TextButton *_btnOk;
 	Window *_window;
-	Text *_txtTitle;
+	Text *_txtTitle, *_txtShortcutsTooltip;
 	TextList *_lstFacilities;
 public:
 	/// Creates the Build Facilities state.
@@ -59,6 +59,8 @@ public:
 	void btnOkClick(Action *action);
 	/// Handler for clicking the Facilities list.
 	virtual void lstFacilitiesClick(Action *action);
+	void showToolTip(Action *);
+	void hideToolTip(Action *);
 };
 
 }

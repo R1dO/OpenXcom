@@ -70,6 +70,9 @@ en-GB:
     0: Do not use, 1: Claimed by soldiers, 2: Claimed by crafts/engineering/research, 3: Greedy (max of 1 and 2).
   R1DO_REVERSE_STATS_SEARCH: "TEST: Ammo statistics reverse search"
   R1DO_REVERSE_STATS_SEARCH_DESC: "Enables expensive reverse search for ammo statistics, which might not even be needed."
+  R1DO_ENABLE_CONTROLS_TOOLTIPS: "TEST: Enable tooltips for shortcuts"
+  R1DO_ENABLE_CONTROLS_TOOLTIPS_DESC: |
+    On Selected screen (elements) show a tooltip with (known) available shortcuts.
   R1DO_STYLE_CRAFTEQUIPMENTSTATE: "DEMO: R1do style craft equipment screen"
   R1DO_STYLE_CRAFTEQUIPMENTSTATE_DESC: |
     Always show claimed soldier items (using a separate column).
