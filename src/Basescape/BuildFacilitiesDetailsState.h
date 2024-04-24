@@ -100,15 +100,29 @@ private:
 	void btnOkClick(Action *);
 
 	void drawBody();
+	void addSeparatorLine();
+	void updateList();
+
+	void setupTabRequirements();
+	void subcategoryReqsFunds();
+	void subcategoryReqsItems();
+	void subcategoryReqsServices();
+	void subcategoryLimitedByAmount();
+	void subcategoryProvidesServicesBlockedByOthers();
+	void subcategoryBlocksServicesProvidedByOthers();
+	void subcategoryReqsRecurring(); // Target for deletion, does not fit well on this screen
+	void subCategoryCanRenovate();
+
 	void setupTabBlockers();
 	void subcategoryBlockedByCountry();
 	void subcategoryBlockedByRegion();
 	void subcategoryBlockedByFacilities();
 	void subcategoryBlockedByRequiredItems();
 	void subcategoryBlockedByFunds();
-	void updateList();
 
 	void add2_detailsVector(std::vector<BeanCounter> &subCategory, bool forceInclude = false);
+	void sortChildrenByDescription(std::vector<BeanCounter> &subCategory, size_t skipChildren = 0);
+	void sortChildrenByExistOnBase(std::vector<BeanCounter> &subCategory, size_t skipChildren = 0);
 	BeanCounter &getRow() {return _details[_rows[_sel]];}
 
 

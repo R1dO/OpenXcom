@@ -54,7 +54,7 @@ BuildFacilitiesDetailsState::BuildFacilitiesDetailsState(Base *base, RuleBaseFac
 	_txtTitle = new Text(278, 16, 21, 25);
 	_tabRequirements = new ToggleTextButton(136, 16, 23, 35+8+3);
 	_tabBlockers = new ToggleTextButton(136, 16, 159, 35+8+3);
-	_txtSource = new Text(114, 9, 25, 35+16+2+13);
+	_txtSource = new Text(214, 9, 25, 35+16+2+13);
 	_txtResult = new Text(54, 9, 225+15, 35+16+2+13);
 	_lstDetails = new TextList(272, 104-16, 23, 46+16+2+8+5); // Height = 11*8 = 88 (8 due to rowheight overlap using default rules).
 	_btnOk = new TextButton(288, 16, 16, 169);
@@ -231,82 +231,6 @@ void BuildFacilitiesDetailsState::lstDetailsMousePress(Action *)
 }
 
 /**
-* Check if specified parent has any children.
-*
-* @param parentId Id of parent to check.
-*/
-bool BaseInfoDetailsState::parentHasChildren(int parentId)
-{
-	auto bean = std::find_if(_details.begin(), _details.end(),
-		[&](const BeanCounter row)
-		{return row.parentId == parentId && row.childId != row.parentId;}
-		);
-	if (bean == _details.end())
-	{
-		return false;
-	}
-	return true;
-}
-
-/**
-* Calculate sum of children's `amount` field.
-*
-* @param parentId Id of parent.
-* @return The sum of all children's `amounts` fields.
-*/
-int BaseInfoDetailsState::calculateSumOfChildrenAmountField(int parentId)
-{
-	int amount = 0;
-	for (auto element : _details)
-	{
-		if (element.parentId == parentId && element.childId != element.parentId)
-		{
-			amount += element.amount;
-		}
-	}
-	return amount;
-};
-
-/**
-* Calculate sum of children's `baseValue` field.
-*
-* @param parentId Id of parent.
-* @return The sum of all children's `baseValue` fields.
-*/
-int BaseInfoDetailsState::calculateSumOfChildrenValueField(int parentId)
-{
-	int total = 0;
-	for (auto element : _details)
-	{
-		if (element.parentId == parentId && element.childId != element.parentId)
-		{
-			total += element.baseValue * element.amount; // works for percentage based?
-		}
-	}
-	return total;
-};
-
-/**
- * Returns the max baseValue of children's `baseValue` field.
- *
- * @param parentId Id of parent.
- * @return The max baseValue of all children's `baseValue` fields.
- */
-
-int BaseInfoDetailsState::calculateMaxOfChildrenValueField(int parentId)
-{
-	int total = 0;
-	for (auto element : _details)
-	{
-		if (element.parentId == parentId && element.childId != element.parentId)
-		{
-			total = std::max(total, element.baseValue);
-		}
-	}
-	return total;
-};
-
-/**
  * Setup and draw the screen's body.
  *  * Screen title
  *  * List contents (and 'headers')
@@ -318,17 +242,21 @@ void BuildFacilitiesDetailsState::drawBody()
 
 	if (_tabRequirements->getPressed())
 	{
-	 	//_lstDetails->setColumns(3, 155+15, 45, 70-15);
-		//_txtQuantity->setVisible(true);
-		_txtResult->setText(tr("STR_VALUE"));
+		_lstDetails->setColumns(2, 155+15+45, 70-15);
+
+		_txtSource->setText("Construction/Usage details");
+		_txtResult->setText("On base");
+		_txtResult->setVisible(true);
 		//_btnQueuedFacilities->setVisible(true);
-		//setupTabRequirements();
+		setupTabRequirements();
 	}
 	else
 	{
-		//_lstDetails->setColumns(2, 155+15+45, 70-15);
+		_lstDetails->setColumns(1, 270);
+
+		_txtSource->setText("Blockers");
 		//_txtQuantity->setVisible(false);
-		_txtResult->setText(tr("STR_BFDS_SOLVABLE_BY"));
+		_txtResult->setVisible(false);
 		//_btnQueuedFacilities->setVisible(false);
 		setupTabBlockers();
 	}
@@ -336,36 +264,546 @@ void BuildFacilitiesDetailsState::drawBody()
 	updateList();
 }
 
-// /**
-//  * Creates all placeholder elements.
-// */
-// void BaseInfoDetailsState::setupTabRequirements()
-// {
-// 	std::ostringstream ssTitle, screenTotal;
-// 	// Do not end sentence with '.'
-// 	// Automatic font scaling "setText()" does not like that (Cause: b1b6f9ae).
-// 	ssTitle << "Category " << enum2string(_activeTab) << " not implemented yet";
-// 	screenTotal << tr("STR_TOTAL") << ">\t" << Unicode::formatFunding(999'999'999'999);
-// 	_txtTitle->setText(ssTitle.str());
-// 	_txtTotal->setText(screenTotal.str());
+/**
+* Setup list with requirements for this facility.
+*
+* @note
+* This includes facilities which cannot coexist due to service blockers.
+* Perhaps even countries/regions that are not compatible.
+*/
+void BuildFacilitiesDetailsState::setupTabRequirements()
+{
 
-// 	BeanCounter row;
-// 	size_t parent, childId = 0;
-// 	for (auto i = 0; i < 5; i++)
-// 	{
-// 		parent = childId;
-// 		row = {childId, parent, "Long text explaining the source", 999, 999'999'999, true};
-// 		_details.push_back(row);
-// 		childId++;
-// 		for (auto j = 0; j < 5; j++)
-// 		{
-// 			row = {childId, parent, "Normally collapsed (moaar details)", 99, 999'999'999, false};
-// 			_details.push_back(row);
-// 			childId++;
-// 		}
-// 	}
-// 	updateList();
-// }
+	subcategoryReqsFunds();
+	subcategoryReqsItems();
+	subcategoryReqsServices();
+	if (true) // Show potential blockers button?
+	{
+		addSeparatorLine();
+		subcategoryLimitedByAmount();
+		subcategoryProvidesServicesBlockedByOthers();
+		subcategoryBlocksServicesProvidedByOthers();
+	}
+	// Diverse categories
+	addSeparatorLine();
+	subcategoryReqsRecurring();
+}
+
+/**
+ * Insert an empty line
+ */
+void BuildFacilitiesDetailsState::addSeparatorLine()
+{
+	size_t parentId = _details.size();
+	BeanCounter bean;
+	std::vector<BeanCounter> subCategory;
+
+	bean = {0, parentId, "" , 0, 0, true};
+	bean.valueOverride = " "; // Space is needed for `updateList()` to recognize this field must be empty.
+
+	subCategory.push_back(bean);
+	add2_detailsVector(subCategory, true);
+}
+
+/**
+ * Setup and add "Required funds" to `_details` vector.
+ *
+ * @remark
+ * Not taking into account refund values for buildover of existing facilities.
+ * It is outside the scope of this list to show affected facilities.
+ * @remark
+ * If the desire arises though this category is the most suitable place.
+ * In that case introduce renovation cost *per allowed facility*.
+ */
+void BuildFacilitiesDetailsState::subcategoryReqsFunds()
+{
+	size_t parentId = _details.size();
+	std::string description;
+	BeanCounter bean;
+	std::vector<BeanCounter> subCategory;
+
+	int requiredFunds = _facRuleSelected->getBuildCost();
+	// No need to check on sign and corresponding cases, or zero.
+	// Not useful and player can easily deduce this from value in description
+	description = "Funds Required: " + Unicode::formatFunding(requiredFunds); // TODO: unhardcode
+	bean = {0, parentId, description , 0, 0, true};
+	bean.valueOverride = Unicode::formatFunding(_game->getSavedGame()->getFunds());
+
+	subCategory.push_back(bean);
+	add2_detailsVector(subCategory, true);
+}
+
+/**
+ * Setup and add "Required items" to `_details` vector.
+ *
+ * @remark
+ * Not taking into account item refund values for buildover of existing facilities.
+ * It is outside the scope of this list to show affected facilities.
+ * @remark
+ * If the desire arises though this category is the most suitable place.
+ * In that case introduce renovation cost *per allowed facility*.
+ */
+void BuildFacilitiesDetailsState::subcategoryReqsItems()
+{
+	if (_facRuleSelected->getBuildCostItems().empty()) return;
+
+	size_t parentId = _details.size();
+	std::string description;
+	BeanCounter bean;
+	std::vector<BeanCounter> subCategory;
+
+	description = "Item(s) required for construction";
+	bean = {0, parentId, description , 0, 0, true};
+	subCategory.push_back(bean);
+
+	bool allItemRequirementsMet = true;
+	for (auto& item : _facRuleSelected->getBuildCostItems())
+	{
+		int needed = item.second.first;
+		int available = _base->getItemCountStorage(item.first);
+		allItemRequirementsMet &= available >= needed;
+
+		description = tr(item.first).c_str();
+		description.append(": " + std::to_string(needed));
+		//description = tr("STR_BFDS_BLOCKER_DETAIL_MISSING_ITEMS_AMOUNT")
+			//.arg(needed)
+			//.arg(tr(item.first));
+		bean = {0, parentId, description , 0, available, false};
+		subCategory.push_back(bean);
+	}
+
+	if (allItemRequirementsMet)
+	{
+		subCategory.front().valueOverride = "Yes";
+	}
+	else
+	{
+		subCategory.front().valueOverride = "No";
+	}
+
+	sortChildrenByDescription(subCategory);
+	add2_detailsVector(subCategory);
+}
+
+/**
+ * Setup and add "Required services" to `_details` vector.
+ *
+ * @note
+ * Lists all known ones regardless if possible for *this* base.
+ */
+void BuildFacilitiesDetailsState::subcategoryReqsServices()
+{
+	if (_requiredFacFunc.none()) return;
+
+	BeanCounter bean;
+	auto childValueOverride = [&bean](bool testResult) -> void
+	{
+		bean.valueOverride = testResult ? "Yes" : "No";
+	};
+
+	// Show each required service as separate subcategory.
+	// Let children show their providers (regardless if allowed on this base).
+	for (size_t i = 0; i < _requiredFacFunc.size(); ++i)
+	{
+		if (!_requiredFacFunc.test(i)) continue;
+
+		size_t parentId = _details.size();
+		std::string description;
+		std::vector<BeanCounter> subCategory;
+		int skipChildren = 0;
+
+		RuleBaseFacilityFunctions currentService = 0;
+		currentService.flip(i);
+		auto serviceName = _game->getMod()->getBaseFunctionNames(currentService).front();
+
+		description = "Service required: " + serviceName;
+		bean = {0, parentId, description , 0, 0, true};
+		childValueOverride((currentService & _providedBaseFunc).any()); // Current limits build, not future
+		subCategory.push_back(bean);
+
+		// Just loop over all countries/regions/facilities.
+		// Lists are considered small enough and it prevents
+		// adding another level of indentation (or `continue` halfway this loop).
+		for (const auto* country : *_game->getSavedGame()->getCountries())
+		{
+			const RuleCountry *ruleCountry = country->getRules();
+			if (!ruleCountry) continue;
+			if ((currentService & ruleCountry->getProvidedBaseFunc()).none())
+				continue;
+
+			bool appliesToBase = ruleCountry->insideCountry(_base->getLongitude(), _base->getLatitude());
+			description = "Provided by country: ";
+			description.append(tr(ruleCountry->getType().c_str()));
+			bean = {0, parentId, description , appliesToBase, 0, false};
+			childValueOverride(appliesToBase);
+			subCategory.push_back(bean);
+			skipChildren += 1;
+		}
+		// Just loop over all regions, no need to test beforehand (small enough list)
+		for (const auto* region : *_game->getSavedGame()->getRegions())
+		{
+			RuleRegion *ruleRegion = region->getRules();
+			if (!ruleRegion) continue;
+			if ((currentService & ruleRegion->getProvidedBaseFunc()).none())
+				continue;
+
+			bool appliesToBase = ruleRegion->insideRegion(_base->getLongitude(), _base->getLatitude());
+			description = "Provided by region: ";
+			description.append(tr(ruleRegion->getType().c_str()));
+			bean = {0, parentId, description , appliesToBase, 0, false};
+			childValueOverride(appliesToBase);
+			subCategory.push_back(bean);
+			skipChildren += 1;
+		}
+		for (auto& facilityType : _game->getMod()->getBaseFacilitiesList())
+		{
+			RuleBaseFacility *ruleFacility = _game->getMod()->getBaseFacility(facilityType);
+			if (!ruleFacility) continue;
+			if (!ruleFacility->isAllowedForBaseType(_base->isFakeUnderwater()))
+				continue; // No need to include facilities that are never allowed here.
+			if ((currentService & ruleFacility->getProvidedBaseFunc()).none())
+				continue;
+			if (!_game->getSavedGame()->isResearched(ruleFacility->getRequirements()))
+				continue;
+
+			bool existsOnBase = false;
+			for (auto& facility : *_base->getFacilities())
+			{
+				const RuleBaseFacility *existingFac = facility->getRules();
+				if (existingFac != ruleFacility) continue;
+
+				existsOnBase = true;
+				break; // We are only interested if at least one exists
+			}
+			description = "Provided by facility: ";
+			description.append(tr(ruleFacility->getType().c_str()));
+			bean = {0, parentId, description , existsOnBase, 0, false};
+			childValueOverride(existsOnBase);
+			subCategory.push_back(bean);
+		}
+		sortChildrenByDescription(subCategory, skipChildren);
+		sortChildrenByExistOnBase(subCategory);
+		add2_detailsVector(subCategory);
+		subCategory.clear();
+	}
+}
+
+/**
+ * Setup and add "reached maximum amount" to `_details` vector.
+ */
+void BuildFacilitiesDetailsState::subcategoryLimitedByAmount()
+{
+	if (_facRuleSelected->getMaxAllowedPerBase() == 0) return;
+
+	size_t parentId = _details.size();
+	std::string description;
+	BeanCounter bean;
+	std::vector<BeanCounter> subCategory;
+
+	int countFac = 0;
+	for (auto& facility : *_base->getFacilities())
+	{
+		if (facility->getRules() != _facRuleSelected) continue;
+
+		countFac++;
+	}
+	description = "Only "; // TODO: unhardcode
+	description.append(std::to_string(_facRuleSelected->getMaxAllowedPerBase()));
+	description.append(" allowed on base");
+	bean = {0, parentId, description , 0, countFac, true};
+	subCategory.push_back(bean);
+
+	add2_detailsVector(subCategory, true);
+}
+
+/**
+ * Setup and add "non-compatible services" to `_details` vector.
+ *
+ * @note
+ * Lists all known ones regardless if possible for *this* base.
+ */
+void BuildFacilitiesDetailsState::subcategoryProvidesServicesBlockedByOthers()
+{
+	if (_providedFacFunc.none()) return;
+
+	BeanCounter bean;
+	auto childValueOverride = [&bean](bool testResult) -> void
+	{
+		bean.valueOverride = testResult ? "Yes" : "No";
+	};
+
+	// Show each potential blocked service as separate subcategory.
+	// Let children show their providers (regardless if allowed on this base).
+	for (size_t i = 0; i < _providedFacFunc.size(); ++i)
+	{
+		if (!_providedFacFunc.test(i)) continue;
+
+		size_t parentId = _details.size();
+		std::string description;
+		std::vector<BeanCounter> subCategory;
+		int skipChildren = 0;
+
+		RuleBaseFacilityFunctions currentService = 0;
+		currentService.flip(i);
+		auto serviceName = _game->getMod()->getBaseFunctionNames(currentService).front();
+
+		description = "Facility service blocked: " + serviceName;
+		bean = {0, parentId, description , 0, 0, true};
+		childValueOverride((currentService & _forbiddenBaseFunc).any());
+		subCategory.push_back(bean);
+
+		// Just loop over all countries/regions/facilities.
+		// Lists are considered small enough and it prevents
+		// adding another level of indentation (or `continue` halfway this loop).
+		for (const auto* country : *_game->getSavedGame()->getCountries())
+		{
+			const RuleCountry *ruleCountry = country->getRules();
+			if (!ruleCountry) continue;
+			if ((currentService & ruleCountry->getForbiddenBaseFunc()).none())
+				continue;
+
+			bool appliesToBase = ruleCountry->insideCountry(_base->getLongitude(), _base->getLatitude());
+			description = "Forbidden by country: ";
+			description.append(tr(ruleCountry->getType().c_str()));
+			bean = {0, parentId, description , appliesToBase, 0, false};
+			childValueOverride(appliesToBase);
+			subCategory.push_back(bean);
+			skipChildren += 1;
+		}
+		// Just loop over all regions, no need to test beforehand (small enough list)
+		for (const auto* region : *_game->getSavedGame()->getRegions())
+		{
+			RuleRegion *ruleRegion = region->getRules();
+			if (!ruleRegion) continue;
+			if ((currentService & ruleRegion->getForbiddenBaseFunc()).none())
+				continue;
+
+			bool appliesToBase = ruleRegion->insideRegion(_base->getLongitude(), _base->getLatitude());
+			description = "Forbidden by region: ";
+			description.append(tr(ruleRegion->getType().c_str()));
+			bean = {0, parentId, description , appliesToBase, 0, false};
+			childValueOverride(appliesToBase);
+			subCategory.push_back(bean);
+			skipChildren += 1;
+		}
+		for (auto& facilityType : _game->getMod()->getBaseFacilitiesList())
+		{
+			const RuleBaseFacility *ruleFacility = _game->getMod()->getBaseFacility(facilityType);
+			if (!ruleFacility) continue;
+			if (!ruleFacility->isAllowedForBaseType(_base->isFakeUnderwater()))
+				continue; // No need to include facilities that are never allowed here.
+			if ((currentService & ruleFacility->getForbiddenBaseFunc()).none())
+				continue;
+			if (!_game->getSavedGame()->isResearched(ruleFacility->getRequirements()))
+				continue;
+
+			bool existsOnBase = false;
+			for (auto& facility : *_base->getFacilities())
+			{
+				const RuleBaseFacility *existingFac = facility->getRules();
+				if (existingFac != ruleFacility) continue;
+
+				existsOnBase = true;
+				break;
+			}
+			description = "Forbidden by facility: ";
+			description.append(tr(ruleFacility->getType().c_str()));
+			bean = {0, parentId, description , existsOnBase, 0, false};
+			childValueOverride(existsOnBase);
+			subCategory.push_back(bean);
+		}
+		sortChildrenByDescription(subCategory, skipChildren);
+		sortChildrenByExistOnBase(subCategory);
+		add2_detailsVector(subCategory);
+		subCategory.clear();
+	}
+}
+
+/**
+ * Setup and add "non-compatible services" to `_details` vector.
+ *
+ * @note
+ * Lists all known ones regardless if possible for *this* base.
+ */
+void BuildFacilitiesDetailsState::subcategoryBlocksServicesProvidedByOthers()
+{
+	if (_forbiddenFacFunc.none()) return;
+
+	BeanCounter bean;
+	auto childValueOverride = [&bean](bool testResult) -> void
+	{
+		bean.valueOverride = testResult ? "Yes" : "No";
+	};
+
+	// Show each potential blocked service as separate subcategory.
+	// Let children show their providers (regardless if allowed on this base).
+	for (size_t i = 0; i < _forbiddenFacFunc.size(); ++i)
+	{
+		if (!_forbiddenFacFunc.test(i)) continue;
+
+		size_t parentId = _details.size();
+		std::string description;
+		std::vector<BeanCounter> subCategory;
+		int skipChildren = 0;
+
+		RuleBaseFacilityFunctions currentService = 0;
+		currentService.flip(i);
+		auto serviceName = _game->getMod()->getBaseFunctionNames(currentService).front();
+
+		description = "Facility blocks service: " + serviceName;
+		bean = {0, parentId, description , 0, 0, true};
+		childValueOverride((currentService & _futureBaseFunc).any()); // Future, since planned facilities might be blocked
+		subCategory.push_back(bean);
+
+		// Just loop over all countries/regions/facilities.
+		// Lists are considered small enough and it prevents
+		// adding another level of indentation (or `continue` halfway this loop).
+		for (const auto* country : *_game->getSavedGame()->getCountries())
+		{
+			const RuleCountry *ruleCountry = country->getRules();
+			if (!ruleCountry) continue;
+			if ((currentService & ruleCountry->getProvidedBaseFunc()).none())
+				continue;
+
+			bool appliesToBase = ruleCountry->insideCountry(_base->getLongitude(), _base->getLatitude());
+			description = "Provided by country: ";
+			description.append(tr(ruleCountry->getType().c_str()));
+			bean = {0, parentId, description , appliesToBase, 0, false};
+			childValueOverride(appliesToBase);
+			subCategory.push_back(bean);
+			skipChildren += 1;
+		}
+		// Just loop over all regions, no need to test beforehand (small enough list)
+		for (const auto* region : *_game->getSavedGame()->getRegions())
+		{
+			RuleRegion *ruleRegion = region->getRules();
+			if (!ruleRegion) continue;
+			if ((currentService & ruleRegion->getProvidedBaseFunc()).none())
+				continue;
+
+			bool appliesToBase = ruleRegion->insideRegion(_base->getLongitude(), _base->getLatitude());
+			description = "Provided by region: ";
+			description.append(tr(ruleRegion->getType().c_str()));
+			bean = {0, parentId, description , appliesToBase, 0, false};
+			childValueOverride(appliesToBase);
+			subCategory.push_back(bean);
+			skipChildren += 1;
+		}
+		for (auto& facilityType : _game->getMod()->getBaseFacilitiesList())
+		{
+			RuleBaseFacility *ruleFacility = _game->getMod()->getBaseFacility(facilityType);
+			if (!ruleFacility) continue;
+			if (!ruleFacility->isAllowedForBaseType(_base->isFakeUnderwater()))
+				continue; // No need to include facilities that are never allowed here.
+			if ((currentService & ruleFacility->getProvidedBaseFunc()).none())
+				continue;
+			if (!_game->getSavedGame()->isResearched(ruleFacility->getRequirements()))
+				continue;
+
+			bool existsOnBase = false;
+			for (auto& facility : *_base->getFacilities())
+			{
+				const RuleBaseFacility *existingFac = facility->getRules();
+				if (existingFac != ruleFacility) continue;
+
+				existsOnBase = true;
+				break;
+			}
+			description = "Provided by facility: ";
+			description.append(tr(ruleFacility->getType().c_str()));
+			bean = {0, parentId, description , existsOnBase, 0, false};
+			childValueOverride(existsOnBase);
+			subCategory.push_back(bean);
+		}
+		sortChildrenByDescription(subCategory, skipChildren);
+		sortChildrenByExistOnBase(subCategory);
+		add2_detailsVector(subCategory);
+		subCategory.clear();
+	}
+}
+
+/**
+ * Setup and add "recurring costs" to `_details` vector.
+ * @note:
+ * Not needed it is better to show this in base details (cost) view.
+ */
+void BuildFacilitiesDetailsState::subcategoryReqsRecurring()
+{
+	int recurringCosts = _facRuleSelected->getMonthlyCost();
+	if (recurringCosts == 0) return;
+
+	size_t parentId = _details.size();
+	std::string description;
+	BeanCounter bean;
+	std::vector<BeanCounter> subCategory;
+
+	description = "Monthly funds Required: " + Unicode::formatFunding(recurringCosts); // TODO: unhardcode
+	bean = {0, parentId, description , 0, 0, true};
+	bean.valueOverride = Unicode::formatFunding(_game->getSavedGame()->getFunds());
+
+	subCategory.push_back(bean);
+	add2_detailsVector(subCategory, true);
+
+	// Items per base defense .. grav shields seperate?
+}
+
+/**
+ * Setup and add "facilities that can be renovated by this one" to `_details` vector.
+ *
+ * @note
+ * Shows any facility that allows renovation.
+ * For consistency reasons this means it is not desired to check if a renovation
+ * is allowed (by spatial limitations) for those that exist on base.
+ */
+void BuildFacilitiesDetailsState::subCategoryCanRenovate()
+{
+	size_t parentId = _details.size();
+	std::string description;
+	BeanCounter bean;
+	std::vector<BeanCounter> subCategory;
+
+	description = "Can renovate existing facilities"; // TODO: unhardcode
+	bean = {0, parentId, description , 0, 0, true};
+	subCategory.push_back(bean);
+
+	bool canRenovateAtLeastOne = false;
+	for (auto& facility : _game->getMod()->getBaseFacilitiesList())
+	{
+		const RuleBaseFacility *ruleFacility = _game->getMod()->getBaseFacility(facility);
+		if (!ruleFacility) continue;
+		if (!ruleFacility->isAllowedForBaseType(_base->isFakeUnderwater()))
+			continue; // No need to include facilities that are never allowed here.
+		if (!_game->getSavedGame()->isResearched(ruleFacility->getRequirements()))
+			continue;
+		if (_facRuleSelected->getCanBuildOverOtherFacility(ruleFacility) != BPE_None)
+			continue;
+
+		int onBase = 0;
+		if (auto search = _baseFacilitiesAndCount.find(ruleFacility);
+			search != _baseFacilitiesAndCount.end())
+		{
+			onBase = search->second;
+		}
+		canRenovateAtLeastOne |= onBase;
+
+		description = tr(ruleFacility->getType());
+		bean = {0, parentId, description , 0, onBase, false};
+		subCategory.push_back(bean);
+	}
+
+	if (canRenovateAtLeastOne)
+	{
+		subCategory.front().valueOverride = "Yes";
+	}
+	else
+	{
+		subCategory.front().valueOverride = "No";
+	}
+
+	sortChildrenByDescription(subCategory);
+	sortChildrenByExistOnBase(subCategory);
+	add2_detailsVector(subCategory);
+}
 
 /**
  * Setup list showing the reasons for blocking the build of this facility.
@@ -630,8 +1068,7 @@ void BuildFacilitiesDetailsState::subcategoryBlockedByRequiredItems()
 void BuildFacilitiesDetailsState::subcategoryBlockedByFunds()
 {
 	int missingFunds = _facRuleSelected->getBuildCost() - _game->getSavedGame()->getFunds();
-	if (missingFunds <= 0)
-		return;
+	if (missingFunds <= 0) return;
 	
 	size_t parentId = _details.size();
 	std::string description;
@@ -649,221 +1086,6 @@ void BuildFacilitiesDetailsState::subcategoryBlockedByFunds()
 
 	add2_detailsVector(subCategory);
 }
-
-// SOME old snippet
-// {
-// 	// Prefer alphabetical listing of named facilities.
-// 	sortChildrenByDescription(subCategory);
-// 	add2_detailsVector(subCategory);
-
-// 	// TRIVIA:
-// 	// If total 'mindpower' >= 21 base cannot be found by UFO's, due to integer math.
-// }
-
-// /**
-//  * Setup and add UFO detection capabilities to `_details` vector.
-//  *
-//  * + The (per range limit) probability of detection.
-//  * + The (per range limit) HyperWave/Transmission Resolver functionality.
-//  *
-//  * @remark
-//  * Ruleset variables: `radarRange`, `radarChance` and `hyper`.
-//  *
-//  * @note
-//  * Each range based subtotal shows the combined probability
-//  * of all facilities contributing to that range.
-//  *
-//  * @remark
-//  * Detection probability = (1- chance_of_not_detecting)^no_of_facilities_participating
-//  */
-// void BaseInfoDetailsState::subcategoryUfoDetection()
-// {
-// 	// Intention is to show detection chance per unique range.
-// 	int hyperMaxRange = 0;
-// 	std::set<int> radarRanges;
-// 	for (auto *facility : *_base->getFacilities())
-// 	{
-// 		if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
-// 			continue;
-
-// 		if (facility->getRules()->getRadarRange() == 0)
-// 			continue;
-
-// 		int currentRange = facility->getRules()->getRadarRange();
-// 		if (facility->getRules()->isHyperwave() && currentRange > hyperMaxRange)
-// 		{
-// 			hyperMaxRange = currentRange;
-// 		}
-// 		radarRanges.insert(currentRange);
-// 	}
-
-// 	// Ufo detection per range limit.
-// 	for (auto detectionRange : radarRanges)
-// 	{
-// 		std::vector<BeanCounter> subCategory;
-// 		size_t childId, parentId = _details.size(); // `childId` is set later.
-// 		BeanCounter row;
-// 		std::string description;
-
-// 		// Sub category header (a.k.a. subtotal).
-// 		if (detectionRange <= hyperMaxRange)
-// 		{
-// 			description = tr("STR_BIDS_TITLE_UFO_DETECTION_HYPERWAVE").arg(detectionRange);
-// 		}
-// 		else
-// 		{
-// 			description = tr("STR_BIDS_TITLE_UFO_DETECTION_RADAR").arg(detectionRange);
-// 		}
-// 		row = {parentId, parentId, description, 0, 0, true};
-// 		subCategory.push_back(row);
-
-// 		for (auto *facility : *_base->getFacilities())
-// 		{
-// 			if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
-// 				continue;
-
-// 			if (facility->getRules()->getRadarRange() < detectionRange)
-// 				continue;
-
-// 			// Facility detection chance
-// 			int detectionChance = facility->getRules()->getRadarChance();
-// 			if (facility->getRules()->isHyperwave())
-// 			{
-// 				description = tr("STR_BIDS_DETAIL_UFO_DETECTION_HYPERWAVE").arg(tr(facility->getRules()->getType()));
-// 			}
-// 			else
-// 			{
-// 				description = tr(facility->getRules()->getType());
-// 			}
-// 			childId = subCategory.size() + parentId;
-// 			row = {childId, parentId, description , 1, detectionChance, false};
-// 			add2vector(subCategory, row);
-// 		}
-
-// 		// Apply field overrides where necessary.
-// 		for (auto &element : subCategory)
-// 		{
-// 			float detectionChance = 0.0;
-// 			if (element.childId == element.parentId)
-// 			{
-// 				detectionChance = calcProbabilityAtLeastOne(subCategory);
-// 				element.amount = countContributingFacilities(subCategory);
-// 			}
-// 			else if (element.baseValue == 0)
-// 			{
-// 				// "0" is a valid detection chance for a hyperwave that only tracks.
-// 			}
-// 			else
-// 			{
-// 				detectionChance = calcProbabilityAtLeastOne(element.baseValue, element.amount);
-// 			}
-// 			element.valueOverride = Unicode::formatPercentage(std::round(100*detectionChance));
-// 		}
-
-// 		// Prefer alphabetical listing of named facilities.
-// 		sortChildrenByDescription(subCategory);
-// 		add2_detailsVector(subCategory);
-// 	}
-// }
-
-// /**
-//  * Setup and add alien base detection capabilities to `_details` vector.
-//  *
-//  * The (per range limit) probability of detection.
-//  *
-//  * @remark
-//  * Ruleset variables: `sightRange`, `sightChance`.
-//  *
-//  * @note
-//  * Each range based subtotal shows the combined probability
-//  * of all facilities contributing to that range.
-//  *
-//  * @remark
-//  * Detection probability = (1- chance_of_not_detecting)^no_of_facilities_participating
-//  * If dynamic detection use 2 ranges @100%ofRange (chance is 0%) and @50%ofRange (chance is 50%)
-//  *
-//  * @remark
-//  * Not sure about this one: one could argue it should be a hidden stat.
-//  */
-// void BaseInfoDetailsState::subcategoryAlienBaseDetection()
-// {
-// 	// Intention is to show chance per unique sight range.
-// 	std::set<int> sightRanges;
-// 	for (auto *facility : *_base->getFacilities())
-// 	{
-// 		if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
-// 			continue;
-
-// 		if (facility->getRules()->getSightRange() == 0)
-// 			continue;
-
-// 		int sightRange = facility->getRules()->getSightRange();
-// 		sightRanges.insert(sightRange);
-// 		// For dynamic ranges the chance at max range chance = 0%
-// 		// No need for adding extra ranges to help player deduce.
-// 		// A facility showing "0%" at max range should suffice.
-// 	}
-
-// 	// Alien base detection per range limit.
-// 	for (auto detectionRange : sightRanges)
-// 	{
-// 		std::vector<BeanCounter> subCategory;
-// 		size_t childId, parentId = _details.size(); // `childId` is set later.
-// 		BeanCounter row;
-// 		std::string description;
-
-// 		// Sub category header (a.k.a. subtotal).
-// 		description = tr("STR_BIDS_TITLE_ALIEN_BASE_DETECTION").arg(detectionRange);
-// 		row = {parentId, parentId, description, 0, 0, true};
-// 		subCategory.push_back(row);
-
-// 		for (auto *facility : *_base->getFacilities())
-// 		{
-// 			if (facility->getBuildTime() > 0 && !_btnQueuedFacilities->getPressed())
-// 				continue;
-
-// 			if (facility->getRules()->getSightRange() < detectionRange)
-// 				continue;
-
-// 			// Facility detection chance
-// 			int detectionChance = facility->getRules()->getSightChance();
-// 			if (detectionChance == 0)
-// 			{
-// 				// Dynamic, e.g. 0%-50% based on distance.
-// 				// Formula from `GeoscapeState::time1Day()`:
-// 				// `chanceToDetect = 50 - (distance * 50 / facility->getRules()->getSightRange())`
-// 				// For this subroutine we can use: distance = `detectionRange`.
-// 				detectionChance = 50 - (detectionRange * 50) / facility->getRules()->getSightRange();
-// 			}
-// 			childId = subCategory.size() + parentId;
-// 			description = tr(facility->getRules()->getType());
-// 			row = {childId, parentId, description , 1, detectionChance, false};
-// 			add2vector(subCategory, row);
-// 		}
-
-// 		// Apply field overrides where necessary.
-// 		for (auto &element : subCategory)
-// 		{
-// 			float detectionChance = 0.0;
-// 			if (element.childId == element.parentId)
-// 			{
-// 				detectionChance = calcProbabilityAtLeastOne(subCategory);
-// 				element.amount = countContributingFacilities(subCategory);
-// 			}
-// 			else
-// 			{
-// 				detectionChance = calcProbabilityAtLeastOne(element.baseValue, element.amount);
-// 			}
-// 			element.valueOverride = Unicode::formatPercentage(std::round(100*detectionChance));
-// 		}
-
-// 		// Prefer alphabetical listing of named facilities.
-// 		sortChildrenByDescription(subCategory);
-// 		add2_detailsVector(subCategory);
-// 	}
-// }
-
-
 
 /**
 * Draw (en filter) the current details list.
@@ -898,7 +1120,7 @@ void BuildFacilitiesDetailsState::updateList()
 			// ssAmount << tr("STR_DOTTED_INDENTATION");
 			// ssValue << tr("STR_DOTTED_INDENTATION");
 			//ssAmount << " ";
-			//ssValue << " ";
+			ssValue << " ";
 			//unconditionallyShowSign = false;
 		}
 
@@ -910,19 +1132,9 @@ void BuildFacilitiesDetailsState::updateList()
 		{
 			ssValue << _details[i].baseValue;
 		}
+		// ssAmount << _details[i].amount;
 
-		// // Test for Last column(s) align right
-		// if (_details[i].parentId != _details[i].childId) // A child row.
-		// {
-		// 	description.insert(0, " ");
-		// }
-		// else
-		// {
-		// 	ssAmount << " ";
-		// 	ssValue << " ";
-		// }
-		// // End Test
-
+		//if (_tabBlockers->getPressed())
 		if (_details[i].parentId != i)
 		{
 			_lstDetails->setSecondaryColor(colorTertiary);
@@ -933,6 +1145,16 @@ void BuildFacilitiesDetailsState::updateList()
 		{
 			_lstDetails->addRow(2, description.c_str(), ssValue.str().c_str());
 		}
+		// if (_details[i].amount > 0)
+		// {
+		// 	_lstDetails->addRow(2, description.c_str(), ssValue.str().c_str());
+		// 	//_lstDetails->addRow(3, description.c_str(), ssAmount.str().c_str(), ssValue.str().c_str());
+		// }
+		// else
+		// {
+		// 	_lstDetails->addRow(2, description.c_str(), ssValue.str().c_str());
+		// 	//_lstDetails->addRow(3, description.c_str(), "", ssValue.str().c_str());
+		// }
 		_rows.push_back(i);
 
 		if(_details[i].parentId == i)
@@ -940,81 +1162,23 @@ void BuildFacilitiesDetailsState::updateList()
 			_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), colorSecondary);
 			//_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), _game->getMod()->getInterface("baseInfoDetails")->getElement("list")->border);
 		}
+		// else
+		// {
+		// 	_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), colorPrimary);
+		// }
 	}
 }
 
 /**
-* Adds another contribution to the `_details` vector.
-*
-* Creates a new entry if needed, updates if an entry already exist.
-* @note
-* An entry is defined by the unique combination of fields:
-*`parentId`, `description` and `valueOverride`.
-*
-* @param row                      The contents of the row we want to insert.
-* @param updateExistingValueField Are we allowed to update the `baseValue` field on existing entries.
-* @return Unique identifier for the next element in the list (!not the vector's rowid!).
-*/
-int BaseInfoDetailsState::addToDetailsVector(BeanCounter row, bool updateExistingValueField)
-{
-	for (auto &bean : _details)
-	{
-		if (bean.parentId == row.parentId && bean.description == row.description &&
-			bean.valueOverride == row.valueOverride)
-		{
-			bean.baseValue += row.baseValue * updateExistingValueField; // Branchless programming trick.
-			// No checking if bean.amount > -1.
-			// It is callers responsibility to supply correct values.
-			// Ensures any implementation faults become a bit more visible (weird numbers on screen).
-			bean.amount += row.amount;
-
-			return row.childId;
-		}
-	}
-	_details.push_back(row);
-	return ++row.childId;
-}
-
-/**
-* Adds a unique row to the given (temporal) subcategory vector.
-*
-* Creates a new entry if needed, updates existing one where possible.
-*
-* @note
-* Row uniqueness is defined by the combination of the fields:
-*`parentId`, `description` and `baseValue`.
-*
-* @param subCategory Vector to operate on (`_details` is allowed but not recommend).
-* @param row         The contents of the row we want to insert (or update).
-*/
-void BaseInfoDetailsState::add2vector(std::vector<BeanCounter> &subCategory, BeanCounter row)
-{
-	for (auto &bean : subCategory)
-	{
-		// Could probably get away with check on description only.
-		// Others are for the (unlikely) case method is called on `_details`.
-		if (bean.parentId == row.parentId &&
-			bean.baseValue == row.baseValue &&
-			bean.description == row.description)
-		{
-			bean.amount += row.amount;
-			return;
-		}
-	}
-	subCategory.push_back(row);
-	return;
-}
-
-/**
-* Adds given subcategory vector to screen's global `_details` vector.
+* Adds given subcategory vector to screen's global `_details` vector
+* (if it has any children).
 *
 * @param subCategory Vector to add to `_details` vector
 * @param forceInclude Include even if parent has no children.
 */
 void BuildFacilitiesDetailsState::add2_detailsVector(std::vector<BeanCounter> &subCategory, bool forceInclude)
 {
-	if (subCategory.size() < 2 && !forceInclude)
-		return;
+	if (subCategory.size() < 2 && !forceInclude) return;
 
 	_details.insert(_details.end(), subCategory.begin(), subCategory.end());
 }
@@ -1025,10 +1189,9 @@ void BuildFacilitiesDetailsState::add2_detailsVector(std::vector<BeanCounter> &s
 * @param subCategory The method's local `_details` slice copy to work on.
 * @param skipChildren Number of starting child rows to be left untouched.
 */
-void BaseInfoDetailsState::sortChildrenByDescription(std::vector<BeanCounter> &subCategory, size_t skipChildren)
+void BuildFacilitiesDetailsState::sortChildrenByDescription(std::vector<BeanCounter> &subCategory, size_t skipChildren)
 {
-	// No children
-	if (subCategory.size() < 2 + skipChildren) return;
+	if (subCategory.size() < 2 + skipChildren) return; // No valid children
 
 	std::stable_sort(std::next(subCategory.begin(), 1 + skipChildren), subCategory.end(),
 		[](const BeanCounter a, const BeanCounter b)
@@ -1037,195 +1200,19 @@ void BaseInfoDetailsState::sortChildrenByDescription(std::vector<BeanCounter> &s
 }
 
 /**
-* Calculate the amount of facilities contributing to the given subCategory.
+* Sort children by their existence on this base
 *
 * @param subCategory The method's local `_details` slice copy to work on.
-* @return The amount of facilities
+* @param skipChildren Number of starting child rows to be left untouched.
 */
-int BaseInfoDetailsState::countContributingFacilities(std::vector<BeanCounter> &subCategory)
+void BuildFacilitiesDetailsState::sortChildrenByExistOnBase(std::vector<BeanCounter> &subCategory, size_t skipChildren)
 {
-	int count = 0;
-	for (auto bean : subCategory)
-	{
-		// By default the first element is meant to display the result of this method.
-		// Hence skip this first one by default.
-		if (bean.parentId == bean.childId) continue; // not a child
+	if (subCategory.size() < 2 + skipChildren) return; // No valid children
 
-		count += bean.amount;
-	}
-	return count;
-}
-
-/**
-* Calculate the probability of getting a success for the given subCategory.
-*
-* @remark
-* For detection we only need one success.
-* Assuming independent checks (which seem to be true):
-* - P_success = 1 - P_all_failed
-* - P_all_failed = P_check1failed * P_check2failed * ... * P_checkNfailed.
-* - P_check#failed = 1 - P_check_success
-* - P_check_success = chance_value/100
-*
-* @param subCategory The method's local `_details` slice copy to work on.
-* @return The probability of success (0 < Psucces < 1).
-*/
-double BaseInfoDetailsState::calcProbabilityAtLeastOne(std::vector<BeanCounter> &subCategory)
-{
-
-	double detectionFail = 1.0;
-	for (auto bean : subCategory)
-	{
-		// By default the first element is meant to display the result of this method.
-		// Hence skip this first one by default.
-		if (bean.parentId == bean.childId) continue; // not a child
-
-		detectionFail *= (1.0 - calcProbabilityAtLeastOne(bean.baseValue, bean.amount));
-	}
-	// Always round down (even if that results in non probability "0").
-	return 1.0 - detectionFail;
-}
-
-/**
-* Calculate the probability of getting a success.
-*
-* @remark
-* P_success = 1 - P_all_failed
-*           = 1 - (P_facility1fails * P_facility1fails + ... + PfacilityNfails)
-* Since all tries have the same baseChange the formula becomes:
-* P_success = 1 - (1 - P_baseChance)^tries
-*
-* @param baseChance The success chance for each try (e.g. detection chance).
-* @param tries      Number of facilities contributing to this calculation.
-* @return The probability of success (0 =< Psuccess < 1, yup ... 0 is allowed in this context).
-*/
-double BaseInfoDetailsState::calcProbabilityAtLeastOne(int baseChance, int tries)
-{
-	if (baseChance <= 0) return 0.0;
-
-	return 1.0 - std::pow(1.0 - baseChance/100.0, tries);
-}
-
-/**
- * Update sets with category related facilities unable to build at this base.
- *
- * @remark
- * A building is blocked from building under the following circumstances.
- * + It is forbidden (`_forbiddenFacilities`)
- *   - Provides a "service" forbidden on this base.
- *   - Forbids a "service" already present on base.
- *   - Base has reached it's limit for this building.
- * + It misses some requirement (`_missingReqsFacilities`)
- *   - Depends on a service not present on this base.
- *   - Required items are not present on base.
- *
- * @note
- * Don't forget provided and missing services can depend on country / region (`Base::calculateServices()`)
- * This is already included when asking base to calculate those (`base->get*BaseFunc({})`)!
- *
- * @note
- * This method does not take `buildOver` into account.
- * We want to list all buildings that cannot be build directly.
- * Let list fill method (`subcategoryBlockedFacility()`) handle `buildOver`.
- */
-void BaseInfoDetailsState::updateBlockedFacilitiesSets()
-{
-	_forbiddenFacilities.clear();
-	_missingReqsFacilities.clear();
-
-	auto provBaseFunc = _providedBaseFunc;
-	if (_btnQueuedFacilities->getPressed())
-	{
-		provBaseFunc = _futureBaseFunc;
-	}
-
-	// Get all (known) facilities which cannot be build (anymore) on this base.
-	// Based on: BuildFacilitiesState::populateBuildList()
-	for (auto &facilityType : _game->getMod()->getBaseFacilitiesList())
-	{
-		RuleBaseFacility *rule = _game->getMod()->getBaseFacility(facilityType);
-
-		if (!isFacilityPartOfScreenCategory(rule))
-			continue;
-		if (!rule->isAllowedForBaseType(_base->isFakeUnderwater()))
-			continue;
-		if (!_game->getSavedGame()->isResearched(rule->getRequirements()))
-			continue;
-
-		RuleBaseFacilityFunctions req = rule->getRequireBaseFunc();
-		RuleBaseFacilityFunctions forb = rule->getForbiddenBaseFunc();
-		RuleBaseFacilityFunctions prov = rule->getProvidedBaseFunc();
-		if ((~provBaseFunc & req).any())
-		{
-			_missingReqsFacilities.insert(rule);
-		}
-		// Might as well recognize item requirements (`PlaceFacilityState::viewClick()`)
-		for (const auto& item: rule->getBuildCostItems())
-		{
-			int needed = item.second.first - _base->getItemCountStorage(item.first);
-			if (needed > 0)
-			{
-				_missingReqsFacilities.insert(rule);
-				break;
-			}
-		}
-
-		// Following blockers always take queued facilities into account.
-		if (_base->isMaxAllowedLimitReached(rule))
-		{
-			_forbiddenFacilities.insert(rule);
-		}
-		else if ((_forbiddenBaseFunc & prov).any())
-		{
-			_forbiddenFacilities.insert(rule);
-		}
-		else if ((provBaseFunc & forb).any())
-		{
-			_forbiddenFacilities.insert(rule);
-		}
-	}
-}
-
-/**
-* Does this facility contribute to current screen category.
-*
-* @param rule Pointer to facility ruleset
-* @return Whether this facility contributes to current screen category.
-*/
-bool BaseInfoDetailsState::isFacilityPartOfScreenCategory(RuleBaseFacility *rule)
-{
-	if (!rule) return false;
-
-	bool result = true;
-	switch (_category)
-	{
-	// case BaseInfoDetailsCategory::SOLDIERS:
-	//	break;
-	// case BaseInfoDetailsCategory::ENGINEERS:
-	// 	break;
-	// case BaseInfoDetailsCategory::SCIENTISTS:
-	// 	break;
-	// case BaseInfoDetailsCategory::QUARTERS:
-	// 	break;
-	// case BaseInfoDetailsCategory::STORES:
-	// 	break;
-	// case BaseInfoDetailsCategory::LABORATORIES:
-	// 	break;
-	// case BaseInfoDetailsCategory::WORKSHOPS:
-	// 	break;
-	// case BaseInfoDetailsCategory::CONTAINMENT:
-	// 	break;
-	// case BaseInfoDetailsCategory::HANGARS:
-	// 	break;
-	// case BaseInfoDetailsCategory::DEFENSE:
-	// 	break;
-	case BaseInfoDetailsCategory::DETECTION:
-		result &= (rule->isMindShield() || rule->getRadarRange() > 0 || rule->getSightRange() > 0);
-		break;
-	default:
-		result = false;
-	}
-	return result;
+	std::stable_sort(std::next(subCategory.begin(), 1 + skipChildren), subCategory.end(),
+		[](const BeanCounter a, const BeanCounter b)
+		{ return a.amount > b.amount; }
+	);
 }
 
 }
