@@ -30,5 +30,7 @@ interfaces:
         color: 1
       - id: list
         color: 244
-        color2: 1  # white
-        border: 6  # =id_palette, used for forbidden categories facilities.
+        color2: 1   # white. For subcategory lines (parents).
+        border: 6
+      - id: list-highlight
+        color:  146 # gold. For description highlights

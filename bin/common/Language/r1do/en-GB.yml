@@ -26,7 +26,24 @@ en-GB:
   STR_BIDS_DETAIL_UFO_DETECTION_HYPERWAVE: "{0} (Hyper Wave)"               # {0} is facility name. TFTD: Transmission resolver.
   STR_BIDS_TITLE_ALIEN_BASE_DETECTION: "Alien Base detection {0} NM"        # Uses ICAO symbol
 # BuildFacilitiesDetailsState.cpp
-  STR_BFDS_TITLE: "{0} construction details" # {0} = facility name.
+  STR_BFDS_TITLE: "{0}" # {0} = facility name.
+  STR_BFDS_COLUMN_HEADER_DESCRIPTION: "Construction details"
+  STR_BFDS_COLUMN_HEADER_ONBASE: "On base"
+  STR_REQUIRED_FUNDS: "Funds required: {ALT}{0}{ALT}" # {0} = Required Funds
+  STR_PROVIDED_BY_COUNTRY: "Provided by country: {ALT}{0}{ALT}"    # {0} = country
+  STR_PROVIDED_BY_REGION: "Provided by region: {ALT}{0}{ALT}"      # {0} = region
+  STR_PROVIDED_BY_FACILITY: "Provided by facility: {ALT}{0}{ALT}"  # {0} = facility
+  STR_FORBIDDEN_BY_COUNTRY: "Forbidden by country: {ALT}{0}{ALT}"   # {0} = country
+  STR_FORBIDDEN_BY_REGION: "Forbidden by region: {ALT}{0}{ALT}"     # {0} = region
+  STR_FORBIDDEN_BY_FACILITY: "Forbidden by facility: {ALT}{0}{ALT}" # {0} = facility
+  STR_BFDS_REQUIRED_ITEMS_CAT: "Item(s) required"
+  STR_BFDS_REQUIRED_ITEMS_DETAIL: "{0}: {ALT}{1}{ALT}"                 # {0} = Item, {1} = amount
+  STR_BFDS_REQUIRED_SERVICE_CAT: "Service required {ALT}{0}{ALT}"      # {0} = required service
+  STR_BFDS_LIMITED_BY_AMOUNT_CAT: "Only {ALT}{0}{ALT} allowed on base" # {0} = amount
+  STR_BFDS_BLOCKED_BY_OTHERS_CAT: "Service blocked: {ALT}{0}{ALT}"     # {0} = blocked service
+  STR_BFDS_BLOCKS_OTHERS_CAT: "Blocks service: {ALT}{0}{ALT}"          # {0} = blocked service
+  STR_BFDS_CAN_RENOVATE_CAT: "Can renovate existing facilities"
+
   STR_BFDS_TAB_REQUIREMENTS: "Requirements"
   STR_BFDS_TAB_BLOCKERS: "Blockers"
   STR_BFDS_SOLVABLE_BY: "Solvable?"

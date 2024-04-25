@@ -218,6 +218,7 @@ void BuildFacilitiesDetailsState::tabClick(Action *action)
 void BuildFacilitiesDetailsState::lstDetailsMousePress(Action *)
 {
 	_sel = _lstDetails->getSelectedRow(); // Needed for `getRow()`.
+	auto curScroll = _lstDetails->getScroll();
 
 	// Flip visibility of child elements.
 	for (size_t i = 0; i < _details.size(); ++i)
@@ -228,6 +229,7 @@ void BuildFacilitiesDetailsState::lstDetailsMousePress(Action *)
 		_details[i].isRowVisible ^= true;
 	}
 	updateList();
+	_lstDetails->scrollTo(curScroll);
 }
 
 /**
@@ -273,20 +275,34 @@ void BuildFacilitiesDetailsState::drawBody()
 */
 void BuildFacilitiesDetailsState::setupTabRequirements()
 {
-
 	subcategoryReqsFunds();
 	subcategoryReqsItems();
 	subcategoryReqsServices();
-	if (true) // Show potential blockers button?
+	addSeparatorLine();
+
+	auto oldListSize = _details.size();
+	if (true) // Depend on potential blockers button?
 	{
-		addSeparatorLine();
 		subcategoryLimitedByAmount();
 		subcategoryProvidesServicesBlockedByOthers();
 		subcategoryBlocksServicesProvidedByOthers();
+
+		if (oldListSize < _details.size()) // Prevent double blanc lines
+		{
+			addSeparatorLine();
+		}
 	}
 	// Diverse categories
-	addSeparatorLine();
+	oldListSize = _details.size();
 	subcategoryReqsRecurring();
+	subCategoryCanRenovate();
+
+	// Ensure children can become visible when unfolding on a big list.
+	// Otherwise players has to derive their existence from the scrollbar.
+	if (oldListSize < _details.size())
+	{
+		addSeparatorLine();
+	}
 }
 
 /**
@@ -325,7 +341,7 @@ void BuildFacilitiesDetailsState::subcategoryReqsFunds()
 	int requiredFunds = _facRuleSelected->getBuildCost();
 	// No need to check on sign and corresponding cases, or zero.
 	// Not useful and player can easily deduce this from value in description
-	description = "Funds Required: " + Unicode::formatFunding(requiredFunds); // TODO: unhardcode
+	description = tr("STR_REQUIRED_FUNDS").arg(Unicode::formatFunding(requiredFunds));
 	bean = {0, parentId, description , 0, 0, true};
 	bean.valueOverride = Unicode::formatFunding(_game->getSavedGame()->getFunds());
 
@@ -352,7 +368,7 @@ void BuildFacilitiesDetailsState::subcategoryReqsItems()
 	BeanCounter bean;
 	std::vector<BeanCounter> subCategory;
 
-	description = "Item(s) required for construction";
+	description = tr("STR_BFDS_REQUIRED_ITEMS_CAT");
 	bean = {0, parentId, description , 0, 0, true};
 	subCategory.push_back(bean);
 
@@ -363,11 +379,9 @@ void BuildFacilitiesDetailsState::subcategoryReqsItems()
 		int available = _base->getItemCountStorage(item.first);
 		allItemRequirementsMet &= available >= needed;
 
-		description = tr(item.first).c_str();
-		description.append(": " + std::to_string(needed));
-		//description = tr("STR_BFDS_BLOCKER_DETAIL_MISSING_ITEMS_AMOUNT")
-			//.arg(needed)
-			//.arg(tr(item.first));
+		description = tr("STR_BFDS_REQUIRED_ITEMS_DETAIL")
+			.arg(tr(item.first))
+			.arg(needed);
 		bean = {0, parentId, description , 0, available, false};
 		subCategory.push_back(bean);
 	}
@@ -414,11 +428,11 @@ void BuildFacilitiesDetailsState::subcategoryReqsServices()
 
 		RuleBaseFacilityFunctions currentService = 0;
 		currentService.flip(i);
-		auto serviceName = _game->getMod()->getBaseFunctionNames(currentService).front();
 
-		description = "Service required: " + serviceName;
+		description = tr("STR_BFDS_REQUIRED_SERVICE_CAT")
+			.arg(_game->getMod()->getBaseFunctionNames(currentService).front());
 		bean = {0, parentId, description , 0, 0, true};
-		childValueOverride((currentService & _providedBaseFunc).any()); // Current limits build, not future
+		childValueOverride((currentService & _providedBaseFunc).any());
 		subCategory.push_back(bean);
 
 		// Just loop over all countries/regions/facilities.
@@ -432,8 +446,8 @@ void BuildFacilitiesDetailsState::subcategoryReqsServices()
 				continue;
 
 			bool appliesToBase = ruleCountry->insideCountry(_base->getLongitude(), _base->getLatitude());
-			description = "Provided by country: ";
-			description.append(tr(ruleCountry->getType().c_str()));
+			description = tr("STR_PROVIDED_BY_COUNTRY")
+				.arg(tr(ruleCountry->getType()));
 			bean = {0, parentId, description , appliesToBase, 0, false};
 			childValueOverride(appliesToBase);
 			subCategory.push_back(bean);
@@ -448,8 +462,8 @@ void BuildFacilitiesDetailsState::subcategoryReqsServices()
 				continue;
 
 			bool appliesToBase = ruleRegion->insideRegion(_base->getLongitude(), _base->getLatitude());
-			description = "Provided by region: ";
-			description.append(tr(ruleRegion->getType().c_str()));
+			description = tr("STR_PROVIDED_BY_REGION")
+				.arg(tr(ruleRegion->getType()));
 			bean = {0, parentId, description , appliesToBase, 0, false};
 			childValueOverride(appliesToBase);
 			subCategory.push_back(bean);
@@ -475,8 +489,8 @@ void BuildFacilitiesDetailsState::subcategoryReqsServices()
 				existsOnBase = true;
 				break; // We are only interested if at least one exists
 			}
-			description = "Provided by facility: ";
-			description.append(tr(ruleFacility->getType().c_str()));
+			description = tr("STR_PROVIDED_BY_FACILITY")
+				.arg(tr(ruleFacility->getType()));
 			bean = {0, parentId, description , existsOnBase, 0, false};
 			childValueOverride(existsOnBase);
 			subCategory.push_back(bean);
@@ -507,9 +521,8 @@ void BuildFacilitiesDetailsState::subcategoryLimitedByAmount()
 
 		countFac++;
 	}
-	description = "Only "; // TODO: unhardcode
-	description.append(std::to_string(_facRuleSelected->getMaxAllowedPerBase()));
-	description.append(" allowed on base");
+	description = tr("STR_BFDS_LIMITED_BY_AMOUNT_CAT")
+		.arg(_facRuleSelected->getMaxAllowedPerBase());
 	bean = {0, parentId, description , 0, countFac, true};
 	subCategory.push_back(bean);
 
@@ -545,9 +558,9 @@ void BuildFacilitiesDetailsState::subcategoryProvidesServicesBlockedByOthers()
 
 		RuleBaseFacilityFunctions currentService = 0;
 		currentService.flip(i);
-		auto serviceName = _game->getMod()->getBaseFunctionNames(currentService).front();
 
-		description = "Facility service blocked: " + serviceName;
+		description = tr("STR_BFDS_BLOCKED_BY_OTHERS_CAT")
+			.arg(_game->getMod()->getBaseFunctionNames(currentService).front());
 		bean = {0, parentId, description , 0, 0, true};
 		childValueOverride((currentService & _forbiddenBaseFunc).any());
 		subCategory.push_back(bean);
@@ -563,8 +576,8 @@ void BuildFacilitiesDetailsState::subcategoryProvidesServicesBlockedByOthers()
 				continue;
 
 			bool appliesToBase = ruleCountry->insideCountry(_base->getLongitude(), _base->getLatitude());
-			description = "Forbidden by country: ";
-			description.append(tr(ruleCountry->getType().c_str()));
+			description = tr("STR_FORBIDDEN_BY_COUNTRY")
+				.arg(tr(ruleCountry->getType()));
 			bean = {0, parentId, description , appliesToBase, 0, false};
 			childValueOverride(appliesToBase);
 			subCategory.push_back(bean);
@@ -579,8 +592,8 @@ void BuildFacilitiesDetailsState::subcategoryProvidesServicesBlockedByOthers()
 				continue;
 
 			bool appliesToBase = ruleRegion->insideRegion(_base->getLongitude(), _base->getLatitude());
-			description = "Forbidden by region: ";
-			description.append(tr(ruleRegion->getType().c_str()));
+			description = tr("STR_FORBIDDEN_BY_REGION")
+				.arg(tr(ruleRegion->getType()));
 			bean = {0, parentId, description , appliesToBase, 0, false};
 			childValueOverride(appliesToBase);
 			subCategory.push_back(bean);
@@ -606,8 +619,8 @@ void BuildFacilitiesDetailsState::subcategoryProvidesServicesBlockedByOthers()
 				existsOnBase = true;
 				break;
 			}
-			description = "Forbidden by facility: ";
-			description.append(tr(ruleFacility->getType().c_str()));
+			description = tr("STR_FORBIDDEN_BY_FACILITY")
+				.arg(tr(ruleFacility->getType()));
 			bean = {0, parentId, description , existsOnBase, 0, false};
 			childValueOverride(existsOnBase);
 			subCategory.push_back(bean);
@@ -648,9 +661,9 @@ void BuildFacilitiesDetailsState::subcategoryBlocksServicesProvidedByOthers()
 
 		RuleBaseFacilityFunctions currentService = 0;
 		currentService.flip(i);
-		auto serviceName = _game->getMod()->getBaseFunctionNames(currentService).front();
 
-		description = "Facility blocks service: " + serviceName;
+		description = tr("STR_BFDS_BLOCKS_OTHERS_CAT")
+			.arg(_game->getMod()->getBaseFunctionNames(currentService).front());
 		bean = {0, parentId, description , 0, 0, true};
 		childValueOverride((currentService & _futureBaseFunc).any()); // Future, since planned facilities might be blocked
 		subCategory.push_back(bean);
@@ -666,8 +679,8 @@ void BuildFacilitiesDetailsState::subcategoryBlocksServicesProvidedByOthers()
 				continue;
 
 			bool appliesToBase = ruleCountry->insideCountry(_base->getLongitude(), _base->getLatitude());
-			description = "Provided by country: ";
-			description.append(tr(ruleCountry->getType().c_str()));
+			description = tr("STR_PROVIDED_BY_COUNTRY")
+				.arg(tr(ruleCountry->getType()));
 			bean = {0, parentId, description , appliesToBase, 0, false};
 			childValueOverride(appliesToBase);
 			subCategory.push_back(bean);
@@ -682,8 +695,8 @@ void BuildFacilitiesDetailsState::subcategoryBlocksServicesProvidedByOthers()
 				continue;
 
 			bool appliesToBase = ruleRegion->insideRegion(_base->getLongitude(), _base->getLatitude());
-			description = "Provided by region: ";
-			description.append(tr(ruleRegion->getType().c_str()));
+			description = tr("STR_PROVIDED_BY_REGION")
+				.arg(tr(ruleRegion->getType()));
 			bean = {0, parentId, description , appliesToBase, 0, false};
 			childValueOverride(appliesToBase);
 			subCategory.push_back(bean);
@@ -709,8 +722,8 @@ void BuildFacilitiesDetailsState::subcategoryBlocksServicesProvidedByOthers()
 				existsOnBase = true;
 				break;
 			}
-			description = "Provided by facility: ";
-			description.append(tr(ruleFacility->getType().c_str()));
+			description = tr("STR_PROVIDED_BY_FACILITY")
+				.arg(tr(ruleFacility->getType()));
 			bean = {0, parentId, description , existsOnBase, 0, false};
 			childValueOverride(existsOnBase);
 			subCategory.push_back(bean);
@@ -762,7 +775,7 @@ void BuildFacilitiesDetailsState::subCategoryCanRenovate()
 	BeanCounter bean;
 	std::vector<BeanCounter> subCategory;
 
-	description = "Can renovate existing facilities"; // TODO: unhardcode
+	description = tr("STR_BFDS_CAN_RENOVATE_CAT");
 	bean = {0, parentId, description , 0, 0, true};
 	subCategory.push_back(bean);
 
@@ -1105,7 +1118,7 @@ void BuildFacilitiesDetailsState::updateList()
 
 	auto colorPrimary = _lstDetails->getColor();
 	auto colorSecondary = _lstDetails->getSecondaryColor();
-	auto colorTertiary = _lstDetails->getScrollbarColor();
+	auto colorTertiary = _game->getMod()->getInterface("buildFacilitiesDetails")->getElement("list-highlight")->color;
 	//auto colorTertiary = _game->getMod()->getInterface("buildFacilitiesDetails")->getElement("list")->border;
 	for (size_t i = 0; i < _details.size(); ++i)
 	{
@@ -1134,16 +1147,15 @@ void BuildFacilitiesDetailsState::updateList()
 		}
 		// ssAmount << _details[i].amount;
 
+		_lstDetails->addRow(2, description.c_str(), ssValue.str().c_str());
 		//if (_tabBlockers->getPressed())
 		if (_details[i].parentId != i)
 		{
-			_lstDetails->setSecondaryColor(colorTertiary);
-			_lstDetails->addRow(2, description.c_str(), ssValue.str().c_str());
-			_lstDetails->setSecondaryColor(colorSecondary);
+			_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), colorPrimary, colorTertiary);
 		}
 		else
 		{
-			_lstDetails->addRow(2, description.c_str(), ssValue.str().c_str());
+			_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), colorSecondary, colorTertiary);
 		}
 		// if (_details[i].amount > 0)
 		// {
@@ -1156,16 +1168,6 @@ void BuildFacilitiesDetailsState::updateList()
 		// 	//_lstDetails->addRow(3, description.c_str(), "", ssValue.str().c_str());
 		// }
 		_rows.push_back(i);
-
-		if(_details[i].parentId == i)
-		{
-			_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), colorSecondary);
-			//_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), _game->getMod()->getInterface("baseInfoDetails")->getElement("list")->border);
-		}
-		// else
-		// {
-		// 	_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), colorPrimary);
-		// }
 	}
 }
 

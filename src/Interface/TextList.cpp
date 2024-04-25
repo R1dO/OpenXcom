@@ -163,12 +163,17 @@ void TextList::setCellColor(size_t row, size_t column, Uint8 color)
  * Changes the text color of a whole row in the list.
  * @param row Row number.
  * @param color Text color.
+ * @param color2 Secondary text color.
  */
-void TextList::setRowColor(size_t row, Uint8 color)
+void TextList::setRowColor(size_t row, Uint8 color, Uint8 color2)
 {
 	for (auto* text : _texts[row])
 	{
 		text->setColor(color);
+		if (color != color2)
+		{
+			text->setSecondaryColor(color2);
+		}
 	}
 	_redraw = true;
 }

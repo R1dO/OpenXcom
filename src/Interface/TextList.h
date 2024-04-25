@@ -83,7 +83,8 @@ public:
 	/// Sets the text color of a certain cell.
 	void setCellColor(size_t row, size_t column, Uint8 color);
 	/// Sets the text color of a certain row.
-	void setRowColor(size_t row, Uint8 color);
+	void setRowColor(size_t row, Uint8 color, Uint8 color2);
+	void setRowColor(size_t row, Uint8 color) { setRowColor(row, color, color); };
 	/// Gets the text of a certain cell.
 	std::string getCellText(size_t row, size_t column) const;
 	/// Sets the text of a certain cell.
