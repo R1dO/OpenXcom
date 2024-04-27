@@ -15,6 +15,7 @@ interfaces:
       - id: list
         color: 218   # blue
         color2: 208  # white
+        border: 246  # =id_palette, used for forbidden categories facilities.
   - type: buildFacilitiesDetails
     backgroundImage: BACK05.SCR
     palette: PAL_BASESCAPE

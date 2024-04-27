@@ -18,16 +18,22 @@
  */
 
 #include "BaseInfoDetailsState.h"
+//#include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Engine/Options.h"
+#include "../Mod/Mod.h"
+#include "../Mod/RuleCountry.h"
+#include "../Mod/RuleRegion.h"
 #include "../Interface/TextButton.h"
 #include "../Interface/Window.h"
 #include "../Interface/Text.h"
 #include "../Interface/TextList.h"
 #include "../Interface/ToggleTextButton.h"
 #include "../Savegame/Base.h"
-#include "../Savegame/BaseFacility.h"
-#include <utility>
+#include "../Savegame/SavedGame.h"
+
+
+#include "../Mod/RuleInterface.h"
 
 namespace OpenXcom
 {
@@ -77,7 +83,7 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, BaseInfoDetailsCategory c
 	centerAllSurfaces();
 
 	// Set up objects
-	setWindowBackground(_window, "baseInfoDetails");
+	//setWindowBackground(_window, "baseInfoDetails");
 
 	_btnNext->setText(">>");
 	_btnNext->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnNextClick);
@@ -92,6 +98,7 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, BaseInfoDetailsCategory c
 	_tabBuildLimitations->setPressed(false);
 	_tabBuildLimitations->onMouseClick((ActionHandler)&BaseInfoDetailsState::tabClick);
 	_btnQueuedFacilities->setText(tr("STR_INCLUDE_QUEUED_FACILITIES"));
+	//_btnQueuedFacilities->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnToggleQueuedFacilities, 0); // Any mouse button.
 	_btnQueuedFacilities->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnToggleQueuedFacilities); // LMB only
 	_btnOk->setText(tr("STR_OK"));
 	_btnOk->onMouseClick((ActionHandler)&BaseInfoDetailsState::btnOkClick);
@@ -105,13 +112,42 @@ BaseInfoDetailsState::BaseInfoDetailsState(Base *base, BaseInfoDetailsCategory c
 	_txtQuantity->setText(tr("STR_FACILITIES"));
 	_txtResult->setText(tr("STR_VALUE"));
 
-	_lstDetails->setColumns(3, 155+15, 45, 70-15);
+	//_lstDetails->setColumns(3, 155+15, 45, 70-15);
 	_lstDetails->setSelectable(true); // Required for collapse/fold functionality.
 	_lstDetails->setBackground(_window);
 	_lstDetails->setScrolling(true);
 	_lstDetails->setMargin(2);        // Shifts **all** columns 2px to the right.
+	_lstDetails->onMousePress((ActionHandler)&BaseInfoDetailsState::lstDetailsMousePress, SDL_BUTTON_LEFT);
 	_lstDetails->onMousePress((ActionHandler)&BaseInfoDetailsState::lstDetailsMousePress, SDL_BUTTON_RIGHT);
 	_lstDetails->setDot(true);
+	_lstDetails->setWordWrap(true);
+	//_lstDetails->setAlign(ALIGN_RIGHT, 2);
+
+	// Current country/region is needed for list of build limitations
+	// Based on `Base::calculateServices()`
+	_baseCountry = nullptr;
+	_baseRegion = nullptr;
+	for (const auto* country : *_game->getSavedGame()->getCountries())
+	{
+		if (country->getRules()->insideCountry(base->getLongitude(), base->getLatitude()))
+		{
+			_baseCountry = country;
+			break;
+		}
+	}
+	for (const auto* region : *_game->getSavedGame()->getRegions())
+	{
+		if (region->getRules()->insideRegion(base->getLongitude(), base->getLatitude()))
+		{
+			_baseRegion = region;
+			break;
+		}
+	}
+
+	// Services that don't depend on current category.
+	_providedBaseFunc = base->getProvidedBaseFunc({});
+	_futureBaseFunc = base->getFutureBaseFunc({});
+	_forbiddenBaseFunc = base->getForbiddenBaseFunc({});
 
 	drawBody();
 }
@@ -226,6 +262,82 @@ void BaseInfoDetailsState::lstDetailsMousePress(Action *)
 }
 
 /**
+* Check if specified parent has any children.
+*
+* @param parentId Id of parent to check.
+*/
+bool BaseInfoDetailsState::parentHasChildren(int parentId)
+{
+	auto bean = std::find_if(_details.begin(), _details.end(),
+		[&](const BeanCounter row)
+		{return row.parentId == parentId && row.childId != row.parentId;}
+		);
+	if (bean == _details.end())
+	{
+		return false;
+	}
+	return true;
+}
+
+/**
+* Calculate sum of children's `amount` field.
+*
+* @param parentId Id of parent.
+* @return The sum of all children's `amounts` fields.
+*/
+int BaseInfoDetailsState::calculateSumOfChildrenAmountField(int parentId)
+{
+	int amount = 0;
+	for (auto element : _details)
+	{
+		if (element.parentId == parentId && element.childId != element.parentId)
+		{
+			amount += element.amount;
+		}
+	}
+	return amount;
+};
+
+/**
+* Calculate sum of children's `baseValue` field.
+*
+* @param parentId Id of parent.
+* @return The sum of all children's `baseValue` fields.
+*/
+int BaseInfoDetailsState::calculateSumOfChildrenValueField(int parentId)
+{
+	int total = 0;
+	for (auto element : _details)
+	{
+		if (element.parentId == parentId && element.childId != element.parentId)
+		{
+			total += element.baseValue * element.amount; // works for percentage based?
+		}
+	}
+	return total;
+};
+
+/**
+ * Returns the max baseValue of children's `baseValue` field.
+ *
+ * @param parentId Id of parent.
+ * @return The max baseValue of all children's `baseValue` fields.
+ */
+
+int BaseInfoDetailsState::calculateMaxOfChildrenValueField(int parentId)
+{
+	int total = 0;
+	for (auto element : _details)
+	{
+		if (element.parentId == parentId && element.childId != element.parentId)
+		{
+			total = std::max(total, element.baseValue);
+		}
+	}
+	return total;
+};
+
+/**
  * Setup and draw the screen's body.
  *  * Screen title
  *  * list details
@@ -234,6 +346,23 @@ void BaseInfoDetailsState::lstDetailsMousePress(Action *)
 void BaseInfoDetailsState::drawBody()
 {
 	_details.clear();
+	_lstDetails->clearList();
+
+	if (_tabCapabilities->getPressed())
+	{
+	 	_lstDetails->setColumns(3, 155+15, 45, 70-15);
+		_txtQuantity->setVisible(true);
+		_txtResult->setVisible(true);
+		_btnQueuedFacilities->setVisible(true);
+	}
+	else
+	{
+		_lstDetails->setColumns(2, 155+15+45, 70-15);
+		_txtQuantity->setVisible(false);
+		_txtResult->setVisible(false);
+		_btnQueuedFacilities->setVisible(false);
+	}
+	updateBlockedFacilitiesSets();
 
 	switch (_category)
 	{
@@ -256,7 +385,7 @@ void BaseInfoDetailsState::drawBody()
 	// case BaseInfoDetailsCategory::HANGARS:
 	// 	break;
 	// case BaseInfoDetailsCategory::DEFENSE:
-	// 	break;
+	// 	break; // Include items required for a base defense here.
 	case BaseInfoDetailsCategory::DETECTION:
 		setupCategoryDetection();
 		break;
@@ -304,9 +433,7 @@ void BaseInfoDetailsState::setupPlaceholders()
  *  - Base Camouflage, e.g. chance of staying undetected.
  *  - UFO detection per range, including hyperwave abilities.
  *  - Alien Base detection per range.
-
- * And show the effect of those facilities on base services (if any).??
-
+ * And show the effect of those facilities on base services (if any).
  */
 void BaseInfoDetailsState::setupCategoryDetection()
 {
@@ -321,7 +448,9 @@ void BaseInfoDetailsState::setupCategoryDetection()
 	}
 	else
 	{
+		subcategoryForbiddenFacilities();
 	}
+	// subcat detection related facilities not able to be build due to missing requirements.
 
 	updateList(); //2024
 }
@@ -613,12 +742,8 @@ void BaseInfoDetailsState::subcategoryAlienBaseDetection()
 		int sightRange = facility->getRules()->getSightRange();
 		sightRanges.insert(sightRange);
 		// For dynamic ranges the chance at max range chance = 0%
-		// No need for adding extra ranges so player can deduce.
+		// No need for adding extra ranges to help player deduce.
 		// A facility showing "0%" at max range should suffice.
-		// if (facility->getRules()->getSightChance() == 0)
-		// {
-		// 	sightRanges.insert(sightRange/2);
-		// }
 	}
 
 	// Alien base detection per range limit.
@@ -681,12 +806,132 @@ void BaseInfoDetailsState::subcategoryAlienBaseDetection()
 }
 
 /**
+ * Setup and add list of current category facilities forbidden from being build.
+ */
+void BaseInfoDetailsState::subcategoryForbiddenFacilities()
+{
+	for (auto forbiddenFacilityRule : _forbiddenFacilities)
+	{
+		std::vector<BeanCounter> subCategory;
+		size_t childId, parentId = _details.size(); // `childId` is set later.
+		BeanCounter row;
+		std::string description;
+		RuleBaseFacilityFunctions req = forbiddenFacilityRule->getRequireBaseFunc();
+		RuleBaseFacilityFunctions forb = forbiddenFacilityRule->getForbiddenBaseFunc();
+		RuleBaseFacilityFunctions prov = forbiddenFacilityRule->getProvidedBaseFunc();
+
+		// Sub category header (a.k.a. subtotal).
+		description = tr("STR_BIDS_TITLE_FORBIDDEN_FACILITY").arg(tr(forbiddenFacilityRule->getType()));
+		row = {parentId, parentId, description, 0, 0, true};
+		subCategory.push_back(row);
+
+		if (_baseCountry && (_baseCountry->getRules()->getForbiddenBaseFunc() & prov).any())
+		{
+			description = tr("STR_BIDS_DETAIL_FORBIDDEN_BY_COUNTRY").arg(tr(_baseCountry->getRules()->getType()));
+			childId = subCategory.size() + parentId;
+			row = {childId, parentId, description , 0, 0, false};
+			add2vector(subCategory, row);
+		}
+		if (_baseRegion && (_baseRegion->getRules()->getForbiddenBaseFunc() & prov).any())
+		{
+			description = tr("STR_BIDS_DETAIL_FORBIDDEN_BY_REGION").arg(tr(_baseRegion->getRules()->getType()));
+			childId = subCategory.size() + parentId;
+			row = {childId, parentId, description , 0, 0, false};
+			add2vector(subCategory, row);
+		}
+		if (_base->isMaxAllowedLimitReached(forbiddenFacilityRule))
+		{
+			int amountPresent = 0;
+			for (auto facility : *_base->getFacilities())
+			{
+				// Internal calculation does not exclude buildings under construction.
+				amountPresent += facility->getRules() == forbiddenFacilityRule; // Implicit conversion bool->int
+			}
+
+			description = tr("STR_BIDS_DETAIL_FORBIDDEN_BY_AMOUNT")
+				.arg(forbiddenFacilityRule->getMaxAllowedPerBase())
+				.arg(amountPresent);
+			childId = subCategory.size() + parentId;
+			row = {childId, parentId, description , 0, 0, false};
+			add2vector(subCategory, row);
+		}
+		// Ensure anything added up to now is listed above facility services based blockers.
+		size_t skipSort = subCategory.size() - 1;
+
+		for (auto facility : *_base->getFacilities())
+		{
+			if ((facility->getRules()->getForbiddenBaseFunc() & prov).any())
+			{
+				description = tr("STR_BIDS_DETAIL_FORBIDDEN_SERVICE_BY_EXISTING")
+					.arg(tr(facility->getRules()->getType()));
+				childId = subCategory.size() + parentId;
+				row = {childId, parentId, description , 0, 0, false};
+
+				// Can problem be solved by building over respective facility?
+				// Based on: `BaseView::getPlacementError()`.
+				if (forbiddenFacilityRule->getCanBuildOverOtherFacility(facility->getRules()) == BPE_None)
+				{
+					// We are only interested on 'service' blockers
+					// Any size/intersection mismatch is part of placement algorithm.
+					row.valueOverride = tr("STR_BIDS_DETAIL_FORBIDDEN_RENOVATION_ALLOWED");
+				}
+				add2vector(subCategory, row);
+			}
+			if ((facility->getRules()->getProvidedBaseFunc() & forb).any())
+			{
+				description = tr("STR_BIDS_DETAIL_FORBIDDEN_SERVICE_BY_NEW")
+					.arg(tr(facility->getRules()->getType()));
+				childId = subCategory.size() + parentId;
+				row = {childId, parentId, description , 0, 0, false};
+
+				// Can problem be solved by building over respective facility?
+				// Based on: `BaseView::getPlacementError()`.
+				if (forbiddenFacilityRule->getCanBuildOverOtherFacility(facility->getRules()) == BPE_None)
+				{
+					// We are only interested on 'service' blockers
+					// Any size/intersection mismatch is part of placement algorithm.
+					row.valueOverride = tr("STR_BIDS_DETAIL_FORBIDDEN_RENOVATION_ALLOWED");
+				}
+				add2vector(subCategory, row);
+			}
+		}
+
+
+		// Prefer alphabetical listing of named facilities.
+		sortChildrenByDescription(subCategory, skipSort);
+		// Always show forbidden facilities even if we cannot determine reason.
+		add2screenList(subCategory, true);
+	}
+
+	// @note
+	// Does not take `buildOverFacilities` into account.
+		// At list create time:
+		// If a facility is blocked but can build over: do not list it?
+		// Or add a "can build over row" (replace only)
+
+		// headers
+		// Cannot build $FAC: missing service
+		//	$FAC missing	#	Service
+		//  || None discovered yet.
+		// Cannot build $FAC: blocked service
+		//	$FAC blocking	#	Service
+		//	$FAC buildover	#	Renovation allowed
+
+}
+
+/**
 * Draw (en filter) the current details list.
 */
 void BaseInfoDetailsState::updateList()
 {
 	_lstDetails->clearList();
 	_rows.clear();
+
+	if (_details.size() == 0)
+	{
+		BeanCounter row = {0, 0, tr("STR_BIDS_EMPTY_LIST"), 0, 0, true};
+		_details.push_back(row);
+	}
 
 	for (size_t i = 0; i < _details.size(); ++i)
 	{
@@ -701,6 +946,8 @@ void BaseInfoDetailsState::updateList()
 			description.insert(0, " "); // Do not use dots for description indentation.
 			ssAmount << tr("STR_DOTTED_INDENTATION");
 			ssValue << tr("STR_DOTTED_INDENTATION");
+			//ssAmount << " ";
+			//ssValue << " ";
 			//unconditionallyShowSign = false;
 		}
 
@@ -714,7 +961,29 @@ void BaseInfoDetailsState::updateList()
 		}
 		ssAmount << _details[i].amount;
 
-		if (_details[i].amount > 0)
+		// // Test for Last column(s) align right
+		// if (_details[i].parentId != _details[i].childId) // A child row.
+		// {
+		// 	description.insert(0, " ");
+		// }
+		// else
+		// {
+		// 	ssAmount << " ";
+		// 	ssValue << " ";
+		// }
+		// // End Test
+
+		auto colorPrimary = _lstDetails->getColor();
+		auto colorSecondary = _lstDetails->getSecondaryColor();
+		auto colorTertiary = _game->getMod()->getInterface("baseInfoDetails")->getElement("list")->border;
+
+		if (_tabBuildLimitations->getPressed())
+		{
+			_lstDetails->setSecondaryColor(colorTertiary);
+			_lstDetails->addRow(2, description.c_str(), ssValue.str().c_str());
+			_lstDetails->setSecondaryColor(colorSecondary);
+		}
+		else if (_details[i].amount > 0)
 		{
 			_lstDetails->addRow(3, description.c_str(), ssAmount.str().c_str(), ssValue.str().c_str());
 		}
@@ -727,8 +996,41 @@ void BaseInfoDetailsState::updateList()
 		if(_details[i].parentId == _details[i].childId)
 		{
 			_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), _lstDetails->getSecondaryColor());
+			//_lstDetails->setRowColor(_lstDetails->getLastRowIndex(), _game->getMod()->getInterface("baseInfoDetails")->getElement("list")->border);
 		}
 	}
+}
+
+/**
+* Adds another contribution to the `_details` vector.
+*
+* Creates a new entry if needed, updates if an entry already exist.
+* @note
+* An entry is defined by the unique combination of fields:
+*`parentId`, `description` and `valueOverride`.
+*
+* @param row                      The contents of the row we want to insert.
+* @param updateExistingValueField Are we allowed to update the `baseValue` field on existing entries.
+* @return Unique identifier for the next element in the list (!not the vector's rowid!).
+*/
+int BaseInfoDetailsState::addToDetailsVector(BeanCounter row, bool updateExistingValueField)
+{
+	for (auto &bean : _details)
+	{
+		if (bean.parentId == row.parentId && bean.description == row.description &&
+			bean.valueOverride == row.valueOverride)
+		{
+			bean.baseValue += row.baseValue * updateExistingValueField; // Branchless programming trick.
+			// No checking if bean.amount > -1.
+			// It is callers responsibility to supply correct values.
+			// Ensures any implementation faults become a bit more visible (weird numbers on screen).
+			bean.amount += row.amount;
+
+			return row.childId;
+		}
+	}
+	_details.push_back(row);
+	return ++row.childId;
 }
 
 /**
@@ -863,6 +1165,128 @@ double BaseInfoDetailsState::calcProbabilityAtLeastOne(int baseChance, int tries
 	if (baseChance <= 0) return 0.0;
 
 	return 1.0 - std::pow(1.0 - baseChance/100.0, tries);
+}
+
+/**
+ * Update sets with category related facilities unable to build at this base.
+ *
+ * @remark
+ * A building is blocked from building under the following circumstances.
+ * + It is forbidden (`_forbiddenFacilities`)
+ *   - Provides a "service" forbidden on this base.
+ *   - Forbids a "service" already present on base.
+ *   - Base has reached it's limit for this building.
+ * + It misses some requirement (`_missingReqsFacilities`)
+ *   - Depends on a service not present on this base.
+ *   - Required items are not present on base.
+ *
+ * @note
+ * Don't forget provided and missing services can depend on country / region (`Base::calculateServices()`)
+ * This is already included when asking base to calculate those (`base->get*BaseFunc({})`)!
+ *
+ * @note
+ * This method does not take `buildOver` into account.
+ * We want to list all buildings that cannot be build directly.
+ * Let list fill method (`subcategoryBlockedFacility()`) handle `buildOver`.
+ */
+void BaseInfoDetailsState::updateBlockedFacilitiesSets()
+{
+	_forbiddenFacilities.clear();
+	_missingReqsFacilities.clear();
+
+	auto provBaseFunc = _providedBaseFunc;
+	if (_btnQueuedFacilities->getPressed())
+	{
+		provBaseFunc = _futureBaseFunc;
+	}
+
+	// Get all (known) facilities which cannot be build (anymore) on this base.
+	// Based on: BuildFacilitiesState::populateBuildList()
+	for (auto &facilityType : _game->getMod()->getBaseFacilitiesList())
+	{
+		RuleBaseFacility *rule = _game->getMod()->getBaseFacility(facilityType);
+
+		if (!isFacilityPartOfScreenCategory(rule))
+			continue;
+		if (!rule->isAllowedForBaseType(_base->isFakeUnderwater()))
+			continue;
+		if (!_game->getSavedGame()->isResearched(rule->getRequirements()))
+			continue;
+
+		RuleBaseFacilityFunctions req = rule->getRequireBaseFunc();
+		RuleBaseFacilityFunctions forb = rule->getForbiddenBaseFunc();
+		RuleBaseFacilityFunctions prov = rule->getProvidedBaseFunc();
+		if ((~provBaseFunc & req).any())
+		{
+			_missingReqsFacilities.insert(rule);
+		}
+		// Might as well recognize item requirements (`PlaceFacilityState::viewClick()`)
+		for (const auto& item: rule->getBuildCostItems())
+		{
+			int needed = item.second.first - _base->getItemCountStorage(item.first);
+			if (needed > 0)
+			{
+				_missingReqsFacilities.insert(rule);
+				break;
+			}
+		}
+
+		// Following blockers always take queued facilities into account.
+		if (_base->isMaxAllowedLimitReached(rule))
+		{
+			_forbiddenFacilities.insert(rule);
+		}
+		else if ((_forbiddenBaseFunc & prov).any())
+		{
+			_forbiddenFacilities.insert(rule);
+		}
+		else if ((provBaseFunc & forb).any())
+		{
+			_forbiddenFacilities.insert(rule);
+		}
+	}
+}
+
+/**
+* Does this facility contribute to current screen category.
+*
+* @param rule Pointer to facility ruleset
+* @return Whether this facility contributes to current screen category.
+*/
+bool BaseInfoDetailsState::isFacilityPartOfScreenCategory(RuleBaseFacility *rule)
+{
+	if (!rule) return false;
+
+	bool result = true;
+	switch (_category)
+	{
+	// case BaseInfoDetailsCategory::SOLDIERS:
+	//	break;
+	// case BaseInfoDetailsCategory::ENGINEERS:
+	// 	break;
+	// case BaseInfoDetailsCategory::SCIENTISTS:
+	// 	break;
+	// case BaseInfoDetailsCategory::QUARTERS:
+	// 	break;
+	// case BaseInfoDetailsCategory::STORES:
+	// 	break;
+	// case BaseInfoDetailsCategory::LABORATORIES:
+	// 	break;
+	// case BaseInfoDetailsCategory::WORKSHOPS:
+	// 	break;
+	// case BaseInfoDetailsCategory::CONTAINMENT:
+	// 	break;
+	// case BaseInfoDetailsCategory::HANGARS:
+	// 	break;
+	// case BaseInfoDetailsCategory::DEFENSE:
+	// 	break;
+	case BaseInfoDetailsCategory::DETECTION:
+		result &= (rule->isMindShield() || rule->getRadarRange() > 0 || rule->getSightRange() > 0);
+		break;
+	default:
+		result = false;
+	}
+	return result;
 }
 
 }

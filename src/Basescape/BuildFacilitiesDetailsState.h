@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenXcom.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #include "../Engine/State.h"
 #include "../Mod/RuleBaseFacilityFunctions.h"
 #include "../Mod/RuleCountry.h"
@@ -29,7 +28,6 @@ namespace OpenXcom
 class Base;
 
 class TextButton;
-class ToggleTextButton;
 class Window;
 class Text;
 class TextList;
@@ -38,7 +36,7 @@ class RuleBaseFacility;
 /**
  * Base facilities details subwindow
  *
- * Shows reasons for build errors and facilities requirements.
+ * Shows facility requirements and reasons for build errors.
  */
 class BuildFacilitiesDetailsState : public State
 {
@@ -47,7 +45,7 @@ private:
 	{
 		// Use parent-child relation to enable collapsable details.
 		// We have a subtotal (parent) if 'childId == parentId'.
-		size_t childId = 0; // Obsolete? Can use vector element to test against?
+		size_t childId = 0; // Obsolete? Can use vector element to test against? // TODO remove
 		size_t parentId = 0;
 		std::string description = ""; // First display Column
 		int amount = 0;               // How many times a contribution is present on the base.
@@ -92,28 +90,18 @@ private:
 	std::map<const RuleBaseFacility*, int> _baseFacilitiesAndCount;
 
 	void lstDetailsMousePress(Action *);
+	void updateList();
 	void btnOkClick(Action *);
 
-	void drawBody();
-	void addSeparatorLine();
-	void updateList();
-
 	void setupListContents();
-
-	void subcategoryReqsFunds();
-	void subcategoryReqsItems();
-	void subcategoryReqsServices();
-	void subcategoryLimitedByAmount();
-	void subcategoryProvidesServicesBlockedByOthers();
-	void subcategoryBlocksServicesProvidedByOthers();
-	void subCategoryCanRenovate();
-
-	void setupTabBlockers();
-	void subcategoryBlockedByCountry();
-	void subcategoryBlockedByRegion();
-	void subcategoryBlockedByFacilities();
-	void subcategoryBlockedByRequiredItems();
-	void subcategoryBlockedByFunds();
+	void addSeparatorLine();
+	void categoryReqsFunds();
+	void categoryReqsItems();
+	void categoryReqsServices();
+	void categoryLimitedByAmount();
+	void categoryProvidesServicesBlockedByOthers();
+	void categoryBlocksServicesProvidedByOthers();
+	void categoryCanRenovate();
 
 	void add2_detailsVector(std::vector<BeanCounter> &subCategory, bool forceInclude = false);
 	void sortChildrenByDescription(std::vector<BeanCounter> &subCategory, size_t skipChildren = 0);

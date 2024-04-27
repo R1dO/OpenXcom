@@ -20,6 +20,10 @@
 
 #include "../Engine/State.h"
 #include "../Mod/RuleBaseFacilityFunctions.h"
+#include "../Savegame/BaseFacility.h"
+#include "../Savegame/Country.h"
+#include "../Savegame/Region.h"
+#include <utility>
 
 namespace OpenXcom
 {
@@ -30,6 +34,7 @@ class ToggleTextButton;
 class Window;
 class Text;
 class TextList;
+class RuleBaseFacility;
 
 enum class BaseInfoDetailsCategory {
 	SOLDIERS, ENGINEERS, SCIENTISTS,
@@ -67,7 +72,7 @@ private:
 	{
 		// Use parent-child relation to enable collapsable details.
 		// We have a subtotal (parent) if 'childId == parentId'.
-		size_t childId = 0;
+		size_t childId = 0; // Obsolete? Can use vector element to test against?
 		size_t parentId = 0;
 		std::string description = ""; // First display Column
 		int amount = 0;               // How many times a contribution is present on the base.
@@ -77,6 +82,9 @@ private:
 		bool isRowVisible = false;       // By default children are hidden unless unfolded.
 		std::string amountOverride = ""; // Specialized string for 'amount' column.
 		std::string valueOverride = "";  // Specialized string for 'result' column.
+
+		// Perhaps use
+		bool drawAmount = true; // Does this row draw something in the amount column? Used to be ".amount == -1"
 
 		BeanCounter() = default;
 		// Shortcut for minimum amount necessary
@@ -100,6 +108,10 @@ private:
 	std::vector<BeanCounter> _details;
 	std::vector<int> _rows;
 	size_t _sel;
+	RuleBaseFacilityFunctions _providedBaseFunc, _futureBaseFunc, _forbiddenBaseFunc;
+	std::set<RuleBaseFacility*> _forbiddenFacilities, _missingReqsFacilities;
+	const Country *_baseCountry;
+	const Region *_baseRegion;
 
 	void btnNextClick(Action *);
 	void btnPrevClick(Action *);
@@ -114,6 +126,8 @@ private:
 	void subcategoryBaseCamouflage();
 	void subcategoryUfoDetection();
 	void subcategoryAlienBaseDetection();
+	void subcategoryForbiddenFacilities();
+	void subcategoryMissingReqsFacilities();
 	void updateList();
 
 	void add2vector(std::vector<BeanCounter> &subCategory, BeanCounter row);
@@ -123,6 +137,17 @@ private:
 	double calcProbabilityAtLeastOne(std::vector<BeanCounter> &subCategory);
 	double calcProbabilityAtLeastOne(int baseChance, int tries);
 	BeanCounter &getRow() {return _details[_rows[_sel]];}
+
+	void updateBlockedFacilitiesSets();
+	bool isFacilityPartOfScreenCategory(RuleBaseFacility *rule);
+
+	// OBSOLETE ?
+	int addToDetailsVector(BeanCounter row, bool updateExistingValueField = true); // Mag weg?
+	bool parentHasChildren(int parentId);
+	int calculateSumOfChildrenAmountField(int parentId);
+	int calculateSumOfChildrenValueField(int parentId);
+	int calculateMaxOfChildrenValueField(int parentId);
+	// END OBSOLETE ?
 public:
 	/// Creates the info details state.
 	BaseInfoDetailsState(Base *base, BaseInfoDetailsCategory category);
