@@ -87,7 +87,7 @@ BuildFacilitiesState::BuildFacilitiesState(Base *base, State *state) : _base(bas
 	_lstFacilities->onMouseClick((ActionHandler)&BuildFacilitiesState::lstFacilitiesClick, SDL_BUTTON_MIDDLE);
 	_lstFacilities->onMouseClick((ActionHandler)&BuildFacilitiesState::lstFacilitiesClick, SDL_BUTTON_RIGHT);
 	_lstFacilities->setTooltip("LMB = place facility, MMB = ufopaedia article, RMB = build details");
-	_lstFacilities->onMouseIn((ActionHandler)&BuildFacilitiesState::showToolTip);
+	_lstFacilities->onMouseOver((ActionHandler)&BuildFacilitiesState::showToolTip);
 	_lstFacilities->onMouseOut((ActionHandler)&BuildFacilitiesState::hideToolTip);
 
 	_txtShortcutsTooltip->setText(_lstFacilities->getTooltip());
@@ -114,6 +114,7 @@ BuildFacilitiesState::~BuildFacilitiesState()
 void BuildFacilitiesState::showToolTip(Action *)
 {
 	if (!Options::r1do_enableControlsTooltips) return;
+	if (_txtShortcutsTooltip->getVisible()) return;
 	_txtShortcutsTooltip->setVisible(true);
 }
 
@@ -235,6 +236,7 @@ void BuildFacilitiesState::lstFacilitiesClick(Action *action)
 {
 	auto index = _lstFacilities->getSelectedRow();
 	_lstScroll = _lstFacilities->getScroll();
+	_txtShortcutsTooltip->setVisible(false);
 
 	if (action->getDetails()->button.button == SDL_BUTTON_MIDDLE)
 	{
@@ -242,15 +244,15 @@ void BuildFacilitiesState::lstFacilitiesClick(Action *action)
 		Ufopaedia::openArticle(_game, tmp);
 		return;
 	}
-	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT)
+	if (action->getDetails()->button.button == SDL_BUTTON_RIGHT && Options::r1do_enableBuildFacilitiesDetailsScreen)
 	{
 		if (index >= _facilities.size())
 		{
-			_game->pushState(new BuildFacilitiesDetailsState(_base, BuildFacilitiesDetailsState::Tabs::Blockers));
+			_game->pushState(new BuildFacilitiesDetailsState(_base, _disabledFacilities[index - _facilities.size()]));
 		}
 		else
 		{
-			_game->pushState(new BuildFacilitiesDetailsState(_base));
+			_game->pushState(new BuildFacilitiesDetailsState(_base, _facilities[index]));
 		}
 		return;
 	}

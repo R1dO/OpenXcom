@@ -16,7 +16,7 @@ interfaces:
         color: 244
         color2: 1  # white
   - type: buildFacilitiesDetails
-    backgroundImage: BACK13.SCR
+    backgroundImage: BACK05.SCR
     elements:
       - id: palette
         color: 6

@@ -42,9 +42,6 @@ class RuleBaseFacility;
  */
 class BuildFacilitiesDetailsState : public State
 {
-	friend class BuildFacilitiesState;
-protected:
-	enum class Tabs { Blockers, Requirements };
 private:
 	struct BeanCounter
 	{
@@ -74,20 +71,19 @@ private:
 			{ }
 	};
 
-
 	Base *_base;
 	RuleBaseFacility *_facRuleSelected;
-	Tabs _activeTab;
 
 	Window *_window;
-	Text *_txtTitle, *_txtSource, *_txtResult;
-	ToggleTextButton *_tabRequirements, *_tabBlockers;
+	Text *_txtTitle, *_txtDescription, *_txtOnBase;
 	TextList *_lstDetails;
 	TextButton *_btnOk;
 
 	std::vector<BeanCounter> _details;
 	std::vector<int> _rows;
 	size_t _sel;
+	BeanCounter &getRow() {return _details[_rows[_sel]];}
+
 	RuleBaseFacilityFunctions _facilitiesOnlyServices, _countriesOnlyServices, _regionsOnlyServices;
 	RuleBaseFacilityFunctions _providedBaseFunc, _futureBaseFunc, _forbiddenBaseFunc;
 	RuleBaseFacilityFunctions _requiredFacFunc, _forbiddenFacFunc, _providedFacFunc;
@@ -95,7 +91,6 @@ private:
 	const RuleRegion *_regionRule = nullptr;
 	std::map<const RuleBaseFacility*, int> _baseFacilitiesAndCount;
 
-	void tabClick(Action *action);
 	void lstDetailsMousePress(Action *);
 	void btnOkClick(Action *);
 
@@ -103,14 +98,14 @@ private:
 	void addSeparatorLine();
 	void updateList();
 
-	void setupTabRequirements();
+	void setupListContents();
+
 	void subcategoryReqsFunds();
 	void subcategoryReqsItems();
 	void subcategoryReqsServices();
 	void subcategoryLimitedByAmount();
 	void subcategoryProvidesServicesBlockedByOthers();
 	void subcategoryBlocksServicesProvidedByOthers();
-	void subcategoryReqsRecurring(); // Target for deletion, does not fit well on this screen
 	void subCategoryCanRenovate();
 
 	void setupTabBlockers();
@@ -123,12 +118,10 @@ private:
 	void add2_detailsVector(std::vector<BeanCounter> &subCategory, bool forceInclude = false);
 	void sortChildrenByDescription(std::vector<BeanCounter> &subCategory, size_t skipChildren = 0);
 	void sortChildrenByExistOnBase(std::vector<BeanCounter> &subCategory, size_t skipChildren = 0);
-	BeanCounter &getRow() {return _details[_rows[_sel]];}
-
 
 public:
 	/// Creates the facilities details state.
-	BuildFacilitiesDetailsState(Base *base, RuleBaseFacility *currentFacility, Tabs currentTab = Tabs::Requirements);
+	BuildFacilitiesDetailsState(Base *base, RuleBaseFacility *currentFacility);
 	/// Cleans up the facilities details state.
 	~BuildFacilitiesDetailsState();
 };

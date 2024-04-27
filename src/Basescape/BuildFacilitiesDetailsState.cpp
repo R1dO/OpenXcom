@@ -18,7 +18,6 @@
  */
 
 #include "BuildFacilitiesDetailsState.h"
-//#include "../Engine/Action.h"
 #include "../Engine/Game.h"
 #include "../Engine/Options.h"
 #include "../Mod/Mod.h"
@@ -42,10 +41,9 @@ namespace OpenXcom
  *
  * @param base            Pointer to the base to get info from.
  * @param currentFacility Pointer to ruleset of the facility to display.
- * @param currentTab Category to open
  */
-BuildFacilitiesDetailsState::BuildFacilitiesDetailsState(Base *base, RuleBaseFacility *currentFacility, Tabs currentTab) :
-	_base(base), _facRuleSelected(currentFacility), _activeTab(currentTab)
+BuildFacilitiesDetailsState::BuildFacilitiesDetailsState(Base *base, RuleBaseFacility *currentFacility) :
+	_base(base), _facRuleSelected(currentFacility)
 {
 	_screen = false;
 

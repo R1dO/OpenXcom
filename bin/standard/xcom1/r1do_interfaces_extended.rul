@@ -16,7 +16,7 @@ interfaces:
         color: 218   # blue
         color2: 208  # white
   - type: buildFacilitiesDetails
-    backgroundImage: BACK13.SCR
+    backgroundImage: BACK05.SCR
     palette: PAL_BASESCAPE
     elements:
       - id: palette
