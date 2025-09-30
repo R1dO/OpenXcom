@@ -44,6 +44,8 @@
 #include "OptionsConfirmState.h"
 #include "StartState.h"
 
+#include <iostream>
+
 namespace OpenXcom
 {
 
@@ -227,6 +229,8 @@ void OptionsBaseState::btnOkClick(Action *)
 			restart(_origin);
 		}
 	}
+
+	std::cout << "SDL_MOUSE_GRAB=" << SDL_WM_GrabInput(SDL_GRAB_QUERY) << std::endl;
 }
 
 /**
