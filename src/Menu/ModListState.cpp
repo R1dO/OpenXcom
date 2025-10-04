@@ -430,8 +430,6 @@ void ModListState::moveModDown(Action *action, unsigned int row, bool max)
 			std::cout << "Fullscreen=" << Options::fullscreen << std::endl;
 			std::cout << "AppState=" << static_cast<int>(SDL_GetAppState()) << std::endl;
 
-
-
 			int x,y,xr,yr;
 			SDL_GetMouseState(&x, &y);
 			SDL_GetRelativeMouseState(&xr, &yr);
@@ -443,9 +441,14 @@ void ModListState::moveModDown(Action *action, unsigned int row, bool max)
 				 action->getTopBlackBand() + action->getYMouse() + static_cast<Uint16>(ydiff * action->getYScale()));
 			
 			std::cout << "After warp" << std::endl;
+			std::cout << "Expected values:" << std::endl;
+			std::cout << "X= " << x << std::endl;
+			std::cout << "Y= " << y + static_cast<Uint16>(ydiff * action->getYScale()) << std::endl;
 			int x1,y1,x1r,y1r;
+			SDL_PumpEvents();
 			SDL_GetMouseState(&x1, &y1);
 			SDL_GetRelativeMouseState(&x1r, &y1r);
+			std::cout << "Returned values:" << std::endl;
 			std::cout << "X= " << x1 << "\t| Xr= " << x1r << std::endl;
 			std::cout << "Y= " << y1 << "\t| Yr= " << y1r << std::endl;
 
