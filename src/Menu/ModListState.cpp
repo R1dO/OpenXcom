@@ -32,6 +32,8 @@
 #include "../Engine/Action.h"
 #include "StartState.h"
 
+#include <iostream>
+
 namespace OpenXcom
 {
 
@@ -425,9 +427,28 @@ void ModListState::moveModDown(Action *action, unsigned int row, bool max)
 		}
 		if (curScrollPos + (int)_lstMods->getVisibleRows() > targetScrollPos)
 		{
+			std::cout << "Fullscreen=" << Options::fullscreen << std::endl;
+			std::cout << "AppState=" << static_cast<int>(SDL_GetAppState()) << std::endl;
+
+
+
+			int x,y,xr,yr;
+			SDL_GetMouseState(&x, &y);
+			SDL_GetRelativeMouseState(&xr, &yr);
+			std::cout << "X= " << x << "\t| Xr= " << xr << std::endl;
+			std::cout << "Y= " << y << "\t| Yr= " << yr << std::endl;
+
 			int ydiff = _lstMods->getTextHeight(row + 1);
 			SDL_WarpMouse(action->getLeftBlackBand() + action->getXMouse(),
 				 action->getTopBlackBand() + action->getYMouse() + static_cast<Uint16>(ydiff * action->getYScale()));
+			
+			std::cout << "After warp" << std::endl;
+			int x1,y1,x1r,y1r;
+			SDL_GetMouseState(&x1, &y1);
+			SDL_GetRelativeMouseState(&x1r, &y1r);
+			std::cout << "X= " << x1 << "\t| Xr= " << x1r << std::endl;
+			std::cout << "Y= " << y1 << "\t| Yr= " << y1r << std::endl;
+
 		}
 		else
 		{
